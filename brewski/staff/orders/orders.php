@@ -2,9 +2,6 @@
 
 session_start();
 
-/* Auth guard - commented out while this page is still a design shell.
-   Uncomment this whole block before the page is exposed to real users.
-
 if (!isset($_SESSION['user_id'])) {
 
     header('Location: ../../login-signup/login.php');
@@ -18,8 +15,6 @@ if ($role !== 'STAFF' && $role !== 'ADMIN') {
     header('Location: ../../login-signup/login.php');
     exit;
 }
-
-*/
 
 $is_signed_in = isset($_SESSION['user_id']);
 
