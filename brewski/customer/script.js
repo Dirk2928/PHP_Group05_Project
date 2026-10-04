@@ -1,72 +1,96 @@
-document.addEventListener('DOMContentLoaded', () => {
+/*
+ * script.js — page behaviour shared by the customer pages.
+ *
+ * Covers: icon rendering, the profile dropdown, the menu filters, and the
+ * customization modal. Everything cart-related lives in cart.js, which must be
+ * loaded first — adding to the cart goes through window.BrewskiCart.
+ *
+ * Each feature is guarded on the elements it needs, so a page can include this
+ * without having filters or a product grid.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    'use strict';
 
-    lucide.createIcons();
-
-
-const profileButton = document.getElementById('profile-button');
-const profileMenu = document.querySelector('.profile-menu');
-
-if (profileButton && profileMenu) {
-
-    profileButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        profileMenu.classList.toggle('open');
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!profileMenu.contains(e.target)) {
-            profileMenu.classList.remove('open');
-        }
-    });
-}
-
-
-    const CART_KEY = 'brewskiCart';
-    let cartItems = [];
-    try {
-        cartItems = JSON.parse(localStorage.getItem(CART_KEY)) || [];
-    } catch (e) {
-        cartItems = [];
+    if (window.lucide) {
+        window.lucide.createIcons();
     }
-    let currentProduct = null;
 
 
-    const modal = document.getElementById('customization-modal');
-    const modalProductName = document.getElementById('modal-product-name');
-    const modalTotalPrice = document.getElementById('modal-total-price');
-    const closeModalBtn = document.getElementById('modal-close');
-    const confirmAddBtn = document.getElementById('btn-confirm-add');
-    const cartBadge = document.querySelector('.cart-badge');
-    const addToCartButtons = document.querySelectorAll('.btn-add');
-    const optionButtons = document.querySelectorAll('.option-btn');
-    const specialInstructionsInput = document.getElementById('special-instructions');
+    /* --- profile dropdown ------------------------------------------------ */
 
+    var profileMenu = document.querySelector('.profile-menu');
+    var profileButton = document.getElementById('profile-button');
 
-    const productCards = document.querySelectorAll('.product-card');
-    const noResults = document.getElementById('no-results');
-    const filterState = { category: 'all', temp: 'all' };
+    if (profileMenu && profileButton) {
 
-    function applyFilters() {
-        let visibleCount = 0;
+        profileButton.addEventListener('click', function (event) {
+            event.stopPropagation();
 
-        productCards.forEach(card => {
-            const matchCategory = filterState.category === 'all' || card.dataset.category === filterState.category;
-            const matchTemp = filterState.temp === 'all' || card.dataset.temp === filterState.temp;
-            const show = matchCategory && matchTemp;
-
-            card.style.display = show ? '' : 'none';
-            if (show) visibleCount++;
+            var isOpen = profileMenu.classList.toggle('open');
+            profileButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         });
 
-        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        document.addEventListener('click', function (event) {
+            if (!profileMenu.contains(event.target)) {
+                profileMenu.classList.remove('open');
+                profileButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                profileMenu.classList.remove('open');
+                profileButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+    }
+
+
+    /* --- menu filters (menu page only) ----------------------------------- */
+
+    var productCards = document.querySelectorAll('.product-card');
+    var noResults = document.getElementById('no-results');
+    var filterState = { category: 'all', temp: 'all' };
+
+    function applyFilters() {
+        var visibleCount = 0;
+
+        productCards.forEach(function (card) {
+            var matchCategory =
+                filterState.category === 'all' ||
+                card.dataset.category === filterState.category;
+
+            var matchTemp =
+                filterState.temp === 'all' ||
+                card.dataset.temp === filterState.temp;
+
+            var show = matchCategory && matchTemp;
+
+            card.style.display = show ? '' : 'none';
+
+            if (show) {
+                visibleCount++;
+            }
+        });
+
+        if (noResults) {
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
     }
 
     function setupFilterGroup(containerId, stateKey) {
-        const container = document.getElementById(containerId);
+        var container = document.getElementById(containerId);
 
-        container.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        if (!container) {
+            return;
+        }
+
+        container.querySelectorAll('.filter-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                container.querySelectorAll('.filter-btn').forEach(function (other) {
+                    other.classList.remove('active');
+                });
+
                 btn.classList.add('active');
 
                 filterState[stateKey] = btn.dataset.filter;
@@ -79,14 +103,101 @@ if (profileButton && profileMenu) {
     setupFilterGroup('temp-filters', 'temp');
 
 
-    addToCartButtons.forEach(button => {
+    /* --- customization modal --------------------------------------------- */
+
+    var modal = document.getElementById('customization-modal');
+    var modalProductName = document.getElementById('modal-product-name');
+    var modalTotalPrice = document.getElementById('modal-total-price');
+    var closeModalBtn = document.getElementById('modal-close');
+    var confirmAddBtn = document.getElementById('btn-confirm-add');
+    var specialInstructionsInput = document.getElementById('special-instructions');
+    var optionButtons = document.querySelectorAll('.option-btn');
+    var addToCartButtons = document.querySelectorAll('.btn-add');
+
+    if (!modal || !modalProductName || !modalTotalPrice || !confirmAddBtn) {
+        return;
+    }
+
+    var currentProduct = null;
+
+    function activeOption(group) {
+        return document.querySelector('.option-buttons[data-group="' + group + '"] .option-btn.active');
+    }
+
+    function activeOptions(group) {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.option-buttons[data-group="' + group + '"] .option-btn.active'),
+            function (option) {
+                return option.dataset.value;
+            }
+        );
+    }
+
+    function calculateTotal() {
+        if (!currentProduct) {
+            return 0;
+        }
+
+        var total = currentProduct.basePrice;
+        var sizeBtn = activeOption('size');
+
+        if (sizeBtn) {
+            total += parseFloat(sizeBtn.dataset.price) || 0;
+        }
+
+        currentProduct.addons.forEach(function (addon) {
+            total += addon.price;
+        });
+
+        return total;
+    }
+
+    function updateModalTotal() {
+        modalTotalPrice.textContent = '₱' + calculateTotal();
+    }
+
+    function resetModalSelections(defaultTemp) {
+        ['temp', 'size', 'sugar', 'addons'].forEach(function (group) {
+            document.querySelectorAll('.option-buttons[data-group="' + group + '"] .option-btn').forEach(function (btn) {
+                btn.classList.remove('active');
+            });
+        });
+
+        var defaults = {
+            temp: defaultTemp || 'Hot',
+            size: 'Regular',
+            sugar: '100%'
+        };
+
+        Object.keys(defaults).forEach(function (group) {
+            var target = document.querySelector(
+                '.option-buttons[data-group="' + group + '"] [data-value="' + defaults[group] + '"]'
+            );
+
+            if (target) {
+                target.classList.add('active');
+            }
+        });
+
+        if (specialInstructionsInput) {
+            specialInstructionsInput.value = '';
+        }
+    }
+
+    addToCartButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-            const card = this.closest('.product-card');
-            const defaultTemp = card.dataset.temp === 'iced' ? 'Iced' : 'Hot';
+            var card = this.closest('.product-card');
+
+            if (!card) {
+                return;
+            }
+
+            var defaultTemp = card.dataset.temp === 'iced' ? 'Iced' : 'Hot';
 
             currentProduct = {
                 name: card.dataset.name,
-                basePrice: parseFloat(card.dataset.basePrice),
+                image: card.dataset.image || '',
+                basePrice: parseFloat(card.dataset.basePrice) || 0,
                 temp: defaultTemp,
                 size: 'Regular',
                 sugar: '100%',
@@ -96,49 +207,58 @@ if (profileButton && profileMenu) {
 
             resetModalSelections(defaultTemp);
 
-            modalProductName.textContent = `Customize: ${currentProduct.name}`;
+            modalProductName.textContent = 'Customize: ' + currentProduct.name;
 
             updateModalTotal();
-
             modal.classList.add('show');
         });
     });
 
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', function () {
+            modal.classList.remove('show');
+        });
+    }
 
-    closeModalBtn.addEventListener('click', () => {
-        modal.classList.remove('show');
-    });
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
             modal.classList.remove('show');
         }
     });
 
-
-    optionButtons.forEach(button => {
+    optionButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-            if (!currentProduct) return;
-
-            const group = this.parentElement.dataset.group;
-            const value = this.dataset.value;
-            const price = parseFloat(this.dataset.price);
-
-            if (group === 'temp' || group === 'size' || group === 'sugar') {
-                this.parentElement.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-
-                if (group === 'temp') currentProduct.temp = value;
-                if (group === 'size') currentProduct.size = value;
-                if (group === 'sugar') currentProduct.sugar = value;
+            if (!currentProduct) {
+                return;
             }
-            else if (group === 'addons') {
+
+            var group = this.parentElement.dataset.group;
+            var value = this.dataset.value;
+            var price = parseFloat(this.dataset.price) || 0;
+
+            if (group === 'addons') {
                 this.classList.toggle('active');
 
                 if (this.classList.contains('active')) {
                     currentProduct.addons.push({ name: value, price: price });
                 } else {
-                    currentProduct.addons = currentProduct.addons.filter(item => item.name !== value);
+                    currentProduct.addons = currentProduct.addons.filter(function (addon) {
+                        return addon.name !== value;
+                    });
+                }
+            } else if (group === 'temp' || group === 'size' || group === 'sugar') {
+                this.parentElement.querySelectorAll('.option-btn').forEach(function (other) {
+                    other.classList.remove('active');
+                });
+
+                this.classList.add('active');
+
+                if (group === 'temp') {
+                    currentProduct.temp = value;
+                } else if (group === 'size') {
+                    currentProduct.size = value;
+                } else {
+                    currentProduct.sugar = value;
                 }
             }
 
@@ -146,91 +266,58 @@ if (profileButton && profileMenu) {
         });
     });
 
-    function calculateTotal() {
-        let total = currentProduct.basePrice;
-
-        const sizeBtn = document.querySelector('[data-group="size"] .option-btn.active');
-        if (sizeBtn) total += parseFloat(sizeBtn.dataset.price);
-
-        currentProduct.addons.forEach(addon => {
-            total += addon.price;
-        });
-
-        return total;
-    }
-
-    function updateModalTotal() {
-        if (!currentProduct) return;
-        modalTotalPrice.textContent = `₱${calculateTotal()}`;
-    }
-
-    function resetModalSelections(defaultTemp = 'Hot') {
-        const tempGroup = document.querySelector('[data-group="temp"]');
-        tempGroup.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
-        tempGroup.querySelector(`[data-value="${defaultTemp}"]`).classList.add('active');
-
-        const sizeGroup = document.querySelector('[data-group="size"]');
-        sizeGroup.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
-        sizeGroup.querySelector('[data-value="Regular"]').classList.add('active');
-
-        const sugarGroup = document.querySelector('[data-group="sugar"]');
-        sugarGroup.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
-        sugarGroup.querySelector('[data-value="100%"]').classList.add('active');
-
-        const addonsGroup = document.querySelector('[data-group="addons"]');
-        addonsGroup.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('active'));
-
-        specialInstructionsInput.value = '';
-    }
-
-
-    confirmAddBtn.addEventListener('click', () => {
-        if (!currentProduct) return;
-
-        currentProduct.instructions = specialInstructionsInput.value.trim();
-
-        const cartItem = {
-            ...currentProduct,
-            totalPrice: calculateTotal(),
-            quantity: 1
-        };
-
-        cartItems.push(cartItem);
-
-        try {
-            localStorage.setItem(CART_KEY, JSON.stringify(cartItems));
-        } catch (e) {
-            console.warn('Could not save cart:', e);
+    confirmAddBtn.addEventListener('click', function () {
+        if (!currentProduct || !window.BrewskiCart) {
+            return;
         }
 
-        updateCartBadge();
+        var parts = [];
+        var temp = activeOptions('temp')[0];
+        var sugar = activeOptions('sugar')[0];
+        var size = activeOptions('size')[0] || '';
+        var note = specialInstructionsInput ? specialInstructionsInput.value.trim() : '';
 
-        const originalHTML = confirmAddBtn.innerHTML;
+        if (temp) {
+            parts.push(temp);
+        }
+
+        if (sugar) {
+            parts.push(sugar + ' sugar');
+        }
+
+        activeOptions('addons').forEach(function (addon) {
+            parts.push(addon);
+        });
+
+        if (note !== '') {
+            parts.push(note);
+        }
+
+        window.BrewskiCart.add({
+            name: currentProduct.name,
+            image: currentProduct.image,
+            size: size,
+            customization: parts.join(', '),
+            price: calculateTotal()
+        });
+
+        var originalHTML = confirmAddBtn.innerHTML;
+
         confirmAddBtn.innerHTML = '<i data-lucide="check"></i> Added!';
         confirmAddBtn.style.backgroundColor = 'var(--mocha)';
 
-        lucide.createIcons();
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
 
-        setTimeout(() => {
+        setTimeout(function () {
             confirmAddBtn.innerHTML = originalHTML;
             confirmAddBtn.style.backgroundColor = '';
-            lucide.createIcons();
             modal.classList.remove('show');
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
         }, 1000);
     });
-
-
-    function updateCartBadge() {
-        const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-        cartBadge.textContent = totalItems;
-
-        cartBadge.style.transform = 'scale(1.3)';
-        setTimeout(() => {
-            cartBadge.style.transform = 'scale(1)';
-        }, 200);
-    }
-
-
-    cartBadge.textContent = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
 });

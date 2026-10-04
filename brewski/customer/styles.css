@@ -5,6 +5,13 @@
     --mocha:    #71492a;
     --dark-mocha: #3c3027;
     --white: #ffffff;
+
+    /* Absorbed from customer_profile.css, which used to redefine the whole
+       palette in its own :root and quietly overrode these values. */
+    --foam: #f2e4cc;
+    --danger: #a32a1f;
+    --success: #2f6b3a;
+
     --shadow-sm: 0 2px 8px rgba(30, 17, 10, 0.08);
     --shadow-md: 0 8px 24px rgba(30, 17, 10, 0.12);
     --shadow-lg: 0 24px 48px rgba(30, 17, 10, 0.2);
