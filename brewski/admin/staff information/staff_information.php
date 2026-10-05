@@ -1,5 +1,9 @@
 <?php
 
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
 $staffMembers = [
 	['id' => 'STAFF-001', 'name' => 'Marco Reyes', 'role' => 'Barista', 'status' => 'Active', 'created_at' => '2024-01-15'],
 	['id' => 'STAFF-002', 'name' => 'Liza Bautista', 'role' => 'Cashier', 'status' => 'Active', 'created_at' => '2024-02-22'],

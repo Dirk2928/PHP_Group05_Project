@@ -3,6 +3,10 @@
 
 
 
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
 $transactions = [
     ['id' => 'TXN-1007', 'datetime' => '2026-09-29T14:32', 'customer' => 'Ana de los Reyes', 'product' => 'Caramel Macchiato (Large)', 'method' => 'GCash', 'amount' => 195.00, 'staff' => 'Marco Reyes'],
     ['id' => 'TXN-1006', 'datetime' => '2026-09-29T13:58', 'customer' => 'Juan Dela Cruz',   'product' => 'Iced Americano (Medium)',  'method' => 'Cash',  'amount' => 120.00, 'staff' => 'Liza Bautista'],

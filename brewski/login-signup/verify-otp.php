@@ -1,13 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_init.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
-
-
-
-
-
-
 
 $conn = new mysqli(
     'localhost',
@@ -21,13 +15,6 @@ if ($conn->connect_error) {
 }
 
 $conn->set_charset('utf8mb4');
-
-
-
-
-
-
-
 
 if (empty($_SESSION['otp_pending'])) {
     header('Location: login.php');
@@ -54,13 +41,6 @@ if (isset($_GET['cancel'])) {
     header('Location: login.php?msg=otp_cancelled');
     exit;
 }
-
-
-
-
-
-
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $otp = preg_replace('/\D/', '', $_POST['otp'] ?? '');
@@ -107,11 +87,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['last_name'] = $pending['last_name'];
                     $_SESSION['email'] = $pending['email'];
                     $_SESSION['role'] = $pending['role'];
+
+                    // Start the timeout clocks (read by session_init.php)
+                    $_SESSION['created_at'] = time();    // absolute timeout
+                    $_SESSION['last_activity'] = time(); // idle timeout
+
                     unset($_SESSION['otp_pending']);
                     session_write_close();
 
-                    if ($pending['role'] === 'ADMIN' || $pending['role'] === 'STAFF') {
+                    if ($pending['role'] === 'ADMIN') {
                         header('Location: ../admin/admin%20home/admin_dashboard.php');
+                    } elseif ($pending['role'] === 'STAFF') {
+                        header('Location: ../staff/orders/orders.php');
                     } else {
                         header('Location: ../customer/customer_home/customerhome.php');
                     }
@@ -160,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <link
         rel="preconnect"
-        href="https://fonts.googleapis.com"
+        href="https://fonts.gstatic.com"
         crossorigin
     >
 

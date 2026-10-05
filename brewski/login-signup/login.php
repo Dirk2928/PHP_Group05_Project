@@ -1,25 +1,12 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/email-service-client.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
-
-
-
-
-
-
-
-$CUSTOMER_HOME = '../customer/customer_home/customerhome.php';
-$ADMIN_HOME    = '../admin/admin%20home/admin_dashboard.php';
-
-
-
-
-
-
-
+$customerHome = '../customer/customer_home/customerhome.php';
+$adminHome    = '../admin/admin%20home/admin_dashboard.php';
+$staffHome    = '../staff/orders/orders.php';
 
 $conn = new mysqli(
     'localhost',
@@ -34,184 +21,87 @@ if ($conn->connect_error) {
     $conn->set_charset('utf8mb4');
 }
 
-
-
-
-
-
-
-
 function normalizeRole($role)
 {
     return strtoupper(trim((string) $role));
 }
 
-
-function redirectByRole($role, $customerHome, $adminHome)
+function redirectByRole($role, $customerHome, $adminHome, $staffHome)
 {
     $role = normalizeRole($role);
 
-    if ($role === 'ADMIN' || $role === 'STAFF') {
-
+    if ($role === 'ADMIN') {
         header('Location: ' . $adminHome);
-
+    } elseif ($role === 'STAFF') {
+        header('Location: ' . $staffHome);
     } else {
-
         header('Location: ' . $customerHome);
     }
 
     exit;
 }
 
-
-
-
-
-
-
-
 $error = '';
 $email_value = '';
 
-
-
-
-
-
-
-
-
-
-
 if (isset($_SESSION['signup_success'])) {
-
     $success = $_SESSION['signup_success'];
-
     unset($_SESSION['signup_success']);
-
 } else {
-
     $success = '';
 }
 
-
-
-
-
-
-
-
 if (isset($_GET['logout'])) {
-
     $_SESSION = [];
 
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+    }
+
     session_destroy();
-
     header('Location: login.php');
-
     exit;
 }
 
-
-
-
-
-
-
-
-if (
-    isset($_GET['msg']) &&
-    $_GET['msg'] === 'otp_cancelled'
-) {
-
-    $error =
-        'Login cancelled. Please log in again.';
+if (isset($_GET['msg']) && $_GET['msg'] === 'otp_cancelled') {
+    $error = 'Login cancelled. Please log in again.';
 }
 
-
-
-
-
-
-
+if (isset($_GET['timeout'])) {
+    $error = 'Your session expired. Please log in again.';
+}
 
 if (isset($_SESSION['user_id'])) {
-
     redirectByRole(
         $_SESSION['role'] ?? '',
-        $CUSTOMER_HOME,
-        $ADMIN_HOME
+        $customerHome,
+        $adminHome,
+        $staffHome
     );
 }
-
-
-
-
-
-
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email = trim(
-        $_POST['email'] ?? ''
-    );
-
+    $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
+    $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
+    if ($email === '' || $password === '') {
 
+        $error = 'Please fill in all fields.';
 
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-
-
-
-    $email_value = htmlspecialchars(
-        $email,
-        ENT_QUOTES,
-        'UTF-8'
-    );
-
-
-
-
-
-
-
-
-    if (
-        $email === '' ||
-        $password === ''
-    ) {
-
-        $error =
-            'Please fill in all fields.';
-
-
-    } elseif (
-        !filter_var(
-            $email,
-            FILTER_VALIDATE_EMAIL
-        )
-    ) {
-
-        $error =
-            'Please enter a valid email address.';
-
+        $error = 'Please enter a valid email address.';
 
     } elseif (!$conn) {
 
-        $error =
-            'Unable to connect to the database. Please make sure MySQL is running.';
-
+        $error = 'Unable to connect to the database. Please make sure MySQL is running.';
 
     } else {
-
-
-
-
-
-
 
         $stmt = $conn->prepare(
             "SELECT
@@ -227,37 +117,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              LIMIT 1"
         );
 
-
         if (!$stmt) {
 
-            $error =
-                'Something went wrong while accessing the database.';
-
+            $error = 'Something went wrong while accessing the database.';
 
         } else {
 
-            $stmt->bind_param(
-                's',
-                $email
-            );
-
+            $stmt->bind_param('s', $email);
 
             if (!$stmt->execute()) {
 
-                $error =
-                    'Something went wrong. Please try again.';
-
+                $error = 'Something went wrong. Please try again.';
 
             } else {
 
                 $stmt->store_result();
-
-
-
-
-
-
-
 
                 if ($stmt->num_rows === 1) {
 
@@ -273,55 +147,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $stmt->fetch();
 
+                    $role = normalizeRole($role);
 
+                    $passwordOk = password_verify($password, $stored_password);
 
-
-
-
-
-
-                    $role = normalizeRole(
-                        $role
-                    );
-
-
-
-
-
-
-
-
-                    $passwordOk = password_verify(
-                        $password,
-                        $stored_password
-                    );
-
-
-
-
-
-
-
-
-
-
-
-
+                    // Legacy plain-text passwords: accept once, then upgrade to a hash
                     if (
                         !$passwordOk &&
-                        hash_equals(
-                            (string) $stored_password,
-                            $password
-                        )
+                        hash_equals((string) $stored_password, $password)
                     ) {
-
                         $passwordOk = true;
 
-                        $newHash = password_hash(
-                            $password,
-                            PASSWORD_DEFAULT
-                        );
-
+                        $newHash = password_hash($password, PASSWORD_DEFAULT);
 
                         $upd = $conn->prepare(
                             "UPDATE users
@@ -329,53 +166,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                              WHERE user_id = ?"
                         );
 
-
                         if ($upd) {
-
-                            $upd->bind_param(
-                                'si',
-                                $newHash,
-                                $user_id
-                            );
-
+                            $upd->bind_param('si', $newHash, $user_id);
                             $upd->execute();
-
                             $upd->close();
                         }
                     }
 
-
-
-
-
-
-
-
                     if (!$passwordOk) {
 
-                        $error =
-                            'Incorrect email or password.';
+                        $error = 'Incorrect email or password.';
 
+                    } elseif ((int) $is_active !== 1) {
 
-
-
-
-
-
-
-                    } elseif (
-                        (int) $is_active !== 1
-                    ) {
-
-                        $error =
-                            'Your account is not verified yet. Please complete the email verification first.';
-
-
-
-
-
-
-
+                        $error = 'Your account is not verified yet. Please complete the email verification first.';
 
                     } else {
 
@@ -455,19 +259,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                 } else {
-
-
-
-
-
-
-
-                    $error =
-                        'Incorrect email or password.';
+                    $error = 'Incorrect email or password.';
                 }
             }
-
-
             $stmt->close();
         }
     }
@@ -487,7 +281,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     >
 
     <title>Login | brewski</title>
-
 
     <link
         rel="preconnect"
@@ -512,15 +305,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </head>
 
-
 <body>
 
 <main class="auth">
-
-
-
-
-
 
     <aside class="side">
 
@@ -528,11 +315,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             brew<span>ski</span>
         </p>
 
-
         <p class="side__line">
             Your favorite cup, ready when you are.
         </p>
-
 
         <nav class="side__nav">
 
@@ -542,7 +327,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             >
                 About us
             </a>
-
 
             <a
                 href="about-brewski.html"
@@ -555,17 +339,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     </aside>
 
-
-
-
-
-
     <section class="auth__panel">
 
         <div class="auth__content">
-
-
-
 
             <img
                 class="brand__logo"
@@ -573,20 +349,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alt="Brewski Logo"
             >
 
-
             <p class="brand__name">
                 brew<span>ski</span>
             </p>
 
-
             <h1 class="auth__title">
                 Welcome back
             </h1>
-
-
-
-
-
 
             <?php if ($success !== ''): ?>
 
@@ -610,11 +379,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </p>
 
             <?php endif; ?>
-
-
-
-
-
 
             <?php if ($error !== ''): ?>
 
@@ -651,11 +415,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php endif; ?>
 
-
-
-
-
-
             <form
                 class="form"
                 id="login-form"
@@ -663,15 +422,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 action="login.php"
             >
 
-
-
-
                 <div class="field">
 
                     <label for="email">
                         Email
                     </label>
-
 
                     <input
                         type="email"
@@ -682,7 +437,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                     >
 
-
                     <p
                         class="field__error"
                         id="email-error"
@@ -691,15 +445,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 </div>
 
-
-
-
                 <div class="field">
 
                     <label for="password">
                         Password
                     </label>
-
 
                     <div class="password-wrap">
 
@@ -710,7 +460,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             autocomplete="current-password"
                             required
                         >
-
 
                         <button
                             type="button"
@@ -724,7 +473,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     </div>
 
-
                     <p
                         class="field__error"
                         id="password-error"
@@ -732,9 +480,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ></p>
 
                 </div>
-
-
-
 
                 <button
                     type="submit"
@@ -744,9 +489,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
 
             </form>
-
-
-
 
             <p class="auth__switch">
 
@@ -758,13 +500,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             </p>
 
-
         </div>
 
     </section>
 
 </main>
-
 
 <script src="script.js"></script>
 

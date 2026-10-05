@@ -1,4 +1,9 @@
 <?php
+
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['CUSTOMER']);
+
 if (!function_exists('e')) {
 
     function e($value): string

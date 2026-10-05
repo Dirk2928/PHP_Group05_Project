@@ -1,3 +1,11 @@
+<?php
+
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
+?>
+
 <section class="product-management-page">
     <div class="page-header">
         <div>

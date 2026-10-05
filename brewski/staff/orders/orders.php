@@ -1,22 +1,10 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/../../login-signup/session_init.php';
 
-if (!isset($_SESSION['user_id'])) {
+brewski_require_role(['STAFF', 'ADMIN']);
 
-    header('Location: ../../login-signup/login.php');
-    exit;
-}
-
-$role = strtoupper(trim((string) ($_SESSION['role'] ?? '')));
-
-if ($role !== 'STAFF' && $role !== 'ADMIN') {
-
-    header('Location: ../../login-signup/login.php');
-    exit;
-}
-
-$is_signed_in = isset($_SESSION['user_id']);
+$is_signed_in = brewski_is_logged_in();
 
 $first_name = $_SESSION['first_name'] ?? '';
 $last_name  = $_SESSION['last_name'] ?? '';

@@ -1,6 +1,10 @@
 <?php
 
 
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
 $customers = [
     ['id' => 'CUST-001', 'name' => 'Juan Dela Cruz', 'status' => 'Active', 'created_at' => '2023-01-15'],
     ['id' => 'CUST-002', 'name' => 'Maria Santos', 'status' => 'Locked', 'created_at' => '2023-03-22'],

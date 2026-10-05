@@ -1,7 +1,10 @@
 <?php
-session_start();
 
-$adminName = $_SESSION['admin_name'] ?? 'Admin';
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
+$adminName = $_SESSION['first_name'] ?? 'Admin';
 
 $stats = [
     'total_customers' => 0,

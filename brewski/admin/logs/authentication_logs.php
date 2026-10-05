@@ -2,6 +2,10 @@
 
 
 
+require_once __DIR__ . '/../../login-signup/session_init.php';
+
+brewski_require_role(['ADMIN']);
+
 $logs = [
     ['id' => 'LOG-2021', 'logged_at' => '2026-09-29 14:05', 'name' => 'Marco Reyes',     'role' => 'STAFF',    'activity' => 'Logged in'],
     ['id' => 'LOG-2020', 'logged_at' => '2026-09-29 13:41', 'name' => 'Ana de los Reyes', 'role' => 'CUSTOMER', 'activity' => 'Logged out'],
