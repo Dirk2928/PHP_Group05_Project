@@ -88,9 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['email'] = $pending['email'];
                     $_SESSION['role'] = $pending['role'];
 
-                    // Start the timeout clocks (read by session_init.php)
-                    $_SESSION['created_at'] = time();    // absolute timeout
-                    $_SESSION['last_activity'] = time(); // idle timeout
+                    $_SESSION['created_at'] = time();    
+                    $_SESSION['last_activity'] = time(); 
 
                     unset($_SESSION['otp_pending']);
                     session_write_close();
@@ -98,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($pending['role'] === 'ADMIN') {
                         header('Location: ../admin/admin%20home/admin_dashboard.php');
                     } elseif ($pending['role'] === 'STAFF') {
-                        header('Location: ../staff/staff%20home/staff_dashboard.php');
+                        header('Location: ../staff/orders/orders.php');
                     } else {
                         header('Location: ../customer/customer_home/customerhome.php');
                     }
