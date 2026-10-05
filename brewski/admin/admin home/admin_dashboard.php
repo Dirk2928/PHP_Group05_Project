@@ -73,8 +73,7 @@ if ($mysqli) {
             <button type="button" id="profileBtn" class="icon-btn profile-btn" aria-label="Open profile menu" aria-expanded="false"></button>
 
             <div id="profileMenu" class="profile-menu hidden">
-                <button type="button" class="profile-menu-item">Profile</button>
-                <button type="button" class="profile-menu-item border-top">Log out</button>
+                <a href="../../login-signup/logout.php" class="profile-menu-item border-top">Log out</a>
             </div>
         </div>
     </header>

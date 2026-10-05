@@ -64,11 +64,6 @@ $display_name = htmlspecialchars(
             ></button>
 
             <div id="profileMenu" class="profile-menu hidden">
-
-                <button type="button" class="profile-menu-item">
-                    Profile
-                </button>
-
                 <a
                     href="../../login-signup/logout.php"
                     class="profile-menu-item border-top"

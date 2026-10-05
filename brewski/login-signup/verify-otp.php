@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($pending['role'] === 'ADMIN') {
                         header('Location: ../admin/admin%20home/admin_dashboard.php');
                     } elseif ($pending['role'] === 'STAFF') {
-                        header('Location: ../staff/orders/orders.php');
+                        header('Location: ../staff/staff%20home/staff_dashboard.php');
                     } else {
                         header('Location: ../customer/customer_home/customerhome.php');
                     }
