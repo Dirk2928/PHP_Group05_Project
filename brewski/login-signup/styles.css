@@ -135,6 +135,7 @@ body {
     display: block;
     margin-bottom: 0.3rem;
     font-size: 0.85rem;
+    opacity: 20.8;
 }
 
 .field input {
@@ -236,4 +237,13 @@ body {
 
 @media (max-width: 800px) {
     .auth__image { display: none; }
+}
+
+.password-hint {
+    display: block;
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--mocha);
+    opacity: 0.6;
 }

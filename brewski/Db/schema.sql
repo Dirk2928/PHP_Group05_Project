@@ -37,6 +37,19 @@ CREATE TABLE otp_codes (
         ON DELETE CASCADE
 );
 
+CREATE TABLE settings (
+    setting_key VARCHAR(64) PRIMARY KEY,
+    setting_value VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO settings (setting_key, setting_value)
+VALUES
+    ('min_password_length', '12'),
+    ('session_idle_timeout', '1800'),
+    ('session_absolute_timeout', '28800');
+
 CREATE TABLE categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL UNIQUE,

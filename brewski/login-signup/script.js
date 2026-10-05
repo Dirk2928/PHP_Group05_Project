@@ -171,11 +171,13 @@ if (passwordInput && passwordToggle) {
             }
 
 
-            if (password.value.length < 8) {
+            const minPasswordLength = parseInt(password.dataset.minLength, 10) || 12;
+
+            if (password.value.length < minPasswordLength) {
 
                 showError(
                     'password',
-                    'Use at least 8 characters.'
+                    'Use at least ' + minPasswordLength + ' characters.'
                 );
 
                 hasError = true;

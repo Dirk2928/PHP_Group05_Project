@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once __DIR__ . '/email-service-client.php';
+require_once __DIR__ . '/settings.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -48,6 +49,8 @@ $success = '';
 $first_name_value = '';
 $last_name_value  = '';
 $email_value      = '';
+
+$min_password_length = brewski_min_password_length();
 
 
 
@@ -108,9 +111,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error = 'Please enter a valid email address.';
 
-    } elseif (strlen($password) < 8) {
+    } elseif (strlen($password) < $min_password_length) {
 
-        $error = 'Password must be at least 8 characters long.';
+        $error =
+            'Password must be at least ' .
+            $min_password_length .
+            ' characters long.';
 
     } elseif (
         !preg_match(
@@ -696,7 +702,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             name="password"
                             autocomplete="new-password"
                             required
-                            minlength="8"
+                            minlength="<?php echo (int) $min_password_length; ?>"
+                            data-min-length="<?php echo (int) $min_password_length; ?>"
                         >
 
                         <button
@@ -716,6 +723,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         id="password-error"
                         style="display:none;"
                     ></p>
+
+                    <p class="password-hint">
+                        Password should be at least <?php echo (int) $min_password_length; ?> characters including a number, special character, uppercase and lowercase letter.
+                    </p>
 
                 </div>
 

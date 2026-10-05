@@ -126,7 +126,9 @@ if ($mysqli) {
                 </button>
             </div>
 
-            <button type="button" class="nav-item" data-view="../logs/authentication_logs.php">Authentication Logs</button>
+            <button type="button" class="nav-item" data-view="../logs/authentication_logs.php">Activity Logs</button>
+
+            <button type="button" class="nav-item" data-view="../system settings/settings.php">System Settings</button>
 
             <button type="button" class="nav-item" data-view="profile">Profile</button>
         </nav>

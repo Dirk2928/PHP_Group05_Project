@@ -1,0 +1,61 @@
+.settings-card {
+    width: 100%;
+    max-width: 2200px;
+    padding: 28px 32px;
+    background-color: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    gap: 24px;
+}
+
+.settings-card .form-field {
+    gap: 8px;
+}
+
+.settings-card .form-field input {
+    height: 48px;
+    padding: 0 16px;
+    font-size: 15px;
+}
+
+.form-hint {
+    margin: 0;
+    max-width: 70ch;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.settings-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.settings-actions .btn {
+    height: 48px;
+    padding: 0 28px;
+    font-size: 14px;
+}
+
+.settings-status {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.settings-status.is-saved {
+    color: var(--accent-strong);
+}
+
+.settings-status.is-error {
+    color: #b91c1c;
+}
+
+@media (max-width: 559px) {
+    .settings-card {
+        padding: 20px 18px;
+    }
+}

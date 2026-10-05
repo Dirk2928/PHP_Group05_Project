@@ -1,11 +1,13 @@
 <?php
 
+require_once __DIR__ . '/settings.php';
+
 if (!defined('SESSION_IDLE_TIMEOUT')) {
-    define('SESSION_IDLE_TIMEOUT', 1800);
+    define('SESSION_IDLE_TIMEOUT', brewski_session_idle_timeout());
 }
 
 if (!defined('SESSION_ABSOLUTE_TIMEOUT')) {
-    define('SESSION_ABSOLUTE_TIMEOUT', 28800);
+    define('SESSION_ABSOLUTE_TIMEOUT', brewski_session_absolute_timeout());
 }
 
 if (!defined('BREWSKI_BASE_URL')) {
