@@ -1627,3 +1627,276 @@ body {
         grid-column: 1 / -1;
     }
 }
+
+.product-management-page .catalog-addon-form .catalog-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+}
+
+.product-management-page .page-header {
+    margin-top: -0.5rem;
+}
+
+.product-management-page .catalog-addon-form .catalog-fields > label {
+    min-width: 0;
+}
+
+.product-management-page .catalog-option-group {
+    min-width: 0;
+    padding: 0.85rem;
+    border: 1px solid #eadcc8;
+    border-radius: 0.75rem;
+    background: linear-gradient(145deg, #fffdf9, #fbf4e9);
+}
+
+.product-management-page .catalog-option-group > strong {
+    margin-bottom: 0.65rem;
+    color: #422719;
+    font-size: 0.95rem;
+}
+
+.product-management-page .catalog-option-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+}
+
+.product-management-page .catalog-option-row {
+    align-items: center;
+    padding: 0.2rem;
+    border-radius: 0.65rem;
+}
+
+.product-management-page .catalog-option {
+    min-height: 38px;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid #e5d2b8;
+    border-radius: 999px;
+    background: #fff;
+    color: #422719;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.product-management-page .catalog-option:hover {
+    border-color: #9b704d;
+    background: #fff9ef;
+}
+
+.product-management-page .catalog-option:has(input:checked) {
+    border-color: #71492a;
+    background: #f1e2ca;
+    box-shadow: 0 0 0 2px rgba(113, 73, 42, 0.1);
+}
+
+.product-management-page .catalog-option input[type="checkbox"],
+.product-management-page .catalog-select-all input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: #71492a;
+    cursor: pointer;
+}
+
+.product-management-page .catalog-select-all {
+    min-height: 36px;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #d8bf9f;
+    border-radius: 0.6rem;
+    background: #f8efdf;
+    color: #422719;
+    cursor: pointer;
+}
+
+.product-management-page .catalog-select-all:has(input:checked) {
+    border-color: #71492a;
+    background: #ead6b9;
+}
+
+.product-management-page .catalog-option-group > .catalog-select-all {
+    margin: 0 0 0.7rem;
+}
+
+.product-management-page .catalog-options > legend {
+    color: #422719;
+}
+
+.product-management-page .catalog-addon-categories {
+    display: grid;
+    gap: 0.6rem;
+    width: 100%;
+}
+
+.product-management-page .catalog-addon-category {
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #eadcc8;
+    border-radius: 0.7rem;
+    background: #fffdf9;
+}
+
+.product-management-page .catalog-addon-category > summary {
+    color: #422719;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.product-management-page .catalog-addon-category[open] > summary {
+    margin-bottom: 0.5rem;
+}
+
+.product-management-page .catalog-select-all--category {
+    width: fit-content;
+    margin: 0.1rem 0 0.55rem;
+}
+
+.product-management-page .catalog-addon-drinks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    gap: 0.45rem;
+}
+
+.product-management-page .catalog-addon-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+}
+
+.product-management-page .catalog-addon-summary span {
+    white-space: normal;
+}
+
+.product-management-page .catalog-addon {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.product-management-page .catalog-addon-form + .catalog-product-list {
+    margin-top: 1.25rem;
+}
+
+.product-management-page .catalog-addon .catalog-product__summary {
+    min-width: 0;
+}
+
+.product-management-page .catalog-addon .catalog-addon-summary {
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+}
+
+.product-management-page .catalog-addon .catalog-addon-summary span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid #eadcc8;
+    border-radius: 999px;
+    background: #fbf4e9;
+    color: #5d412d;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.product-management-page .catalog-addon .catalog-product__edit {
+    justify-self: end;
+}
+
+@media (max-width: 850px) {
+    .product-management-page .catalog-addon-form .catalog-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .product-management-page .catalog-addon-form .catalog-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .product-management-page .catalog-option-row {
+        width: 100%;
+    }
+
+    .product-management-page .catalog-option-price {
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+
+    .product-management-page .catalog-addon {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.65rem;
+    }
+
+    .product-management-page .catalog-addon .catalog-addon-summary {
+        gap: 0.35rem;
+    }
+}
+
+.product-management-page .page-header h1 {
+    font-size: 1.85rem;
+}
+
+.product-management-page .subtitle {
+    font-size: 0.9rem;
+}
+
+.product-management-page .catalog-panel {
+    padding: 1.1rem;
+}
+
+.product-management-page .catalog-panel > h2 {
+    font-size: 1.1rem;
+}
+
+.product-management-page .catalog-form label,
+.product-management-page .catalog-option,
+.product-management-page .catalog-select-all {
+    font-size: 0.8rem;
+}
+
+.product-management-page .catalog-form input[type="text"],
+.product-management-page .catalog-form input[type="number"],
+.product-management-page .catalog-form input[type="file"],
+.product-management-page .catalog-form select {
+    min-height: 37px;
+    padding: 0.48rem 0.6rem;
+}
+
+.product-management-page .catalog-button {
+    min-height: 37px;
+    padding: 0.48rem 0.75rem;
+    font-size: 0.82rem;
+}
+
+.product-management-page .catalog-options {
+    padding: 0.9rem;
+    gap: 0.7rem;
+}
+
+.product-management-page .catalog-option {
+    min-height: 35px;
+    padding: 0.4rem 0.62rem;
+}
+
+.product-management-page .catalog-select-all {
+    min-height: 33px;
+    padding: 0.3rem 0.62rem;
+}
+
+.product-management-page .catalog-product {
+    gap: 0.8rem;
+    padding: 0.75rem;
+}
+
+.product-management-page .catalog-product__image {
+    width: 64px;
+    height: 64px;
+}
+
+@media (max-width: 650px) {
+    .product-management-page .catalog-product__image {
+        width: 52px;
+        height: 52px;
+    }
+}

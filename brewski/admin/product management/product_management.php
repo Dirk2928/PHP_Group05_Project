@@ -805,14 +805,18 @@ $escape = static function ($value): string {
                 <fieldset class="catalog-options">
                     <legend>Customizations customers may choose</legend>
                     <?php foreach ($optionChoices as $group => $choices): ?>
-                        <div class="catalog-option-group">
+                        <div class="catalog-option-group" data-customization-group>
                             <strong><?= $escape(ucfirst($group)) ?></strong>
-                            <div>
+                            <label class="catalog-select-all">
+                                <input type="checkbox" data-select-all-customizations>
+                                Select all <?= $escape($group) ?> options
+                            </label>
+                            <div class="catalog-option-list">
                                 <?php foreach ($choices as $choice): ?>
                                     <?php $optionKey = $group . ':' . $choice['name']; ?>
                                     <div class="catalog-option-row">
                                         <label class="catalog-option">
-                                            <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>">
+                                            <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>" data-customization-option>
                                             <?= $escape($choice['name']) ?>
                                         </label>
                                         <?php if ($group === 'size'): ?>
@@ -858,16 +862,38 @@ $escape = static function ($value): string {
                 </div>
                 <fieldset class="catalog-options">
                     <legend>Available for drinks</legend>
-                    <label class="catalog-select-all">
+                    <label class="catalog-select-all catalog-select-all--all">
                         <input type="checkbox" data-select-all-drinks>
                         Select all drinks
                     </label>
-                    <div class="catalog-addon-drinks">
-                        <?php foreach ($products as $product): ?>
-                            <label class="catalog-option">
-                                <input type="checkbox" name="product_ids[]" value="<?= (int) $product['product_id'] ?>" data-addon-drink>
-                                <?= $escape($product['product_name']) ?>
-                            </label>
+                    <div class="catalog-addon-categories">
+                        <?php foreach ($categories as $category): ?>
+                            <?php
+                            $categoryProducts = array_filter(
+                                $products,
+                                static fn ($product): bool => (int) $product['category_id'] === (int) $category['category_id']
+                            );
+                            if (!$categoryProducts) {
+                                continue;
+                            }
+                            ?>
+                            <details class="catalog-addon-category">
+                                <summary>
+                                    <span><?= $escape($category['category_name']) ?></span>
+                                </summary>
+                                <label class="catalog-select-all catalog-select-all--category">
+                                    <input type="checkbox" data-select-category>
+                                    Select category
+                                </label>
+                                <div class="catalog-addon-drinks">
+                                    <?php foreach ($categoryProducts as $product): ?>
+                                        <label class="catalog-option">
+                                            <input type="checkbox" name="product_ids[]" value="<?= (int) $product['product_id'] ?>" data-addon-drink>
+                                            <?= $escape($product['product_name']) ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </details>
                         <?php endforeach; ?>
                     </div>
                 </fieldset>
@@ -881,7 +907,11 @@ $escape = static function ($value): string {
                     <article class="catalog-product catalog-addon">
                         <div class="catalog-product__summary">
                             <h3><?= $escape($addOn['addon_name']) ?></h3>
-                            <p>₱<?= number_format((float) $addOn['additional_price'], 2) ?> · Max <?= (int) $addOn['max_quantity'] ?> per drink · Assigned to <?= count($addOn['products']) ?> drink(s)</p>
+                            <p class="catalog-addon-summary">
+                                <span>₱<?= number_format((float) $addOn['additional_price'], 2) ?></span>
+                                <span>Max <?= (int) $addOn['max_quantity'] ?> per drink</span>
+                                <span>Assigned to <?= count($addOn['products']) ?> drink(s)</span>
+                            </p>
                         </div>
                         <details class="catalog-product__edit">
                             <summary class="catalog-button catalog-button--secondary">Edit</summary>
@@ -905,16 +935,43 @@ $escape = static function ($value): string {
                                 </div>
                                 <fieldset class="catalog-options">
                                     <legend>Available for drinks</legend>
-                                    <label class="catalog-select-all">
+                                    <label class="catalog-select-all catalog-select-all--all">
                                         <input type="checkbox" data-select-all-drinks<?= count($addOn['products']) === count($products) ? ' checked' : '' ?>>
                                         Select all drinks
                                     </label>
-                                    <div class="catalog-addon-drinks">
-                                        <?php foreach ($products as $product): ?>
-                                            <label class="catalog-option">
-                                                <input type="checkbox" name="product_ids[]" value="<?= (int) $product['product_id'] ?>" data-addon-drink<?= in_array((int) $product['product_id'], $addOn['products'], true) ? ' checked' : '' ?>>
-                                                <?= $escape($product['product_name']) ?>
-                                            </label>
+                                    <div class="catalog-addon-categories">
+                                        <?php foreach ($categories as $category): ?>
+                                            <?php
+                                            $categoryProducts = array_filter(
+                                                $products,
+                                                static fn ($product): bool => (int) $product['category_id'] === (int) $category['category_id']
+                                            );
+                                            if (!$categoryProducts) {
+                                                continue;
+                                            }
+                                            $categoryProductIds = array_map(
+                                                static fn ($product): int => (int) $product['product_id'],
+                                                $categoryProducts
+                                            );
+                                            $selectedCategoryCount = count(array_intersect($categoryProductIds, $addOn['products']));
+                                            ?>
+                                            <details class="catalog-addon-category">
+                                                <summary>
+                                                    <span><?= $escape($category['category_name']) ?></span>
+                                                </summary>
+                                                <label class="catalog-select-all catalog-select-all--category">
+                                                    <input type="checkbox" data-select-category<?= $selectedCategoryCount === count($categoryProductIds) ? ' checked' : '' ?>>
+                                                    Select category
+                                                </label>
+                                                <div class="catalog-addon-drinks">
+                                                    <?php foreach ($categoryProducts as $product): ?>
+                                                        <label class="catalog-option">
+                                                            <input type="checkbox" name="product_ids[]" value="<?= (int) $product['product_id'] ?>" data-addon-drink<?= in_array((int) $product['product_id'], $addOn['products'], true) ? ' checked' : '' ?>>
+                                                            <?= $escape($product['product_name']) ?>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </details>
                                         <?php endforeach; ?>
                                     </div>
                                 </fieldset>
@@ -985,14 +1042,24 @@ $escape = static function ($value): string {
                                 <fieldset class="catalog-options">
                                     <legend>Customizations customers may choose</legend>
                                     <?php foreach ($optionChoices as $group => $choices): ?>
-                                        <div class="catalog-option-group">
+                                        <?php
+                                        $selectedGroupOptions = array_filter(
+                                            $product['customizations'],
+                                            static fn ($option): bool => strpos($option, $group . ':') === 0
+                                        );
+                                        ?>
+                                        <div class="catalog-option-group" data-customization-group>
                                             <strong><?= $escape(ucfirst($group)) ?></strong>
-                                            <div>
+                                            <label class="catalog-select-all">
+                                                <input type="checkbox" data-select-all-customizations<?= count($selectedGroupOptions) === count($choices) ? ' checked' : '' ?>>
+                                                Select all <?= $escape($group) ?> options
+                                            </label>
+                                            <div class="catalog-option-list">
                                                 <?php foreach ($choices as $choice): ?>
                                                     <?php $optionKey = $group . ':' . $choice['name']; ?>
                                                     <div class="catalog-option-row">
                                                         <label class="catalog-option">
-                                                            <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>"<?= in_array($optionKey, $product['customizations'], true) ? ' checked' : '' ?>>
+                                                            <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>" data-customization-option<?= in_array($optionKey, $product['customizations'], true) ? ' checked' : '' ?>>
                                                             <?= $escape($choice['name']) ?>
                                                         </label>
                                                         <?php if ($group === 'size'): ?>
@@ -1025,7 +1092,10 @@ $escape = static function ($value): string {
 
 <script>
 (function () {
-    if (window.brewskiCatalogFormsBound) return;
+    if (window.brewskiCatalogFormsBound) {
+        refreshCatalogControls();
+        return;
+    }
     window.brewskiCatalogFormsBound = true;
 
     document.addEventListener('submit', function (event) {
@@ -1060,6 +1130,33 @@ $escape = static function ($value): string {
     });
 
     document.addEventListener('change', function (event) {
+        var customizationSelectAll = event.target.closest('[data-select-all-customizations]');
+        if (customizationSelectAll) {
+            var customizationGroup = customizationSelectAll.closest('[data-customization-group]');
+            if (!customizationGroup) return;
+            customizationGroup.querySelectorAll('[data-customization-option]').forEach(function (checkbox) {
+                checkbox.checked = customizationSelectAll.checked;
+            });
+            return;
+        }
+
+        var customizationOption = event.target.closest('[data-customization-option]');
+        if (customizationOption) {
+            var customizationGroup = customizationOption.closest('[data-customization-group]');
+            var customizationSelectAll = customizationGroup && customizationGroup.querySelector('[data-select-all-customizations]');
+            if (customizationSelectAll) {
+                var customizationCheckboxes = customizationGroup.querySelectorAll('[data-customization-option]');
+                var selectedCount = Array.prototype.filter.call(customizationCheckboxes, function (checkbox) {
+                    return checkbox.checked;
+                }).length;
+                customizationSelectAll.checked = customizationCheckboxes.length > 0
+                    && selectedCount === customizationCheckboxes.length;
+                customizationSelectAll.indeterminate = selectedCount > 0
+                    && selectedCount < customizationCheckboxes.length;
+            }
+            return;
+        }
+
         var selectAll = event.target.closest('[data-select-all-drinks]');
         if (selectAll) {
             var form = selectAll.closest('form');
@@ -1067,21 +1164,66 @@ $escape = static function ($value): string {
             form.querySelectorAll('[data-addon-drink]').forEach(function (checkbox) {
                 checkbox.checked = selectAll.checked;
             });
+            form.querySelectorAll('[data-select-category]').forEach(function (checkbox) {
+                checkbox.checked = selectAll.checked;
+                checkbox.indeterminate = false;
+            });
+            return;
+        }
+
+        var selectCategory = event.target.closest('[data-select-category]');
+        if (selectCategory) {
+            var category = selectCategory.closest('.catalog-addon-category');
+            var categoryCheckboxes = category && category.querySelectorAll('[data-addon-drink]');
+            if (!categoryCheckboxes) return;
+            categoryCheckboxes.forEach(function (checkbox) {
+                checkbox.checked = selectCategory.checked;
+            });
+            selectCategory.indeterminate = false;
+            updateAddonSelectAll(category.closest('form'));
             return;
         }
 
         var drinkCheckbox = event.target.closest('[data-addon-drink]');
         if (!drinkCheckbox) return;
 
-        var addonForm = drinkCheckbox.closest('form');
-        var selectAllCheckbox = addonForm && addonForm.querySelector('[data-select-all-drinks]');
-        if (selectAllCheckbox) {
-            var drinkCheckboxes = addonForm.querySelectorAll('[data-addon-drink]');
-            selectAllCheckbox.checked = drinkCheckboxes.length > 0
-                && Array.prototype.every.call(drinkCheckboxes, function (checkbox) {
-                    return checkbox.checked;
-                });
+        var addonCategory = drinkCheckbox.closest('.catalog-addon-category');
+        var categorySelectAll = addonCategory && addonCategory.querySelector('[data-select-category]');
+        if (categorySelectAll) {
+            updateGroupSelectAll(categorySelectAll, addonCategory.querySelectorAll('[data-addon-drink]'));
         }
+        updateAddonSelectAll(drinkCheckbox.closest('form'));
     });
+
+    function updateGroupSelectAll(selectAll, checkboxes) {
+        var selectedCount = Array.prototype.filter.call(checkboxes, function (checkbox) {
+            return checkbox.checked;
+        }).length;
+        selectAll.checked = checkboxes.length > 0 && selectedCount === checkboxes.length;
+        selectAll.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+    }
+
+    function updateAddonSelectAll(form) {
+        if (!form) return;
+        var allDrinks = form.querySelectorAll('[data-addon-drink]');
+        var selectAll = form.querySelector('[data-select-all-drinks]');
+        if (selectAll) updateGroupSelectAll(selectAll, allDrinks);
+        form.querySelectorAll('.catalog-addon-category').forEach(function (category) {
+            var categorySelectAll = category.querySelector('[data-select-category]');
+            if (categorySelectAll) {
+                updateGroupSelectAll(categorySelectAll, category.querySelectorAll('[data-addon-drink]'));
+            }
+        });
+    }
+
+    function refreshCatalogControls() {
+        document.querySelectorAll('.product-management-page .catalog-addon-form').forEach(updateAddonSelectAll);
+        document.querySelectorAll('.product-management-page [data-customization-group]').forEach(function (group) {
+            var selectAll = group.querySelector('[data-select-all-customizations]');
+            if (selectAll) updateGroupSelectAll(selectAll, group.querySelectorAll('[data-customization-option]'));
+        });
+    }
+
+    refreshCatalogControls();
 }());
 </script>
