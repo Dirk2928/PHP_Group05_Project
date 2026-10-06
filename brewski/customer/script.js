@@ -15,14 +15,12 @@ document.addEventListener('DOMContentLoaded', function () {
         window.lucide.createIcons();
     }
 
-
     /* --- profile dropdown ------------------------------------------------ */
 
     var profileMenu = document.querySelector('.profile-menu');
     var profileButton = document.getElementById('profile-button');
 
     if (profileMenu && profileButton) {
-
         profileButton.addEventListener('click', function (event) {
             event.stopPropagation();
 
@@ -45,12 +43,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-
     /* --- menu filters (menu page only) ----------------------------------- */
 
     var productCards = document.querySelectorAll('.product-card');
     var noResults = document.getElementById('no-results');
-    var filterState = { category: 'all', temp: 'all' };
+    var filterState = { category: 'all' };
 
     function applyFilters() {
         var visibleCount = 0;
@@ -60,15 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 filterState.category === 'all' ||
                 card.dataset.category === filterState.category;
 
-            var matchTemp =
-                filterState.temp === 'all' ||
-                card.dataset.temp === filterState.temp;
+            card.style.display = matchCategory ? '' : 'none';
 
-            var show = matchCategory && matchTemp;
-
-            card.style.display = show ? '' : 'none';
-
-            if (show) {
+            if (matchCategory) {
                 visibleCount++;
             }
         });
@@ -92,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
 
                 btn.classList.add('active');
-
                 filterState[stateKey] = btn.dataset.filter;
                 applyFilters();
             });
@@ -100,33 +90,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setupFilterGroup('category-filters', 'category');
-    setupFilterGroup('temp-filters', 'temp');
-
+    applyFilters();
 
     /* --- customization modal --------------------------------------------- */
 
     var modal = document.getElementById('customization-modal');
     var modalProductName = document.getElementById('modal-product-name');
     var modalTotalPrice = document.getElementById('modal-total-price');
+    var drinkQuantityValue = document.getElementById('drink-quantity-value');
     var closeModalBtn = document.getElementById('modal-close');
     var confirmAddBtn = document.getElementById('btn-confirm-add');
-    var specialInstructionsInput = document.getElementById('special-instructions');
-    var optionButtons = document.querySelectorAll('.option-btn');
     var addToCartButtons = document.querySelectorAll('.btn-add');
 
-    if (!modal || !modalProductName || !modalTotalPrice || !confirmAddBtn) {
+    if (!modal || !modalProductName || !modalTotalPrice || !drinkQuantityValue || !confirmAddBtn) {
         return;
     }
 
     var currentProduct = null;
+    var MAX_DRINK_QUANTITY = 99;
+
+    function selectedDrinkQuantity() {
+        return Math.max(1, Math.min(
+            MAX_DRINK_QUANTITY,
+            parseInt(drinkQuantityValue.textContent, 10) || 1
+        ));
+    }
 
     function activeOption(group) {
-        return document.querySelector('.option-buttons[data-group="' + group + '"] .option-btn.active');
+        return modal.querySelector(
+            '.option-buttons[data-group="' + group + '"] .option-btn.active'
+        );
     }
 
     function activeOptions(group) {
         return Array.prototype.map.call(
-            document.querySelectorAll('.option-buttons[data-group="' + group + '"] .option-btn.active'),
+            modal.querySelectorAll(
+                '.option-buttons[data-group="' + group + '"] .option-btn.active'
+            ),
             function (option) {
                 return option.dataset.value;
             }
@@ -139,76 +139,150 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         var total = currentProduct.basePrice;
-        var sizeBtn = activeOption('size');
+        var sizeButton = activeOption('size');
 
-        if (sizeBtn) {
-            total += parseFloat(sizeBtn.dataset.price) || 0;
+        if (sizeButton) {
+            total += parseFloat(sizeButton.dataset.price) || 0;
         }
 
-        currentProduct.addons.forEach(function (addon) {
-            total += addon.price;
+        modal.querySelectorAll('.addon-option').forEach(function (addonRow) {
+            var quantity = parseInt(
+                addonRow.querySelector('.addon-quantity__value').textContent,
+                10
+            ) || 0;
+            total += (parseFloat(addonRow.dataset.price) || 0) * quantity;
         });
 
         return total;
     }
 
     function updateModalTotal() {
-        modalTotalPrice.textContent = '₱' + calculateTotal();
+        var quantity = selectedDrinkQuantity();
+        modalTotalPrice.textContent = '₱' + (calculateTotal() * quantity).toLocaleString('en-PH');
+
     }
 
-    function resetModalSelections(defaultTemp) {
-        ['temp', 'size', 'sugar', 'addons'].forEach(function (group) {
-            document.querySelectorAll('.option-buttons[data-group="' + group + '"] .option-btn').forEach(function (btn) {
-                btn.classList.remove('active');
-            });
-        });
-
-        var defaults = {
-            temp: defaultTemp || 'Hot',
-            size: 'Regular',
-            sugar: '100%'
+    function renderProductOptions(options) {
+        var groups = {
+            temperature: 'temp',
+            size: 'size',
+            sugar: 'sugar',
+            addon: 'addons'
         };
 
-        Object.keys(defaults).forEach(function (group) {
-            var target = document.querySelector(
-                '.option-buttons[data-group="' + group + '"] [data-value="' + defaults[group] + '"]'
+        Object.keys(groups).forEach(function (optionGroup) {
+            var container = modal.querySelector(
+                '.option-buttons[data-group="' + groups[optionGroup] + '"]'
             );
+            var section = modal.querySelector(
+                '[data-option-group="' + optionGroup + '"]'
+            );
+            var choices = options.filter(function (option) {
+                return option.group === optionGroup;
+            });
 
-            if (target) {
-                target.classList.add('active');
-            }
+            container.textContent = '';
+            section.hidden = choices.length === 0;
+
+            choices.forEach(function (choice, index) {
+                var price = Number(choice.price) || 0;
+
+                if (optionGroup === 'addon') {
+                    var row = document.createElement('div');
+                    row.className = 'addon-option';
+                    row.dataset.name = choice.name;
+                    row.dataset.price = String(price);
+                    row.dataset.maxQuantity = String(
+                        Math.max(1, parseInt(choice.maxQuantity, 10) || 99)
+                    );
+
+                    var description = document.createElement('span');
+                    description.className = 'addon-option__description';
+                    description.textContent = choice.name + (price > 0
+                        ? ' (+₱' + price.toLocaleString('en-PH') + ' each)'
+                        : '');
+
+                    var stepper = document.createElement('div');
+                    stepper.className = 'quantity-stepper quantity-stepper--addon';
+
+                    var decrease = document.createElement('button');
+                    decrease.type = 'button';
+                    decrease.className = 'quantity-stepper__button';
+                    decrease.dataset.addonAction = 'decrease';
+                    decrease.setAttribute('aria-label', 'Remove one ' + choice.name);
+                    decrease.textContent = '−';
+
+                    var quantity = document.createElement('output');
+                    quantity.className = 'quantity-stepper__value addon-quantity__value';
+                    quantity.setAttribute('aria-live', 'polite');
+                    quantity.textContent = '0';
+
+                    var increase = document.createElement('button');
+                    increase.type = 'button';
+                    increase.className = 'quantity-stepper__button';
+                    increase.dataset.addonAction = 'increase';
+                    increase.setAttribute('aria-label', 'Add one ' + choice.name);
+                    increase.textContent = '+';
+
+                    stepper.appendChild(decrease);
+                    stepper.appendChild(quantity);
+                    stepper.appendChild(increase);
+                    row.appendChild(description);
+                    row.appendChild(stepper);
+                    container.appendChild(row);
+                } else {
+                    var optionButton = document.createElement('button');
+                    optionButton.type = 'button';
+                    optionButton.className = 'option-btn';
+                    optionButton.dataset.value = choice.name;
+                    optionButton.dataset.price = String(price);
+                    optionButton.textContent = choice.name + (price > 0
+                        ? ' (+₱' + price.toLocaleString('en-PH') + ')'
+                        : '');
+
+                    if (index === 0) {
+                        optionButton.classList.add('active');
+                    }
+                    container.appendChild(optionButton);
+                }
+            });
         });
+    }
 
-        if (specialInstructionsInput) {
-            specialInstructionsInput.value = '';
-        }
+    function updateAddonQuantity(stepper, action, maxQuantity) {
+        var value = stepper.querySelector('.quantity-stepper__value');
+        var current = parseInt(value.textContent, 10) || 0;
+        var maximum = maxQuantity || 99;
+        value.textContent = Math.max(
+            0,
+            Math.min(maximum, current + (action === 'increase' ? 1 : -1))
+        );
     }
 
     addToCartButtons.forEach(function (button) {
         button.addEventListener('click', function () {
             var card = this.closest('.product-card');
-
             if (!card) {
                 return;
             }
 
-            var defaultTemp = card.dataset.temp === 'iced' ? 'Iced' : 'Hot';
+            var options = [];
+            try {
+                options = JSON.parse(card.dataset.options || '[]');
+            } catch (error) {
+                console.error('Could not read product customizations:', error);
+            }
 
             currentProduct = {
                 name: card.dataset.name,
                 image: card.dataset.image || '',
                 basePrice: parseFloat(card.dataset.basePrice) || 0,
-                temp: defaultTemp,
-                size: 'Regular',
-                sugar: '100%',
-                addons: [],
-                instructions: ''
+                options: options
             };
 
-            resetModalSelections(defaultTemp);
-
+            drinkQuantityValue.textContent = '1';
+            renderProductOptions(options);
             modalProductName.textContent = 'Customize: ' + currentProduct.name;
-
             updateModalTotal();
             modal.classList.add('show');
         });
@@ -226,44 +300,47 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    optionButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            if (!currentProduct) {
-                return;
-            }
-
-            var group = this.parentElement.dataset.group;
-            var value = this.dataset.value;
-            var price = parseFloat(this.dataset.price) || 0;
-
-            if (group === 'addons') {
-                this.classList.toggle('active');
-
-                if (this.classList.contains('active')) {
-                    currentProduct.addons.push({ name: value, price: price });
-                } else {
-                    currentProduct.addons = currentProduct.addons.filter(function (addon) {
-                        return addon.name !== value;
-                    });
-                }
-            } else if (group === 'temp' || group === 'size' || group === 'sugar') {
-                this.parentElement.querySelectorAll('.option-btn').forEach(function (other) {
-                    other.classList.remove('active');
-                });
-
-                this.classList.add('active');
-
-                if (group === 'temp') {
-                    currentProduct.temp = value;
-                } else if (group === 'size') {
-                    currentProduct.size = value;
-                } else {
-                    currentProduct.sugar = value;
-                }
-            }
-
+    modal.querySelector('.modal__body').addEventListener('click', function (event) {
+        var drinkControl = event.target.closest('[data-drink-action]');
+        if (drinkControl) {
+            var quantity = selectedDrinkQuantity();
+            drinkQuantityValue.textContent = String(Math.max(
+                1,
+                Math.min(
+                    MAX_DRINK_QUANTITY,
+                    quantity + (drinkControl.dataset.drinkAction === 'increase' ? 1 : -1)
+                )
+            ));
             updateModalTotal();
-        });
+            return;
+        }
+
+        var addonControl = event.target.closest('[data-addon-action]');
+        if (addonControl && currentProduct) {
+            var addonRow = addonControl.closest('.addon-option');
+            updateAddonQuantity(
+                addonControl.closest('.quantity-stepper'),
+                addonControl.dataset.addonAction,
+                parseInt(addonRow.dataset.maxQuantity, 10)
+            );
+            updateModalTotal();
+            return;
+        }
+
+        var optionButton = event.target.closest('.option-btn');
+        if (!optionButton || !currentProduct) {
+            return;
+        }
+
+        var group = optionButton.parentElement.dataset.group;
+        if (group === 'temp' || group === 'size' || group === 'sugar') {
+            optionButton.parentElement.querySelectorAll('.option-btn').forEach(function (other) {
+                other.classList.remove('active');
+            });
+            optionButton.classList.add('active');
+        }
+
+        updateModalTotal();
     });
 
     confirmAddBtn.addEventListener('click', function () {
@@ -272,37 +349,37 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         var parts = [];
-        var temp = activeOptions('temp')[0];
+        var temperature = activeOptions('temp')[0];
         var sugar = activeOptions('sugar')[0];
         var size = activeOptions('size')[0] || '';
-        var note = specialInstructionsInput ? specialInstructionsInput.value.trim() : '';
 
-        if (temp) {
-            parts.push(temp);
+        if (temperature) {
+            parts.push(temperature);
         }
-
         if (sugar) {
             parts.push(sugar + ' sugar');
         }
 
-        activeOptions('addons').forEach(function (addon) {
-            parts.push(addon);
+        modal.querySelectorAll('.addon-option').forEach(function (addonRow) {
+            var quantity = parseInt(
+                addonRow.querySelector('.addon-quantity__value').textContent,
+                10
+            ) || 0;
+            if (quantity > 0) {
+                parts.push(addonRow.dataset.name + ' ×' + quantity);
+            }
         });
-
-        if (note !== '') {
-            parts.push(note);
-        }
 
         window.BrewskiCart.add({
             name: currentProduct.name,
             image: currentProduct.image,
             size: size,
             customization: parts.join(', '),
-            price: calculateTotal()
+            price: calculateTotal(),
+            quantity: selectedDrinkQuantity()
         });
 
         var originalHTML = confirmAddBtn.innerHTML;
-
         confirmAddBtn.innerHTML = '<i data-lucide="check"></i> Added!';
         confirmAddBtn.style.backgroundColor = 'var(--mocha)';
 

@@ -38,196 +38,36 @@
 
         <div class="modal__body">
 
-            <div class="option-group">
-
-                <h3>
-                    Temperature
-                </h3>
-
-                <div
-                    class="option-buttons"
-                    data-group="temp"
-                >
-
-                    <button
-                        type="button"
-                        class="option-btn active"
-                        data-value="Hot"
-                        data-price="0"
-                    >
-
-                        <i data-lucide="flame"></i>
-
-                        Hot
-
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="Iced"
-                        data-price="0"
-                    >
-
-                        <i data-lucide="snowflake"></i>
-
-                        Iced
-
-                    </button>
-
+            <section class="option-group drink-quantity">
+                <h3>Drink Quantity</h3>
+                <div class="quantity-stepper quantity-stepper--drink" aria-label="Drink quantity">
+                    <button type="button" class="quantity-stepper__button" data-drink-action="decrease" aria-label="Remove one drink">−</button>
+                    <output class="quantity-stepper__value" id="drink-quantity-value" aria-live="polite">1</output>
+                    <button type="button" class="quantity-stepper__button" data-drink-action="increase" aria-label="Add one drink">+</button>
                 </div>
+                <p class="addon-option__hint">Selected options apply to each drink. Add-on quantities are per drink.</p>
+            </section>
 
-            </div>
+            <section class="option-group" data-option-group="temperature" hidden>
+                <h3>Temperature</h3>
+                <div class="option-buttons" data-group="temp"></div>
+            </section>
 
-            <div class="option-group">
+            <section class="option-group" data-option-group="size" hidden>
+                <h3>Size</h3>
+                <div class="option-buttons" data-group="size"></div>
+            </section>
 
-                <h3>
-                    Size
-                </h3>
+            <section class="option-group" data-option-group="sugar" hidden>
+                <h3>Sugar Level</h3>
+                <div class="option-buttons" data-group="sugar"></div>
+            </section>
 
-                <div
-                    class="option-buttons"
-                    data-group="size"
-                >
-
-                    <button
-                        type="button"
-                        class="option-btn active"
-                        data-value="Regular"
-                        data-price="0"
-                    >
-                        Regular
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="Large"
-                        data-price="20"
-                    >
-                        Large (+₱20)
-                    </button>
-
-                </div>
-
-            </div>
-
-            <div class="option-group">
-
-                <h3>
-                    Sugar Level
-                </h3>
-
-                <div
-                    class="option-buttons"
-                    data-group="sugar"
-                >
-
-                    <button
-                        type="button"
-                        class="option-btn active"
-                        data-value="100%"
-                        data-price="0"
-                    >
-                        100%
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="75%"
-                        data-price="0"
-                    >
-                        75%
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="50%"
-                        data-price="0"
-                    >
-                        50%
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="25%"
-                        data-price="0"
-                    >
-                        25%
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="0%"
-                        data-price="0"
-                    >
-                        0%
-                    </button>
-
-                </div>
-
-            </div>
-
-            <div class="option-group">
-
-                <h3>
-                    Add-ons
-                </h3>
-
-                <div
-                    class="option-buttons"
-                    data-group="addons"
-                >
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="Extra Shot"
-                        data-price="30"
-                    >
-                        Extra Shot (+₱30)
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="Oat Milk"
-                        data-price="25"
-                    >
-                        Oat Milk (+₱25)
-                    </button>
-
-                    <button
-                        type="button"
-                        class="option-btn"
-                        data-value="Whipped Cream"
-                        data-price="15"
-                    >
-                        Whipped Cream (+₱15)
-                    </button>
-
-                </div>
-
-            </div>
-
-            <div class="option-group">
-
-                <h3>
-                    Special Instructions
-                </h3>
-
-                <textarea
-                    id="special-instructions"
-                    class="special-instructions"
-                    placeholder="e.g., Less ice, extra hot, no foam..."
-                    rows="3"
-                ></textarea>
-
-            </div>
+            <section class="option-group" data-option-group="addon" hidden>
+                <h3>Add-ons</h3>
+                <p class="addon-option__hint">Set the add-on quantity for each drink.</p>
+                <div class="option-buttons" data-group="addons"></div>
+            </section>
 
         </div>
 
@@ -251,7 +91,7 @@
                 id="btn-confirm-add"
             >
 
-                Add to Cart
+                <span>Add to Cart</span>
 
                 <i data-lucide="arrow-right"></i>
 

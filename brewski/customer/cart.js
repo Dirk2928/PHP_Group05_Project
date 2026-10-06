@@ -9,7 +9,7 @@
  * Item: { key, name, image, size, customization, price, quantity }
  *
  * Public API — window.BrewskiCart:
- *     add(item)    add one unit, merging into a matching line
+ *     add(item)    add item quantity, merging into a matching line
  *     load()       current items
  *     save(items)  replace items and re-render
  *     count()      total quantity
@@ -54,6 +54,7 @@
     function add(item) {
         var items = load();
         var key = makeKey(item.name, item.size || '', item.customization || '');
+        var quantity = Math.max(1, Math.min(MAX_QTY, parseInt(item.quantity, 10) || 1));
         var existing = null;
 
         items.forEach(function (entry) {
@@ -63,7 +64,7 @@
         });
 
         if (existing) {
-            existing.quantity = Math.min(MAX_QTY, existing.quantity + 1);
+            existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + quantity);
         } else {
             items.push({
                 key: key,
@@ -72,10 +73,9 @@
                 size: item.size || '',
                 customization: item.customization || '',
                 price: Number(item.price) || 0,
-                quantity: 1
+                quantity: quantity
             });
         }
-
         save(items);
     }
 
@@ -129,7 +129,7 @@
             '<div class="cart-row cart-row--head">' +
                 '<div>Drink</div>' +
                 '<div>Customization</div>' +
-                '<div>Quantity</div>' +
+                '<div>Drinks</div>' +
                 '<div>Price</div>' +
                 '<div></div>' +
             '</div>' +
@@ -137,6 +137,9 @@
 
         items.forEach(function (item) {
             var label = item.name + (item.size ? ' (' + item.size + ')' : '');
+            var customization = item.customization
+                ? 'Per drink: ' + item.customization
+                : 'No extras per drink';
 
             html +=
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
@@ -144,11 +147,11 @@
                         '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '">' +
                         '<span>' + escapeHtml(label) + '</span>' +
                     '</div>' +
-                    '<div class="cart-custom">' + escapeHtml(item.customization || 'None') + '</div>' +
+                    '<div class="cart-custom">' + escapeHtml(customization) + '</div>' +
                     '<div class="cart-qty">' +
-                        '<button type="button" class="cart-qty__btn" data-action="decrease" aria-label="Decrease quantity"><i data-lucide="minus"></i></button>' +
+                        '<button type="button" class="cart-qty__btn" data-action="decrease" aria-label="Remove one drink"><i data-lucide="minus"></i></button>' +
                         '<span class="cart-qty__value">' + (Number(item.quantity) || 0) + '</span>' +
-                        '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Increase quantity"><i data-lucide="plus"></i></button>' +
+                        '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Add one identical drink"><i data-lucide="plus"></i></button>' +
                     '</div>' +
                     '<div class="cart-price">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
                     '<div class="cart-remove">' +

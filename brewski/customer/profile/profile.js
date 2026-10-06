@@ -75,7 +75,9 @@
                 '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '">' +
                 '<span>' + escapeHtml(label) + '</span>' +
                 '</div>' +
-                '<div class="cart-custom">' + escapeHtml(item.customization || 'None') + '</div>' +
+                '<div class="cart-custom">' + escapeHtml(item.customization
+                    ? 'Per drink: ' + item.customization
+                    : 'No extras per drink') + '</div>' +
                 '<div class="cart-qty">' +
                 '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Increase quantity"><i data-lucide="plus"></i></button>' +
                 '<span class="cart-qty__value">' + item.quantity + '</span>' +

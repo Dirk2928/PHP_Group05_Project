@@ -360,6 +360,10 @@ html, body {
     margin-bottom: 1.75rem;
 }
 
+.option-group[hidden] {
+    display: none;
+}
+
 .option-group:last-child {
     margin-bottom: 0;
 }
@@ -377,6 +381,77 @@ html, body {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+.quantity-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.quantity-stepper__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--latte);
+    border-radius: 50%;
+    background: var(--white);
+    color: var(--espresso);
+    font: inherit;
+    font-size: 1.15rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.quantity-stepper__button:hover {
+    border-color: var(--mocha);
+    background: var(--latte);
+}
+
+.quantity-stepper__value {
+    min-width: 1.5rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+.addon-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--latte);
+}
+
+.addon-option:last-child {
+    border-bottom: 0;
+}
+
+.addon-option__description {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.quantity-stepper--addon {
+    flex-shrink: 0;
+    gap: 0.4rem;
+}
+
+.quantity-stepper--addon .quantity-stepper__button {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.addon-option__hint {
+    margin: -0.3rem 0 0.6rem;
+    color: var(--dark-mocha);
+    font-size: 0.82rem;
+}
+
+.drink-quantity .addon-option__hint {
+    margin-top: 0.75rem;
 }
 
 .option-btn {
@@ -411,6 +486,14 @@ html, body {
     color: var(--cream);
     border-color: var(--espresso);
     box-shadow: 0 4px 12px rgba(30, 17, 10, 0.2);
+}
+
+.catalog-notice {
+    margin: 0 0 1.5rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.6rem;
+    background: #f1e2ca;
+    color: var(--dark-mocha);
 }
 
 .special-instructions {

@@ -1,128 +1,23 @@
 <?php
 
 require __DIR__ . '/../partials/bootstrap.php';
+require_once __DIR__ . '/../partials/catalog.php';
 
 $pageTitle = 'Menu | brewski';
 $active = 'menu';
 $extraStyles = ['menu.css'];
 
-$products = [
-    [
-        'id' => 1,
-        'name' => 'Black Coffee',
-        'price' => 170,
-        'category' => 'coffee',
-        'temp' => 'hot',
-        'image' => 'blackcoffee.png'
-    ],
-    [
-        'id' => 2,
-        'name' => 'Caramel Macchiato',
-        'price' => 180,
-        'category' => 'coffee',
-        'temp' => 'hot',
-        'image' => 'caramel.png'
-    ],
-    [
-        'id' => 3,
-        'name' => 'Cafe Latte',
-        'price' => 170,
-        'category' => 'coffee',
-        'temp' => 'hot',
-        'image' => 'cafelatte.png'
-    ],
-    [
-        'id' => 4,
-        'name' => 'Double Espresso',
-        'price' => 150,
-        'category' => 'coffee',
-        'temp' => 'hot',
-        'image' => 'doubleepresso.png'
-    ],
-    [
-        'id' => 5,
-        'name' => 'Iced Coffee',
-        'price' => 160,
-        'category' => 'coffee',
-        'temp' => 'iced',
-        'image' => 'icedcoffee.png'
-    ],
-
-    [
-        'id' => 6,
-        'name' => 'Matcha Latte',
-        'price' => 190,
-        'category' => 'non-coffee',
-        'temp' => 'hot',
-        'image' => 'matchalatte.png'
-    ],
-    [
-        'id' => 7,
-        'name' => 'Chocolate Drink',
-        'price' => 175,
-        'category' => 'non-coffee',
-        'temp' => 'hot',
-        'image' => 'mocha.png'
-    ],
-    [
-        'id' => 8,
-        'name' => 'Strawberry Milk',
-        'price' => 185,
-        'category' => 'non-coffee',
-        'temp' => 'iced',
-        'image' => 'cafelatte.png'
-    ],
-
-    [
-        'id' => 9,
-        'name' => 'Caramel Frappe',
-        'price' => 210,
-        'category' => 'frappe',
-        'temp' => 'iced',
-        'image' => 'caramel.png'
-    ],
-    [
-        'id' => 10,
-        'name' => 'Mocha Frappe',
-        'price' => 205,
-        'category' => 'frappe',
-        'temp' => 'iced',
-        'image' => 'mocha.png'
-    ],
-    [
-        'id' => 11,
-        'name' => 'Matcha Frappe',
-        'price' => 215,
-        'category' => 'frappe',
-        'temp' => 'iced',
-        'image' => 'blackcoffee.png'
-    ],
-
-    [
-        'id' => 12,
-        'name' => 'Classic Milk Tea',
-        'price' => 160,
-        'category' => 'tea',
-        'temp' => 'iced',
-        'image' => 'icedcoffee.png'
-    ],
-    [
-        'id' => 13,
-        'name' => 'Peach Iced Tea',
-        'price' => 150,
-        'category' => 'tea',
-        'temp' => 'iced',
-        'image' => 'caramel.png'
-    ],
-    [
-        'id' => 14,
-        'name' => 'Hot Green Tea',
-        'price' => 140,
-        'category' => 'tea',
-        'temp' => 'hot',
-        'image' => 'matchalatte.png'
-    ],
-];
+$catalogError = '';
+$categories = [];
+$products = [];
+try {
+    $catalog = brewski_load_catalog();
+    $categories = $catalog['categories'];
+    $products = $catalog['products'];
+} catch (mysqli_sql_exception $error) {
+    error_log('Customer menu catalog error: ' . $error->getMessage());
+    $catalogError = 'The menu is temporarily unavailable. Please try again later.';
+}
 
 require __DIR__ . '/../partials/header.php';
 
@@ -154,33 +49,21 @@ require __DIR__ . '/../partials/header.php';
                 >
 
                     <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="coffee">Coffee</button>
-                    <button class="filter-btn" data-filter="non-coffee">Non-Coffee</button>
-                    <button class="filter-btn" data-filter="frappe">Frappe</button>
-                    <button class="filter-btn" data-filter="tea">Tea</button>
-
-                </div>
-
-            </div>
-
-            <div class="filter-group">
-
-                <h3>Temperature</h3>
-
-                <div
-                    class="filter-buttons"
-                    id="temp-filters"
-                >
-
-                    <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="hot">Hot</button>
-                    <button class="filter-btn" data-filter="iced">Iced</button>
+                    <?php foreach ($categories as $category): ?>
+                        <button class="filter-btn" data-filter="<?= (int) $category['category_id'] ?>">
+                            <?= e($category['category_name']) ?>
+                        </button>
+                    <?php endforeach; ?>
 
                 </div>
 
             </div>
 
         </section>
+
+        <?php if ($catalogError !== ''): ?>
+            <p class="catalog-notice" role="alert"><?= e($catalogError) ?></p>
+        <?php endif; ?>
 
         <section class="category">
 
@@ -191,32 +74,38 @@ require __DIR__ . '/../partials/header.php';
 
                 <?php foreach ($products as $product): ?>
 
-                    <?php $image = '../../images/' . $product['image']; ?>
+                    <?php
+                    $image = '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+                    $customizations = json_encode(
+                        $product['customizations'],
+                        JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
+                    );
+                    ?>
 
                     <div
                         class="product-card"
-                        data-id="<?= (int) $product['id'] ?>"
-                        data-name="<?= e($product['name']) ?>"
+                        data-id="<?= (int) $product['product_id'] ?>"
+                        data-name="<?= e($product['product_name']) ?>"
                         data-image="<?= e($image) ?>"
-                        data-base-price="<?= (int) $product['price'] ?>"
-                        data-category="<?= e($product['category']) ?>"
-                        data-temp="<?= e($product['temp']) ?>"
+                        data-base-price="<?= e($product['price']) ?>"
+                        data-category="<?= (int) $product['category_id'] ?>"
+                        data-options="<?= e($customizations) ?>"
                     >
 
                         <div class="product-card__image">
 
                             <img
                                 src="<?= e($image) ?>"
-                                alt="<?= e($product['name']) ?>"
+                                alt="<?= e($product['product_name']) ?>"
                             >
 
                         </div>
 
                         <div class="product-card__info">
 
-                            <h3><?= e($product['name']) ?></h3>
+                            <h3><?= e($product['product_name']) ?></h3>
 
-                            <p class="price">₱<?= (int) $product['price'] ?></p>
+                            <p class="price">₱<?= number_format((float) $product['price'], 2) ?></p>
 
                             <button class="btn-add">
 
@@ -240,7 +129,7 @@ require __DIR__ . '/../partials/header.php';
 
                 <i data-lucide="coffee"></i>
 
-                <p>No drinks found matching your filters.</p>
+                <p><?= $products ? 'No drinks found matching your filters.' : 'No beverages are available yet.' ?></p>
 
             </div>
 

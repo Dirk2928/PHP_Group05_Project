@@ -1,38 +1,22 @@
 <?php
 
 require __DIR__ . '/../partials/bootstrap.php';
+require_once __DIR__ . '/../partials/catalog.php';
 
 $pageTitle = 'Home | brewski';
 $active = 'home';
 
-/**
- * The curated rows on the landing page. Cards are rendered from these instead
- * of being hand-written, so every card carries the same data-* attributes the
- * modal and cart expect (data-image in particular — the old hand-written cards
- * had no image, so cart thumbnails came out broken).
- */
-$bestSellers = [
-    ['name' => 'Black Coffee',      'price' => 170, 'temp' => 'hot',  'image' => 'blackcoffee.png'],
-    ['name' => 'Caramel Macchiato', 'price' => 180, 'temp' => 'hot',  'image' => 'caramel.png'],
-    ['name' => 'Cafe Latte',        'price' => 170, 'temp' => 'hot',  'image' => 'cafelatte.png'],
-
-    // NOTE: duplicate of the first entry, price and image included. Looks like
-    // a copy/paste slip rather than a fourth drink — left in place because
-    // removing it changes the row's contents. Confirm before deleting.
-    ['name' => 'Black Coffee',      'price' => 170, 'temp' => 'hot',  'image' => 'blackcoffee.png'],
-];
-
-$mostPopular = [
-    ['name' => 'Iced Coffee',     'price' => 160, 'temp' => 'iced', 'image' => 'icedcoffee.png'],
-    ['name' => 'Cafe Mocha',      'price' => 185, 'temp' => 'hot',  'image' => 'mocha.png'],
-    ['name' => 'Double Espresso', 'price' => 150, 'temp' => 'hot',  'image' => 'doubleepresso.png'],
-    ['name' => 'Matcha Latte',    'price' => 190, 'temp' => 'hot',  'image' => 'matchalatte.png'],
-];
-
-$sections = [
-    'Best sellers' => $bestSellers,
-    'Most Popular' => $mostPopular,
-];
+$catalogError = '';
+$sections = [];
+try {
+    $catalog = brewski_load_catalog();
+    foreach ($catalog['products'] as $product) {
+        $sections[$product['category_name']][] = $product;
+    }
+} catch (mysqli_sql_exception $error) {
+    error_log('Customer home catalog error: ' . $error->getMessage());
+    $catalogError = 'The menu is temporarily unavailable. Please try again later.';
+}
 
 require __DIR__ . '/../partials/header.php';
 
@@ -67,6 +51,12 @@ require __DIR__ . '/../partials/header.php';
 
         </section>
 
+        <?php if ($catalogError !== ''): ?>
+            <p class="catalog-notice" role="alert"><?= e($catalogError) ?></p>
+        <?php elseif (!$sections): ?>
+            <p class="catalog-notice">Our beverage menu is being prepared. Please check back soon.</p>
+        <?php endif; ?>
+
         <?php foreach ($sections as $title => $products): ?>
 
             <section class="category">
@@ -79,21 +69,27 @@ require __DIR__ . '/../partials/header.php';
 
                     <?php foreach ($products as $product): ?>
 
-                        <?php $image = '../../images/' . $product['image']; ?>
+                        <?php
+                        $image = '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+                        $customizations = json_encode(
+                            $product['customizations'],
+                            JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
+                        );
+                        ?>
 
                         <div
                             class="product-card"
-                            data-name="<?= e($product['name']) ?>"
+                            data-name="<?= e($product['product_name']) ?>"
                             data-image="<?= e($image) ?>"
-                            data-base-price="<?= (int) $product['price'] ?>"
-                            data-temp="<?= e($product['temp']) ?>"
+                            data-base-price="<?= e($product['price']) ?>"
+                            data-options="<?= e($customizations) ?>"
                         >
 
                             <div class="product-card__image">
 
                                 <img
                                     src="<?= e($image) ?>"
-                                    alt="<?= e($product['name']) ?>"
+                                    alt="<?= e($product['product_name']) ?>"
                                 >
 
                             </div>
@@ -101,11 +97,11 @@ require __DIR__ . '/../partials/header.php';
                             <div class="product-card__info">
 
                                 <h3>
-                                    <?= e($product['name']) ?>
+                                    <?= e($product['product_name']) ?>
                                 </h3>
 
                                 <p class="price">
-                                    ₱<?= (int) $product['price'] ?>
+                                    ₱<?= number_format((float) $product['price'], 2) ?>
                                 </p>
 
                                 <button

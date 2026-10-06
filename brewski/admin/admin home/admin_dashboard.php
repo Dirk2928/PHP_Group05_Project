@@ -87,7 +87,7 @@ if ($mysqli) {
 
 
             <button type="button" class="nav-item" data-view="../product%20management/product_management.php">
-                Product Management
+                Beverage Menu
             </button>
 
 

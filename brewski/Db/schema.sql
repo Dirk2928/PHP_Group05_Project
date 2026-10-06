@@ -247,6 +247,47 @@ CREATE TABLE product_preferences (
         ON DELETE CASCADE
 );
 
+CREATE TABLE product_customization_options (
+    product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    option_group VARCHAR(20) NOT NULL,
+    option_name VARCHAR(100) NOT NULL,
+    additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
+    CONSTRAINT fk_product_customization_options_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(product_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT unique_product_customization_option
+        UNIQUE (product_id, option_group, option_name)
+);
+
+CREATE TABLE catalog_addons (
+    addon_id INT AUTO_INCREMENT PRIMARY KEY,
+    addon_name VARCHAR(100) NOT NULL UNIQUE,
+    additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99
+);
+
+CREATE TABLE product_addons (
+    product_id INT NOT NULL,
+    addon_id INT NOT NULL,
+    additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
+    PRIMARY KEY (product_id, addon_id),
+    CONSTRAINT fk_product_addons_product
+        FOREIGN KEY (product_id)
+        REFERENCES products(product_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_product_addons_addon
+        FOREIGN KEY (addon_id)
+        REFERENCES catalog_addons(addon_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
 CREATE TABLE user_preferences (
     user_preference_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
