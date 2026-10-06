@@ -2,21 +2,39 @@
 
 require __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../partials/catalog.php';
+require_once __DIR__ . '/../partials/preferences.php';
 
 $pageTitle = 'Home | brewski';
 $active = 'home';
+$extraStyles = ['choice.css'];
 
 $catalogError = '';
 $sections = [];
+$choicePreferences = null;
+
 try {
     $catalog = brewski_load_catalog();
     foreach ($catalog['products'] as $product) {
         $sections[$product['category_name']][] = $product;
     }
+    brewski_preference_sync($catalog);
 } catch (mysqli_sql_exception $error) {
     error_log('Customer home catalog error: ' . $error->getMessage());
     $catalogError = 'The menu is temporarily unavailable. Please try again later.';
 }
+
+$choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
+
+if ($choiceUserId > 0) {
+    $choicePreferences = brewski_user_preferences($choiceUserId);
+}
+
+$choiceValues = is_array($choicePreferences)
+    ? brewski_answers_from_preferences($choicePreferences)
+    : [];
+$choiceAutoOpen = $choiceUserId > 0
+    && is_array($choicePreferences)
+    && count($choicePreferences) === 0;
 
 require __DIR__ . '/../partials/header.php';
 
@@ -44,6 +62,7 @@ require __DIR__ . '/../partials/header.php';
             <button
                 type="button"
                 class="greeting__help"
+                id="choice-open"
                 aria-label="Help"
             >
                 <i data-lucide="help-circle"></i>
@@ -130,5 +149,7 @@ require __DIR__ . '/../partials/header.php';
     </main>
 
 <?php require __DIR__ . '/../partials/modal.php'; ?>
+
+<?php require __DIR__ . '/../partials/choice-modal.php'; ?>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>

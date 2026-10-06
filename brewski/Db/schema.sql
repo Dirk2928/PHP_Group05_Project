@@ -46,7 +46,8 @@ INSERT IGNORE INTO settings (setting_key, setting_value)
 VALUES
     ('min_password_length', '12'),
     ('session_idle_timeout', '1800'),
-    ('session_absolute_timeout', '28800');
+    ('session_absolute_timeout', '28800'),
+    ('choice_catalog_fingerprint', '');
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,

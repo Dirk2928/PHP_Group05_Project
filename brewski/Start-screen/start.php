@@ -209,7 +209,7 @@
             </div>
         </div>
     </section>
-
+<!--
     <section class="devs" id="devs">
         <div class="devs__inner">
             <h2 class="devs__title">Developed by</h2>
@@ -356,6 +356,8 @@
             <p class="dev-modal__desc" id="devModalDesc"></p>
         </div>
     </dialog>
+-->
+    
 
     <script>
         const video = document.getElementById('startVideo');

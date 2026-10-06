@@ -2,22 +2,53 @@
 
 require __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../partials/catalog.php';
+require_once __DIR__ . '/../partials/preferences.php';
 
 $pageTitle = 'Menu | brewski';
 $active = 'menu';
-$extraStyles = ['menu.css'];
+$extraStyles = ['menu.css', 'choice.css'];
 
 $catalogError = '';
 $categories = [];
 $products = [];
+$choiceScores = [];
 try {
     $catalog = brewski_load_catalog();
     $categories = $catalog['categories'];
     $products = $catalog['products'];
+    brewski_preference_sync($catalog);
+
+    $choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
+
+    if ($choiceUserId > 0) {
+        $choiceScores = brewski_user_choice_scores($choiceUserId, $products);
+    }
+
+    if ($choiceScores) {
+        $positions = [];
+
+        foreach ($products as $position => $product) {
+            $positions[(int) $product['product_id']] = $position;
+        }
+
+        usort($products, function ($first, $second) use ($choiceScores, $positions) {
+            $firstScore = $choiceScores[(int) $first['product_id']] ?? 0;
+            $secondScore = $choiceScores[(int) $second['product_id']] ?? 0;
+
+            if ($firstScore === $secondScore) {
+                return $positions[(int) $first['product_id']]
+                    <=> $positions[(int) $second['product_id']];
+            }
+
+            return $secondScore <=> $firstScore;
+        });
+    }
 } catch (mysqli_sql_exception $error) {
     error_log('Customer menu catalog error: ' . $error->getMessage());
     $catalogError = 'The menu is temporarily unavailable. Please try again later.';
 }
+
+$bestMatchScore = $choiceScores ? max($choiceScores) : 0;
 
 require __DIR__ . '/../partials/header.php';
 
@@ -80,6 +111,7 @@ require __DIR__ . '/../partials/header.php';
                         $product['customizations'],
                         JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
                     );
+                    $cardScore = $choiceScores[(int) $product['product_id']] ?? 0;
                     ?>
 
                     <div
@@ -91,6 +123,10 @@ require __DIR__ . '/../partials/header.php';
                         data-category="<?= (int) $product['category_id'] ?>"
                         data-options="<?= e($customizations) ?>"
                     >
+
+                        <?php if ($bestMatchScore > 0 && $cardScore >= $bestMatchScore): ?>
+                            <span class="product-card__match">Best match</span>
+                        <?php endif; ?>
 
                         <div class="product-card__image">
 

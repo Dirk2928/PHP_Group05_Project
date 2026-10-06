@@ -1,0 +1,145 @@
+.choice-modal__panel {
+    max-width: 520px;
+}
+
+.choice-question {
+    margin-bottom: 1.5rem;
+}
+
+.choice-question:last-of-type {
+    margin-bottom: 0.5rem;
+}
+
+.choice-question h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--espresso);
+}
+
+.choice-answers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.choice-answer {
+    background-color: var(--white);
+    border: 1px solid var(--latte);
+    color: var(--espresso);
+    padding: 0.6rem 1.2rem;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.choice-answer:hover {
+    border-color: var(--mocha);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.choice-answer.active {
+    background-color: var(--espresso);
+    color: var(--cream);
+    border-color: var(--espresso);
+}
+
+.choice-status {
+    margin: 1.25rem 0 0 0;
+    min-height: 1.1rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--dark-mocha);
+}
+
+.choice-status.is-saved {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.choice-status.is-error {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.choice-modal .btn-confirm:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.choice-summary {
+    list-style: none;
+    margin: 0 0 1.25rem 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.choice-summary li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--latte);
+}
+
+.choice-summary li:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.choice-summary__question {
+    font-size: 0.85rem;
+    color: var(--dark-mocha);
+}
+
+.choice-summary__answer {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--espresso);
+    text-align: right;
+}
+
+.choice-summary__empty {
+    margin: 0 0 1.25rem 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--dark-mocha);
+}
+
+.product-card {
+    position: relative;
+}
+
+.product-card__match {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    background-color: var(--espresso);
+    color: var(--cream);
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 600px) {
+    .choice-summary li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .choice-summary__answer {
+        text-align: left;
+    }
+}

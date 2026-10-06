@@ -1,10 +1,11 @@
 <?php
 
 require __DIR__ . '/../partials/bootstrap.php';
+require_once __DIR__ . '/../partials/preferences.php';
 
 $pageTitle = 'Profile | brewski';
 $active = 'profile';
-$extraStyles = ['customer_profile.css'];
+$extraStyles = ['customer_profile.css', 'choice.css'];
 
 /*
  * ---------------------------------------------------------------------------
@@ -158,6 +159,14 @@ $initials = strtoupper(
     mb_substr($first_name, 0, 1) .
     mb_substr($last_name, 0, 1)
 );
+
+$choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
+$choicePreferences = $choiceUserId > 0 ? brewski_user_preferences($choiceUserId) : [];
+$choiceAnswers = is_array($choicePreferences)
+    ? brewski_answers_from_preferences($choicePreferences)
+    : [];
+$choiceValues = $choiceAnswers;
+$choiceAutoOpen = false;
 
 require __DIR__ . '/../partials/header.php';
 
@@ -316,6 +325,56 @@ require __DIR__ . '/../partials/header.php';
 
                 <section class="card">
 
+                    <h3 class="card__title">Your choices</h3>
+
+                    <?php if ($choiceAnswers): ?>
+
+                        <ul class="choice-summary">
+
+                            <?php foreach (brewski_choice_questions() as $questionKey => $question): ?>
+
+                                <li>
+
+                                    <span class="choice-summary__question">
+                                        <?= e($question['question']) ?>
+                                    </span>
+
+                                    <span class="choice-summary__answer">
+                                        <?= e($choiceAnswers[$questionKey] ?? 'Not answered') ?>
+                                    </span>
+
+                                </li>
+
+                            <?php endforeach; ?>
+
+                        </ul>
+
+                    <?php else: ?>
+
+                        <p class="choice-summary__empty">
+                            You have not made your choices yet.
+                            Answer a few quick questions and we will sort the
+                            menu around what you like.
+                        </p>
+
+                    <?php endif; ?>
+
+                    <button
+                        type="button"
+                        class="btn btn--dark btn--block"
+                        id="choice-open"
+                    >
+
+                        <i data-lucide="sparkles"></i>
+
+                        <span><?= $choiceAnswers ? 'Change choices' : 'Take the assessment' ?></span>
+
+                    </button>
+
+                </section>
+
+                <section class="card">
+
                     <h3 class="card__title">Change password</h3>
 
                     <form
@@ -405,5 +464,7 @@ require __DIR__ . '/../partials/header.php';
         </div>
 
     </main>
+
+<?php require __DIR__ . '/../partials/choice-modal.php'; ?>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>
