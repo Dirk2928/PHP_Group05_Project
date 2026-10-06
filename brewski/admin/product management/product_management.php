@@ -447,6 +447,7 @@ try {
                     if (!is_string($optionKey)
                         || !isset($validOptions[$optionKey])
                         || $validOptions[$optionKey]['group'] !== 'size'
+                        || $validOptions[$optionKey]['name'] === 'Regular'
                         || (!is_string($optionPrice) && !is_int($optionPrice))
                         || !is_numeric($optionPrice)
                         || (float) $optionPrice < 0
@@ -457,6 +458,7 @@ try {
                 }
                 foreach ($selectedOptions as $selectedOption) {
                     if ($validOptions[$selectedOption]['group'] === 'size'
+                        && $validOptions[$selectedOption]['name'] !== 'Regular'
                         && !array_key_exists($selectedOption, $optionPrices)) {
                         throw new RuntimeException('Enter a price for every enabled size.');
                     }
@@ -819,7 +821,7 @@ $escape = static function ($value): string {
                                             <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>" data-customization-option>
                                             <?= $escape($choice['name']) ?>
                                         </label>
-                                        <?php if ($group === 'size'): ?>
+                                        <?php if ($group === 'size' && $choice['name'] !== 'Regular'): ?>
                                             <label class="catalog-option-price">
                                                 Extra price each (₱)
                                                 <input type="number" name="option_price[<?= $escape($optionKey) ?>]" value="<?= number_format($choice['price'], 2, '.', '') ?>" min="0" max="99999999.99" step="0.01" required>
@@ -1062,7 +1064,7 @@ $escape = static function ($value): string {
                                                             <input type="checkbox" name="customizations[]" value="<?= $escape($optionKey) ?>" data-customization-option<?= in_array($optionKey, $product['customizations'], true) ? ' checked' : '' ?>>
                                                             <?= $escape($choice['name']) ?>
                                                         </label>
-                                                        <?php if ($group === 'size'): ?>
+                                                        <?php if ($group === 'size' && $choice['name'] !== 'Regular'): ?>
                                                             <label class="catalog-option-price">
                                                                 Extra price each (₱)
                                                                 <input type="number" name="option_price[<?= $escape($optionKey) ?>]" value="<?= number_format((float) ($product['option_prices'][$optionKey] ?? $choice['price']), 2, '.', '') ?>" min="0" max="99999999.99" step="0.01" required>
