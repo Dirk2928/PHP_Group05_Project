@@ -35,6 +35,8 @@ svg.lucide {
     stroke-width: 1.8;
 }
 
+/* ---------- Navbar (same as home) ---------- */
+
 .navbar {
     display: flex;
     align-items: center;
@@ -76,6 +78,10 @@ svg.lucide {
 .nav-link:hover,
 .nav-link.active {
     background-color: rgba(250, 245, 238, 0.14);
+}
+
+.nav-link.active {
+    font-weight: 700;
 }
 
 .cart-badge {
@@ -200,8 +206,10 @@ svg.lucide {
     color: var(--mocha);
 }
 
+/* ---------- Page layout (width matches the home page) ---------- */
+
 .page {
-    max-width: 1100px;
+    max-width: calc(1420px + 3rem);
     margin: 0 auto;
     padding: 2.5rem 1.5rem 4rem;
 }
@@ -246,7 +254,7 @@ svg.lucide {
 
 .profile-grid {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 340px 1fr;
     gap: 1.5rem;
     align-items: start;
 }
@@ -266,6 +274,13 @@ svg.lucide {
 .card__title {
     font-size: 1.15rem;
     font-weight: 700;
+    margin-bottom: 1.25rem;
+}
+
+.card__text {
+    color: var(--dark-mocha);
+    font-size: 0.95rem;
+    line-height: 1.5;
     margin-bottom: 1.25rem;
 }
 
@@ -315,6 +330,8 @@ svg.lucide {
     margin-top: 1.75rem;
 }
 
+/* ---------- Forms ---------- */
+
 .form {
     display: flex;
     flex-direction: column;
@@ -358,6 +375,8 @@ svg.lucide {
     box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12);
 }
 
+/* ---------- Buttons ---------- */
+
 .btn {
     display: inline-flex;
     align-items: center;
@@ -383,6 +402,10 @@ svg.lucide {
     width: 100%;
 }
 
+.btn--auto {
+    align-self: flex-start;
+}
+
 .btn--dark {
     background-color: var(--espresso);
     color: var(--cream);
@@ -401,6 +424,8 @@ svg.lucide {
 .btn--light:hover {
     background-color: var(--latte);
 }
+
+/* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
     .profile-grid {

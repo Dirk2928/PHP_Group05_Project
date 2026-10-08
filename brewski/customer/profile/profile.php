@@ -140,6 +140,38 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
         $cartCount += is_array($item) ? (int) ($item['quantity'] ?? 1) : (int) $item;
     }
 }*/
+
+/*
+ * Fallbacks so the page still renders while the block above is commented out.
+ * Once you re-enable that block, these lines do nothing because the
+ * variables already exist.
+ */
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!function_exists('e')) {
+    function e($value)
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$errors = $errors ?? [];
+$success = $success ?? '';
+$user = $user ?? ['id' => 0, 'first_name' => 'Customer', 'last_name' => '', 'email' => ''];
+$display_first_name = $display_first_name ?? e($user['first_name']);
+$display_last_name = $display_last_name ?? e($user['last_name']);
+$display_email = $display_email ?? e($user['email']);
+$initials = $initials ?? strtoupper(
+    mb_substr($user['first_name'], 0, 1) .
+    mb_substr($user['last_name'], 0, 1)
+);
+$cartCount = $cartCount ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -271,6 +303,16 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                             <span>Save changes</span>
                         </button>
                     </form>
+                </section>
+
+                <section class="card">
+                    <h3 class="card__title">Your choices</h3>
+                    <p class="card__text">You have not made your choices yet. Answer a few quick questions and we will sort the menu around what you like.</p>
+
+                    <a href="../customer-home/assessment.php" class="btn btn--dark btn--auto">
+                        <i data-lucide="sparkles"></i>
+                        <span>Take the assessment</span>
+                    </a>
                 </section>
 
                 <section class="card">
