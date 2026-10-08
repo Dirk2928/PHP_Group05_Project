@@ -1,5 +1,5 @@
 <?php
-/*session_start();
+session_start();
 
 if (!function_exists('e')) {
     function e($value)
@@ -28,6 +28,13 @@ try {
     exit('Database connection failed.');
 }
 
+if (empty($_SESSION['user_id'])) {
+    header('Location: ../customer-home/login.php');
+    exit;
+}
+
+$userId = (int) $_SESSION['user_id'];
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -35,24 +42,23 @@ if (empty($_SESSION['csrf_token'])) {
 $errors = [];
 $success = '';
 
-if (!empty($_SESSION['user_id'])) {
-    $userId = (int) $_SESSION['user_id'];
-} else {
-    $userId = (int) $pdo->query('SELECT id FROM users ORDER BY id ASC LIMIT 1')->fetchColumn();
+if (!empty($_SESSION['flash_success'])) {
+    $success = $_SESSION['flash_success'];
+    unset($_SESSION['flash_success']);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['csrf_token'] ?? '';
 
-    if (!hash_equals($_SESSION['csrf_token'], $token)) {
+    if (!is_string($token) || !hash_equals($_SESSION['csrf_token'], $token)) {
         $errors[] = 'Invalid request. Please refresh the page and try again.';
     } else {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'update_profile') {
-            $firstName = trim($_POST['first_name'] ?? '');
-            $lastName = trim($_POST['last_name'] ?? '');
-            $email = trim($_POST['email'] ?? '');
+            $firstName = trim((string) ($_POST['first_name'] ?? ''));
+            $lastName = trim((string) ($_POST['last_name'] ?? ''));
+            $email = trim((string) ($_POST['email'] ?? ''));
 
             if ($firstName === '' || mb_strlen($firstName) > 50) {
                 $errors[] = 'Please enter a valid first name.';
@@ -62,12 +68,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Please enter a valid last name.';
             }
 
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL) || mb_strlen($email) > 255) {
                 $errors[] = 'Please enter a valid email address.';
             }
 
             if (!$errors) {
-                $check = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ?');
+                $check = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id <> ?');
                 $check->execute([$email, $userId]);
 
                 if ($check->fetch()) {
@@ -76,18 +82,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$errors) {
-                $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE id = ?');
+                $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?');
                 $update->execute([$firstName, $lastName, $email, $userId]);
-                $success = 'Your profile has been updated.';
+                $_SESSION['flash_success'] = 'Your profile has been updated.';
+                header('Location: profile.php');
+                exit;
             }
         }
 
         if ($action === 'change_password') {
-            $current = $_POST['current_password'] ?? '';
-            $new = $_POST['new_password'] ?? '';
-            $confirm = $_POST['confirm_password'] ?? '';
+            $current = (string) ($_POST['current_password'] ?? '');
+            $new = (string) ($_POST['new_password'] ?? '');
+            $confirm = (string) ($_POST['confirm_password'] ?? '');
 
-            $row = $pdo->prepare('SELECT password FROM users WHERE id = ?');
+            $row = $pdo->prepare('SELECT password FROM users WHERE user_id = ?');
             $row->execute([$userId]);
             $hash = $row->fetchColumn();
 
@@ -99,30 +107,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'The new password must be at least 8 characters.';
             }
 
+            if (strlen($new) > 72) {
+                $errors[] = 'The new password must not be longer than 72 characters.';
+            }
+
             if ($new !== $confirm) {
                 $errors[] = 'The new passwords do not match.';
             }
 
+            if (!$errors && $new === $current) {
+                $errors[] = 'The new password must be different from your current password.';
+            }
+
             if (!$errors) {
-                $update = $pdo->prepare('UPDATE users SET password = ? WHERE id = ?');
+                $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
                 $update->execute([password_hash($new, PASSWORD_DEFAULT), $userId]);
-                $success = 'Your password has been changed.';
+                session_regenerate_id(true);
+                $_SESSION['flash_success'] = 'Your password has been changed.';
+                header('Location: profile.php');
+                exit;
             }
         }
     }
 }
 
-$stmt = $pdo->prepare('SELECT id, first_name, last_name, email FROM users WHERE id = ?');
+$stmt = $pdo->prepare('SELECT user_id, first_name, last_name, email FROM users WHERE user_id = ?');
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
 if (!$user) {
-    $user = [
-        'id' => 0,
-        'first_name' => 'Guest',
-        'last_name' => '',
-        'email' => '',
-    ];
+    session_unset();
+    session_destroy();
+    header('Location: ../customer-home/login.php');
+    exit;
 }
 
 $display_first_name = e($user['first_name']);
@@ -139,39 +156,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     foreach ($_SESSION['cart'] as $item) {
         $cartCount += is_array($item) ? (int) ($item['quantity'] ?? 1) : (int) $item;
     }
-}*/
-
-/*
- * Fallbacks so the page still renders while the block above is commented out.
- * Once you re-enable that block, these lines do nothing because the
- * variables already exist.
- */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
 }
-
-if (!function_exists('e')) {
-    function e($value)
-    {
-        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$errors = $errors ?? [];
-$success = $success ?? '';
-$user = $user ?? ['id' => 0, 'first_name' => 'Customer', 'last_name' => '', 'email' => ''];
-$display_first_name = $display_first_name ?? e($user['first_name']);
-$display_last_name = $display_last_name ?? e($user['last_name']);
-$display_email = $display_email ?? e($user['email']);
-$initials = $initials ?? strtoupper(
-    mb_substr($user['first_name'], 0, 1) .
-    mb_substr($user['last_name'], 0, 1)
-);
-$cartCount = $cartCount ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -303,16 +288,6 @@ $cartCount = $cartCount ?? 0;
                             <span>Save changes</span>
                         </button>
                     </form>
-                </section>
-
-                <section class="card">
-                    <h3 class="card__title">Your choices</h3>
-                    <p class="card__text">You have not made your choices yet. Answer a few quick questions and we will sort the menu around what you like.</p>
-
-                    <a href="../customer-home/assessment.php" class="btn btn--dark btn--auto">
-                        <i data-lucide="sparkles"></i>
-                        <span>Take the assessment</span>
-                    </a>
                 </section>
 
                 <section class="card">
