@@ -287,3 +287,16 @@ body {
     color: var(--mocha);
     opacity: 0.6;
 }
+
+
+.field__messages {
+    display: block;
+}
+
+.field__error {
+    display: block;
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: #b91c1c;
+}

@@ -30,7 +30,18 @@ $first_name_value = '';
 $last_name_value  = '';
 $email_value      = '';
 
-$min_password_length = brewski_min_password_length();
+$password_policy = brewski_password_policy();
+
+$min_password_length = (int) $password_policy['min_length'];
+
+$password_hint = brewski_password_policy_hint($password_policy);
+
+$errors = [
+    'first_name' => [],
+    'last_name'  => [],
+    'email'      => [],
+    'password'   => []
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -57,46 +68,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'UTF-8'
     );
 
-    if (
-        $first_name === '' ||
-        $last_name === '' ||
-        $email === '' ||
-        $password === ''
-    ) {
+    if ($first_name === '') {
 
-        $error = 'Please fill in all fields.';
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $error = 'Please enter a valid email address.';
-
-    } elseif (strlen($password) < $min_password_length) {
-
-        $error =
-            'Password must be at least ' .
-            $min_password_length .
-            ' characters long.';
+        $errors['first_name'][] =
+            'Enter your first name.';
 
     } elseif (
         !preg_match(
             "/^[A-Za-zÀ-ÿ\s'\-]+$/u",
             $first_name
-        ) ||
+        )
+    ) {
+
+        $errors['first_name'][] =
+            'First name may only contain letters, spaces, hyphens, and apostrophes.';
+
+    }
+
+    if ($last_name === '') {
+
+        $errors['last_name'][] =
+            'Enter your last name.';
+
+    } elseif (
         !preg_match(
             "/^[A-Za-zÀ-ÿ\s'\-]+$/u",
             $last_name
         )
     ) {
 
-        $error =
-            'Name may only contain letters, spaces, hyphens, and apostrophes.';
+        $errors['last_name'][] =
+            'Last name may only contain letters, spaces, hyphens, and apostrophes.';
 
-    } elseif (!$conn) {
+    }
+
+    if ($email === '') {
+
+        $errors['email'][] =
+            'Enter your email address.';
+
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $errors['email'][] =
+            'Please enter a valid email address.';
+
+    }
+
+    if ($password === '') {
+
+        $errors['password'][] =
+            'Enter a password.';
+
+    } else {
+
+        $errors['password'] = brewski_password_failures(
+            $password,
+            $password_policy
+        );
+    }
+
+    $has_field_errors = false;
+
+    foreach ($errors as $field_messages) {
+
+        if ($field_messages) {
+
+            $has_field_errors = true;
+
+            break;
+        }
+    }
+
+    if (!$has_field_errors && !$conn) {
 
         $error =
             'Unable to connect to the database. Please make sure MySQL is running.';
 
-    } else {
+    } elseif (!$has_field_errors) {
 
         $check = $conn->prepare(
             "SELECT user_id, is_active
@@ -144,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (int)$existing['is_active'] === 1
             ) {
 
-                $error =
+                $errors['email'][] =
                     'An account with this email already exists.';
 
             } else {
@@ -316,12 +364,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         if ($email_sent) {
 
-                            $_SESSION['signup_success'] =
-                                'We sent an activation link to your email. Activate your account before logging in.';
-
-                            header('Location: login.php');
-
-                            exit;
+                            $success =
+                                'Account created. We sent an activation link to ' .
+                                $email .
+                                '. Open it to activate your account before logging in.';
 
 
 
@@ -399,6 +445,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$render_field_errors = function (array $messages) {
+
+    $html = '';
+
+    foreach ($messages as $message) {
+
+        $html .=
+            '<p class="field__error">' .
+            htmlspecialchars($message, ENT_QUOTES, 'UTF-8') .
+            '</p>';
+    }
+
+    return $html;
+};
+
+$field_error_style = function (array $messages) {
+
+    return $messages ? '' : ' style="display:none;"';
+};
 ?>
 
 <!DOCTYPE html>
@@ -540,6 +606,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 id="signup-form"
                 method="POST"
                 action="signup.php"
+                novalidate
             >
 
                 <div class="field">
@@ -557,11 +624,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                     >
 
-                    <p
-                        class="field__error"
-                        id="first_name-error"
-                        style="display:none;"
-                    ></p>
+                    <div
+                        class="field__messages"
+                        id="first_name-messages"<?php echo $field_error_style($errors['first_name']); ?>
+                    ><?php echo $render_field_errors($errors['first_name']); ?></div>
 
                 </div>
 
@@ -581,11 +647,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                     >
 
-                    <p
-                        class="field__error"
-                        id="last_name-error"
-                        style="display:none;"
-                    ></p>
+                    <div
+                        class="field__messages"
+                        id="last_name-messages"<?php echo $field_error_style($errors['last_name']); ?>
+                    ><?php echo $render_field_errors($errors['last_name']); ?></div>
 
                 </div>
 
@@ -605,11 +670,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         required
                     >
 
-                    <p
-                        class="field__error"
-                        id="email-error"
-                        style="display:none;"
-                    ></p>
+                    <div
+                        class="field__messages"
+                        id="email-messages"<?php echo $field_error_style($errors['email']); ?>
+                    ><?php echo $render_field_errors($errors['email']); ?></div>
 
                 </div>
 
@@ -630,6 +694,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             required
                             minlength="<?php echo (int) $min_password_length; ?>"
                             data-min-length="<?php echo (int) $min_password_length; ?>"
+                            data-min-lowercase="<?php echo (int) $password_policy['lowercase']; ?>"
+                            data-min-uppercase="<?php echo (int) $password_policy['uppercase']; ?>"
+                            data-min-digits="<?php echo (int) $password_policy['digits']; ?>"
+                            data-min-special="<?php echo (int) $password_policy['special']; ?>"
+                            data-special-characters="<?php echo htmlspecialchars(brewski_password_special_characters(), ENT_QUOTES, 'UTF-8'); ?>"
                         >
 
                         <button
@@ -644,14 +713,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     </div>
 
-                    <p
-                        class="field__error"
-                        id="password-error"
-                        style="display:none;"
-                    ></p>
+                    <div
+                        class="field__messages"
+                        id="password-messages"<?php echo $field_error_style($errors['password']); ?>
+                    ><?php echo $render_field_errors($errors['password']); ?></div>
 
                     <p class="password-hint">
-                        Password should be at least <?php echo (int) $min_password_length; ?> characters including a number, special character, uppercase and lowercase letter.
+                        <?php echo htmlspecialchars($password_hint, ENT_QUOTES, 'UTF-8'); ?>
                     </p>
 
                 </div>

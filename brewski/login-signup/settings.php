@@ -12,6 +12,34 @@ if (!defined('BREWSKI_PASSWORD_LENGTH_MAX')) {
     define('BREWSKI_PASSWORD_LENGTH_MAX', 64);
 }
 
+if (!defined('BREWSKI_PASSWORD_RULE_MIN')) {
+    define('BREWSKI_PASSWORD_RULE_MIN', 0);
+}
+
+if (!defined('BREWSKI_PASSWORD_RULE_MAX')) {
+    define('BREWSKI_PASSWORD_RULE_MAX', 16);
+}
+
+if (!defined('BREWSKI_PASSWORD_LOWERCASE_DEFAULT')) {
+    define('BREWSKI_PASSWORD_LOWERCASE_DEFAULT', 1);
+}
+
+if (!defined('BREWSKI_PASSWORD_UPPERCASE_DEFAULT')) {
+    define('BREWSKI_PASSWORD_UPPERCASE_DEFAULT', 1);
+}
+
+if (!defined('BREWSKI_PASSWORD_DIGIT_DEFAULT')) {
+    define('BREWSKI_PASSWORD_DIGIT_DEFAULT', 1);
+}
+
+if (!defined('BREWSKI_PASSWORD_SPECIAL_DEFAULT')) {
+    define('BREWSKI_PASSWORD_SPECIAL_DEFAULT', 1);
+}
+
+if (!defined('BREWSKI_PASSWORD_SPECIAL_CHARACTERS')) {
+    define('BREWSKI_PASSWORD_SPECIAL_CHARACTERS', '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~');
+}
+
 if (!defined('BREWSKI_SESSION_IDLE_DEFAULT')) {
     define('BREWSKI_SESSION_IDLE_DEFAULT', 1800);
 }
@@ -175,13 +203,19 @@ function brewski_setting_set($key, $value)
 
 function brewski_bounded_int($key, $default, $min, $max)
 {
-    $stored = (int) brewski_setting($key, '');
+    $stored = brewski_setting($key, '');
 
-    if ($stored < $min || $stored > $max) {
+    if ($stored === '') {
         return $default;
     }
 
-    return $stored;
+    $value = (int) $stored;
+
+    if ($value < $min || $value > $max) {
+        return $default;
+    }
+
+    return $value;
 }
 
 function brewski_password_length_bounds()
@@ -201,6 +235,170 @@ function brewski_min_password_length()
         BREWSKI_PASSWORD_LENGTH_MIN,
         BREWSKI_PASSWORD_LENGTH_MAX
     );
+}
+
+function brewski_password_rule_bounds()
+{
+    return [
+        'min' => BREWSKI_PASSWORD_RULE_MIN,
+        'max' => BREWSKI_PASSWORD_RULE_MAX
+    ];
+}
+
+function brewski_password_special_characters()
+{
+    return BREWSKI_PASSWORD_SPECIAL_CHARACTERS;
+}
+
+function brewski_password_rule_definitions()
+{
+    return [
+        'lowercase' => [
+            'setting' => 'password_min_lowercase',
+            'default' => BREWSKI_PASSWORD_LOWERCASE_DEFAULT,
+            'label' => 'lowercase letter'
+        ],
+        'uppercase' => [
+            'setting' => 'password_min_uppercase',
+            'default' => BREWSKI_PASSWORD_UPPERCASE_DEFAULT,
+            'label' => 'uppercase letter'
+        ],
+        'digits' => [
+            'setting' => 'password_min_digits',
+            'default' => BREWSKI_PASSWORD_DIGIT_DEFAULT,
+            'label' => 'number'
+        ],
+        'special' => [
+            'setting' => 'password_min_special',
+            'default' => BREWSKI_PASSWORD_SPECIAL_DEFAULT,
+            'label' => 'special character'
+        ]
+    ];
+}
+
+function brewski_password_policy()
+{
+    $policy = [
+        'min_length' => brewski_min_password_length()
+    ];
+
+    foreach (brewski_password_rule_definitions() as $key => $rule) {
+        $policy[$key] = brewski_bounded_int(
+            $rule['setting'],
+            $rule['default'],
+            BREWSKI_PASSWORD_RULE_MIN,
+            BREWSKI_PASSWORD_RULE_MAX
+        );
+    }
+
+    return $policy;
+}
+
+function brewski_password_special_count($password)
+{
+    $password = (string) $password;
+    $special = brewski_password_special_characters();
+    $count = 0;
+    $length = strlen($password);
+
+    for ($index = 0; $index < $length; $index++) {
+        if (strpos($special, $password[$index]) !== false) {
+            $count++;
+        }
+    }
+
+    return $count;
+}
+
+function brewski_password_character_counts($password)
+{
+    $password = (string) $password;
+
+    return [
+        'lowercase' => (int) preg_match_all('/[a-z]/', $password),
+        'uppercase' => (int) preg_match_all('/[A-Z]/', $password),
+        'digits' => (int) preg_match_all('/[0-9]/', $password),
+        'special' => brewski_password_special_count($password)
+    ];
+}
+
+function brewski_password_failures($password, $policy = null)
+{
+    if ($policy === null) {
+        $policy = brewski_password_policy();
+    }
+
+    $password = (string) $password;
+    $failures = [];
+    $min_length = (int) $policy['min_length'];
+
+    if (strlen($password) < $min_length) {
+        $failures[] =
+            'Password must be at least ' .
+            $min_length .
+            ' characters long.';
+    }
+
+    $counts = brewski_password_character_counts($password);
+
+    foreach (brewski_password_rule_definitions() as $key => $rule) {
+        $required = (int) $policy[$key];
+
+        if ($required > 0 && $counts[$key] < $required) {
+            $failures[] =
+                'Password must include at least ' .
+                $required .
+                ' ' .
+                $rule['label'] .
+                ($required === 1 ? '' : 's') .
+                '.';
+        }
+    }
+
+    return $failures;
+}
+
+function brewski_password_policy_hint($policy = null)
+{
+    if ($policy === null) {
+        $policy = brewski_password_policy();
+    }
+
+    $parts = [];
+
+    foreach (brewski_password_rule_definitions() as $key => $rule) {
+        $required = (int) $policy[$key];
+
+        if ($required > 0) {
+            $parts[] =
+                $required .
+                ' ' .
+                $rule['label'] .
+                ($required === 1 ? '' : 's');
+        }
+    }
+
+    $hint =
+        'Password should be at least ' .
+        (int) $policy['min_length'] .
+        ' characters';
+
+    if (!$parts) {
+        return $hint . '.';
+    }
+
+    if (count($parts) === 1) {
+        return $hint . ', including at least ' . $parts[0] . '.';
+    }
+
+    $last = array_pop($parts);
+
+    return $hint .
+        ', including at least ' .
+        implode(', ', $parts) .
+        ' and ' .
+        $last .
+        '.';
 }
 
 function brewski_session_timeout_bounds()

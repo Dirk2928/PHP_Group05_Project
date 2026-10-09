@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT IGNORE INTO settings (setting_key, setting_value)
 VALUES
     ('min_password_length', '12'),
+    ('password_min_lowercase', '1'),
+    ('password_min_uppercase', '1'),
+    ('password_min_digits', '1'),
+    ('password_min_special', '1'),
     ('session_idle_timeout', '1800'),
     ('session_absolute_timeout', '28800'),
     ('choice_catalog_fingerprint', '');
@@ -487,3 +491,10 @@ ALTER TABLE recommendations
     ADD COLUMN IF NOT EXISTS recommendation_score DECIMAL(5,2) NOT NULL,
     ADD COLUMN IF NOT EXISTS recommendation_reason TEXT,
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+INSERT IGNORE INTO settings (setting_key, setting_value)
+VALUES
+    ('password_min_lowercase', '1'),
+    ('password_min_uppercase', '1'),
+    ('password_min_digits', '1'),
+    ('password_min_special', '1');

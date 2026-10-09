@@ -6,6 +6,8 @@ require_once __DIR__ . '/../../login-signup/settings.php';
 $settings_endpoint = BREWSKI_BASE_URL . '/admin/system%20settings/settings.php';
 
 $password_bounds = brewski_password_length_bounds();
+$password_rule_bounds = brewski_password_rule_bounds();
+$password_rule_definitions = brewski_password_rule_definitions();
 $timeout_bounds = brewski_session_timeout_bounds();
 
 $idle_min_minutes = (int) ($timeout_bounds['idle_min'] / 60);
@@ -82,6 +84,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    $password_rules = [];
+
+    foreach ($password_rule_definitions as $rule_key => $rule) {
+
+        $rule_value = filter_var(
+            $_POST[$rule['setting']] ?? '',
+            FILTER_VALIDATE_INT,
+            [
+                'options' => [
+                    'min_range' => $password_rule_bounds['min'],
+                    'max_range' => $password_rule_bounds['max']
+                ]
+            ]
+        );
+
+        if ($rule_value === false) {
+            echo 'Minimum '
+                . $rule['label']
+                . ' count must be a whole number between '
+                . $password_rule_bounds['min']
+                . ' and '
+                . $password_rule_bounds['max']
+                . '.';
+            exit;
+        }
+
+        $password_rules[$rule_key] = $rule_value;
+    }
+
+    $required_characters = array_sum($password_rules);
+
+    if ($required_characters > $min_password_length) {
+        echo 'The required character counts add up to '
+            . $required_characters
+            . ', which is more than the minimum password length of '
+            . $min_password_length
+            . '. Lower the counts or raise the minimum length.';
+        exit;
+    }
+
     $idle_seconds = $idle_minutes * 60;
     $absolute_seconds = $absolute_hours * 3600;
 
@@ -95,6 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'session_idle_timeout' => (string) $idle_seconds,
         'session_absolute_timeout' => (string) $absolute_seconds
     ];
+
+    foreach ($password_rule_definitions as $rule_key => $rule) {
+        $pending[$rule['setting']] = (string) $password_rules[$rule_key];
+    }
 
     $saved = true;
 
@@ -116,6 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 brewski_require_role(['ADMIN']);
 
 $min_password_length = brewski_min_password_length();
+
+$password_policy = brewski_password_policy();
 
 $idle_minutes_value = (int) round(brewski_session_idle_timeout() / 60);
 $absolute_hours_value = (int) round(brewski_session_absolute_timeout() / 3600);
@@ -179,8 +227,41 @@ unset($record);
                 this value. Allowed range:
                 <?php echo (int) $password_bounds['min']; ?> to
                 <?php echo (int) $password_bounds['max']; ?>.
+                The character counts below must add up to no more than this length.
             </p>
         </div>
+
+        <?php foreach ($password_rule_definitions as $rule_key => $rule): ?>
+
+            <div class="form-field">
+                <label
+                    for="settingsRule<?php echo htmlspecialchars(ucfirst($rule_key), ENT_QUOTES, 'UTF-8'); ?>"
+                >Minimum <?php echo htmlspecialchars($rule['label'], ENT_QUOTES, 'UTF-8'); ?>s</label>
+
+                <input
+                    type="number"
+                    id="settingsRule<?php echo htmlspecialchars(ucfirst($rule_key), ENT_QUOTES, 'UTF-8'); ?>"
+                    name="<?php echo htmlspecialchars($rule['setting'], ENT_QUOTES, 'UTF-8'); ?>"
+                    value="<?php echo (int) $password_policy[$rule_key]; ?>"
+                    min="<?php echo (int) $password_rule_bounds['min']; ?>"
+                    max="<?php echo (int) $password_rule_bounds['max']; ?>"
+                    step="1"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    required
+                >
+
+                <p class="form-hint">
+                    Every new password must contain at least this many
+                    <?php echo htmlspecialchars($rule['label'], ENT_QUOTES, 'UTF-8'); ?>s.
+                    Set it to <?php echo (int) $password_rule_bounds['min']; ?> to drop the
+                    requirement. Allowed range:
+                    <?php echo (int) $password_rule_bounds['min']; ?> to
+                    <?php echo (int) $password_rule_bounds['max']; ?>.
+                </p>
+            </div>
+
+        <?php endforeach; ?>
 
         <div class="form-field">
             <label for="settingsIdleTimeout">Idle timeout (minutes)</label>
@@ -253,6 +334,9 @@ unset($record);
     var idle = document.getElementById('settingsIdleTimeout');
     var status = document.getElementById('settingsStatus');
     var submit = document.getElementById('settingsSubmit');
+    var rules = Array.prototype.slice.call(
+        document.querySelectorAll('.settings-card input[name^="password_min_"]')
+    );
 
     if (!form || !password || !idle || !status) {
         return;
@@ -264,6 +348,23 @@ unset($record);
         status.textContent = 'Saving...';
         status.classList.remove('is-saved');
         status.classList.remove('is-error');
+
+        var requiredCharacters = 0;
+
+        rules.forEach(function (rule) {
+            requiredCharacters += parseInt(rule.value, 10) || 0;
+        });
+
+        if (requiredCharacters > (parseInt(password.value, 10) || 0)) {
+            status.textContent =
+                'The character counts add up to ' +
+                requiredCharacters +
+                ', which is more than the minimum password length of ' +
+                password.value +
+                '.';
+            status.classList.add('is-error');
+            return;
+        }
 
         if (submit) {
             submit.disabled = true;
@@ -284,7 +385,7 @@ unset($record);
                     status.textContent =
                         'Saved. New accounts must use at least ' +
                         password.value +
-                        ' characters, and idle sessions end after ' +
+                        ' characters and meet the character counts above, and idle sessions end after ' +
                         idle.value +
                         ' minutes.';
                     status.classList.add('is-saved');

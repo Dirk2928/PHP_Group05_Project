@@ -118,69 +118,102 @@ if (passwordInput && passwordToggle) {
 
             let hasError = false;
 
-
-            document.querySelectorAll('.field__error').forEach(error => {
-                error.textContent = '';
-                error.style.display = 'none';
-            });
-
-            document.querySelectorAll('input').forEach(input => {
-                input.removeAttribute('aria-invalid');
-            });
+            clearFieldErrors(signupForm);
 
 
-            if (firstName.value.trim() === '') {
+            if (firstName) {
 
-                showError(
-                    'first_name',
-                    'Enter your first name.'
-                );
+                const messages = [];
+                const value = firstName.value.trim();
 
-                hasError = true;
+                if (value === '') {
+
+                    messages.push('Enter your first name.');
+
+                } else if (!isValidName(value)) {
+
+                    messages.push(
+                        'First name may only contain letters, spaces, hyphens, and apostrophes.'
+                    );
+                }
+
+                setFieldErrors('first_name', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
             }
 
 
-            if (lastName.value.trim() === '') {
+            if (lastName) {
 
-                showError(
-                    'last_name',
-                    'Enter your last name.'
-                );
+                const messages = [];
+                const value = lastName.value.trim();
 
-                hasError = true;
+                if (value === '') {
+
+                    messages.push('Enter your last name.');
+
+                } else if (!isValidName(value)) {
+
+                    messages.push(
+                        'Last name may only contain letters, spaces, hyphens, and apostrophes.'
+                    );
+                }
+
+                setFieldErrors('last_name', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
             }
 
 
-            if (email.value.trim() === '') {
+            if (email) {
 
-                showError(
-                    'email',
-                    'Enter your email address.'
-                );
+                const messages = [];
+                const value = email.value.trim();
 
-                hasError = true;
+                if (value === '') {
 
-            } else if (!isValidEmail(email.value.trim())) {
+                    messages.push('Enter your email address.');
 
-                showError(
-                    'email',
-                    'Please enter a valid email address.'
-                );
+                } else if (!isValidEmail(value)) {
 
-                hasError = true;
+                    messages.push('Please enter a valid email address.');
+                }
+
+                setFieldErrors('email', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
             }
 
 
-            const minPasswordLength = parseInt(password.dataset.minLength, 10) || 12;
+            if (password) {
 
-            if (password.value.length < minPasswordLength) {
+                const messages = [];
 
-                showError(
-                    'password',
-                    'Use at least ' + minPasswordLength + ' characters.'
-                );
+                if (password.value === '') {
 
-                hasError = true;
+                    messages.push('Enter a password.');
+
+                } else {
+
+                    passwordPolicyMessages(
+                        password.value,
+                        passwordPolicy(password)
+                    ).forEach(message => {
+                        messages.push(message);
+                    });
+                }
+
+                setFieldErrors('password', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
             }
 
 
@@ -210,29 +243,184 @@ if (passwordInput && passwordToggle) {
 
 
 
-    function showError(fieldId, message) {
+    function isValidName(value) {
 
-        const errorElement =
-            document.getElementById(fieldId + '-error');
+        return /^[A-Za-zÀ-ÿ\s'-]+$/.test(value);
+    }
 
-        const inputElement =
-            document.getElementById(fieldId);
+
+
+    function passwordPolicy(field) {
+
+        return {
+            minLength: parseInt(field.dataset.minLength, 10) || 0,
+            lowercase: parseInt(field.dataset.minLowercase, 10) || 0,
+            uppercase: parseInt(field.dataset.minUppercase, 10) || 0,
+            digits: parseInt(field.dataset.minDigits, 10) || 0,
+            special: parseInt(field.dataset.minSpecial, 10) || 0,
+            specialCharacters: field.dataset.specialCharacters || ''
+        };
+    }
+
+
+
+    function passwordPolicyMessages(value, policy) {
+
+        const messages = [];
+
+        const counts = {
+            lowercase: countMatches(value, /[a-z]/g),
+            uppercase: countMatches(value, /[A-Z]/g),
+            digits: countMatches(value, /[0-9]/g),
+            special: countSpecialCharacters(value, policy.specialCharacters)
+        };
+
+
+        if (value.length < policy.minLength) {
+
+            messages.push(
+                'Password must be at least ' +
+                policy.minLength +
+                ' characters long.'
+            );
+        }
+
+
+        [
+            { key: 'lowercase', label: 'lowercase letter' },
+            { key: 'uppercase', label: 'uppercase letter' },
+            { key: 'digits', label: 'number' },
+            { key: 'special', label: 'special character' }
+        ].forEach(rule => {
+
+            const required = policy[rule.key];
+
+            if (required > 0 && counts[rule.key] < required) {
+
+                messages.push(
+                    'Password must include at least ' +
+                    required +
+                    ' ' +
+                    rule.label +
+                    (required === 1 ? '' : 's') +
+                    '.'
+                );
+            }
+        });
+
+
+        return messages;
+    }
+
+
+
+    function countMatches(value, pattern) {
+
+        const matches = value.match(pattern);
+
+        return matches ? matches.length : 0;
+    }
+
+
+
+    function countSpecialCharacters(value, characters) {
+
+        if (!characters) {
+            return 0;
+        }
+
+        let count = 0;
+
+        for (const character of value) {
+
+            if (characters.indexOf(character) !== -1) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+
+
+    function setFieldErrors(fieldId, messages) {
+
+        const container = document.getElementById(fieldId + '-messages');
+        const errorElement = document.getElementById(fieldId + '-error');
+        const inputElement = document.getElementById(fieldId);
+        const hasMessages = messages.length > 0;
+
+
+        if (container) {
+
+            container.innerHTML = '';
+
+            messages.forEach(message => {
+
+                const paragraph = document.createElement('p');
+
+                paragraph.className = 'field__error';
+                paragraph.textContent = message;
+
+                container.appendChild(paragraph);
+            });
+
+            container.style.display = hasMessages ? 'block' : 'none';
+        }
 
 
         if (errorElement) {
 
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
+            errorElement.textContent = hasMessages ? messages.join(' ') : '';
+            errorElement.style.display = hasMessages ? 'block' : 'none';
         }
 
 
         if (inputElement) {
 
-            inputElement.setAttribute(
-                'aria-invalid',
-                'true'
-            );
+            if (hasMessages) {
+
+                inputElement.setAttribute('aria-invalid', 'true');
+
+            } else {
+
+                inputElement.removeAttribute('aria-invalid');
+            }
         }
+    }
+
+
+
+    function clearFieldErrors(scope) {
+
+        const root = scope || document;
+
+
+        root.querySelectorAll('.field__messages').forEach(container => {
+
+            container.innerHTML = '';
+            container.style.display = 'none';
+        });
+
+
+        root.querySelectorAll('.field__error').forEach(errorElement => {
+
+            errorElement.textContent = '';
+            errorElement.style.display = 'none';
+        });
+
+
+        root.querySelectorAll('input').forEach(input => {
+
+            input.removeAttribute('aria-invalid');
+        });
+    }
+
+
+
+    function showError(fieldId, message) {
+
+        setFieldErrors(fieldId, [message]);
     }
 
 });
