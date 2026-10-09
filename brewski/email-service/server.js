@@ -12,24 +12,45 @@ const HOST = "127.0.0.1";
 const emailUser = process.env.EMAIL_USER?.trim();
 const emailPassword = process.env.EMAIL_PASSWORD?.trim();
 
-if (!emailUser || !emailPassword) {
+// Dev mode: set MAIL_MODE=console in email-service/.env to print emails in this
+// terminal instead of sending them through Gmail. Leave it out for real sending.
+const consoleMode = process.env.MAIL_MODE?.trim().toLowerCase() === "console";
+
+if (!consoleMode && (!emailUser || !emailPassword)) {
     console.error("Email configuration is missing.");
     console.error("Set EMAIL_USER and EMAIL_PASSWORD in email-service/.env.");
+    console.error("Or set MAIL_MODE=console to print emails in this terminal while testing.");
     process.exit(1);
 }
 
+const fromAddress = emailUser || "dev@brewski.local";
 
+const transporter = consoleMode
+    ? null
+    : nodemailer.createTransport({
+        service: "gmail",
 
+        auth: {
+            user: emailUser,
+            pass: emailPassword
+        }
+    });
 
-
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-
-    auth: {
-        user: emailUser,
-        pass: emailPassword
+async function deliver(mail) {
+    if (consoleMode) {
+        console.log("");
+        console.log("================ DEV MODE: email NOT sent ================");
+        console.log("To:     ", mail.to);
+        console.log("Subject:", mail.subject);
+        console.log("");
+        console.log(mail.text);
+        console.log("==========================================================");
+        console.log("");
+        return { messageId: "console-mode" };
     }
-});
+
+    return transporter.sendMail(mail);
+}
 
 app.get("/health", (_req, res) => {
     res.json({ success: true });
@@ -57,8 +78,8 @@ app.post("/send-activation", async (req, res) => {
 
         const safeName = escapeHtml(firstName);
         const safeUrl = escapeHtml(parsedUrl.toString());
-        const info = await transporter.sendMail({
-            from: `"Brewski" <${emailUser}>`,
+        const info = await deliver({
+            from: `"Brewski" <${fromAddress}>`,
             to: email,
             subject: "Activate your Brewski account",
             text: `Hello ${firstName},\n\nActivate your account using this link (valid for 24 hours):\n${parsedUrl.toString()}\n\nIf you did not create an account, you can ignore this email.`,
@@ -81,8 +102,8 @@ app.post("/send-login-otp", async (req, res) => {
         }
 
         const safeName = escapeHtml(firstName);
-        const info = await transporter.sendMail({
-            from: `"Brewski" <${emailUser}>`,
+        const info = await deliver({
+            from: `"Brewski" <${fromAddress}>`,
             to: email,
             subject: "Your Brewski login code",
             text: `Hello ${firstName},\n\nYour Brewski login code is ${otp}. It expires in 10 minutes.\n\nIf you did not try to log in, you can ignore this email.`,
@@ -99,7 +120,12 @@ app.post("/send-login-otp", async (req, res) => {
 
 async function start() {
     try {
-        await transporter.verify();
+        if (consoleMode) {
+            console.log("DEV MODE: emails will be printed here instead of being sent through Gmail.");
+        } else {
+            await transporter.verify();
+        }
+
         app.listen(PORT, HOST, () => {
             console.log(`Brewski email service ready at http://${HOST}:${PORT}`);
         });
