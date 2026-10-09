@@ -71,6 +71,16 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
 
     <main class="main-content" id="mainContent">
         <section id="homeView" class="dashboard">
+            <div class="dashboard-heading">
+                <div>
+                    <p class="dashboard-eyebrow">STORE OVERVIEW</p>
+                    <h1>Welcome, @<?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
+                    <p class="dashboard-subtitle">Sales, orders, and store activity at a glance.</p>
+                </div>
+            </div>
+
+            <p id="dashboardMessage" class="dashboard-message hidden" role="alert"></p>
+
             <div class="dashboard-toolbar" aria-label="Dashboard filters and exports">
                 <div class="date-range-control">
                     <label>
@@ -96,15 +106,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 </div>
             </div>
 
-            <div class="dashboard-heading">
-                <div>
-                    <p class="dashboard-eyebrow">STORE OVERVIEW</p>
-                    <h1>Welcome, @<?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
-                    <p class="dashboard-subtitle">Sales, orders, and store activity at a glance.</p>
-                </div>
-                <span class="demo-badge"><span aria-hidden="true"></span> Demo data</span>
-            </div>
-
             <section class="dashboard-section" aria-labelledby="kpiHeading">
                 <div class="section-heading">
                     <div>
@@ -114,28 +115,28 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 </div>
                 <div class="kpi-grid">
                     <article class="kpi-card">
-                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-sales" aria-hidden="true">₱</span><span class="kpi-change positive">+12.8%</span></div>
+                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-sales" aria-hidden="true">₱</span><span id="salesChange" class="kpi-change">—</span></div>
                         <p class="kpi-label">Today's sales</p>
-                        <p class="kpi-value">₱18,420.00</p>
+                        <p id="todaySales" class="kpi-value">Loading…</p>
                         <p class="kpi-note">vs. yesterday</p>
                     </article>
                     <article class="kpi-card">
-                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-orders" aria-hidden="true">#</span><span class="kpi-change positive">+8.3%</span></div>
+                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-orders" aria-hidden="true">#</span><span id="ordersChange" class="kpi-change">—</span></div>
                         <p class="kpi-label">Number of orders</p>
-                        <p class="kpi-value">86</p>
+                        <p id="todayOrders" class="kpi-value">Loading…</p>
                         <p class="kpi-note">orders today</p>
                     </article>
                     <article class="kpi-card">
-                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-average" aria-hidden="true">↗</span><span class="kpi-change positive">+4.1%</span></div>
+                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-average" aria-hidden="true">↗</span></div>
                         <p class="kpi-label">Average order value</p>
-                        <p class="kpi-value">₱214.19</p>
-                        <p class="kpi-note">per completed order</p>
+                        <p id="averageOrderValue" class="kpi-value">Loading…</p>
+                        <p class="kpi-note">completed orders today</p>
                     </article>
                     <article class="kpi-card">
-                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-active" aria-hidden="true">◷</span><span class="kpi-status">Needs attention</span></div>
-                        <p class="kpi-label">Active / pending orders</p>
-                        <p class="kpi-value">12</p>
-                        <p class="kpi-note">3 pending · 9 in progress</p>
+                        <div class="kpi-topline"><span class="kpi-icon kpi-icon-active" aria-hidden="true">◷</span><span class="kpi-status">Open</span></div>
+                        <p class="kpi-label">Open orders</p>
+                        <p id="openOrders" class="kpi-value">Loading…</p>
+                        <p id="openOrdersNote" class="kpi-note">pending, confirmed, preparing, and ready</p>
                     </article>
                 </div>
             </section>
@@ -168,7 +169,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                         <section class="insight-card" aria-labelledby="peakHeading">
                             <div class="insight-heading">
                                 <div><h3 id="peakHeading">Peak hours</h3><p>Orders by day and time</p></div>
-                                <span class="peak-time">12 PM – 2 PM</span>
+                                <span id="peakHours" class="peak-time">—</span>
                             </div>
                             <div class="heatmap-scroll">
                                 <div id="peakHeatmap" class="heatmap" role="img" aria-label="Peak hours order heatmap"></div>
@@ -178,7 +179,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                         <section class="insight-card" aria-labelledby="categoryHeading">
                             <div class="insight-heading">
                                 <div><h3 id="categoryHeading">Sales breakdown</h3><p>Revenue by category</p></div>
-                                <span class="total-caption">Today</span>
+                                <span class="total-caption">Selected range</span>
                             </div>
                             <div id="categoryBreakdown" class="category-breakdown"></div>
                         </section>
@@ -196,7 +197,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
 
                     <section class="dashboard-section alerts-section" aria-labelledby="alertsHeading">
                         <div class="section-heading">
-                            <div><h2 id="alertsHeading">Alerts</h2><p>Items that may need your attention</p></div>
+                            <div><h2 id="alertsHeading">Alerts</h2><p>Low inventory and pending orders</p></div>
                             <span id="alertCount" class="alert-count">0</span>
                         </div>
                         <div id="alertsList" class="alerts-list"></div>
@@ -221,8 +222,8 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 </section>
                 <section class="dashboard-section stock-section" aria-labelledby="stockHeading">
                     <div class="section-heading">
-                        <div><h2 id="stockHeading">Low stock</h2><p>Restock these items soon</p></div>
-                        <span class="section-tag section-tag-warning">4 items</span>
+                        <div><h2 id="stockHeading">Low stock</h2><p>Products with 10 or fewer in stock</p></div>
+                        <span id="lowStockCount" class="section-tag section-tag-warning">— items</span>
                     </div>
                     <div id="lowStockList" class="stock-list"></div>
                 </section>

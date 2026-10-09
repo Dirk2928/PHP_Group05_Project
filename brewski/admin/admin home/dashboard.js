@@ -1,58 +1,20 @@
 document.addEventListener('DOMContentLoaded', function () {
     var svgNamespace = 'http://www.w3.org/2000/svg';
+    var dashboard = document.getElementById('homeView');
     var salesChart = document.getElementById('salesChart');
-    var trendTotal = document.getElementById('trendTotal');
     var dateFrom = document.getElementById('dateFrom');
     var dateTo = document.getElementById('dateTo');
     var intervalSelect = document.getElementById('trendInterval');
     var compareToggle = document.getElementById('compareToggle');
     var comparePeriod = document.getElementById('comparePeriod');
-    var alertsList = document.getElementById('alertsList');
-    var alertCount = document.getElementById('alertCount');
+    var message = document.getElementById('dashboardMessage');
+    var dashboardData = null;
+    var activeRequest = null;
 
-    var bestSellerData = [
-        { name: 'Brown Sugar Latte', units: 42, revenue: 8820 },
-        { name: 'Classic Milk Tea', units: 36, revenue: 6480 },
-        { name: 'Spanish Latte', units: 31, revenue: 7130 },
-        { name: 'Matcha Cream', units: 24, revenue: 5760 },
-        { name: 'Cold Brew', units: 19, revenue: 3800 }
-    ];
-
-    var categoryData = [
-        { name: 'Coffee', amount: 9840 },
-        { name: 'Milk tea', amount: 6120 },
-        { name: 'Matcha', amount: 3680 },
-        { name: 'Other', amount: 2780 }
-    ];
-
-    var alertData = [
-        { type: 'warning', title: 'Oat milk is running low (4 left)', time: 'Today, 11:48 AM' },
-        { type: 'critical', title: 'Refunds are up 18% this afternoon', time: 'Today, 11:36 AM' },
-        { type: 'critical', title: 'Payment failed for order #1048', time: 'Today, 11:29 AM' },
-        { type: 'info', title: 'Receipt printer is offline', time: 'Today, 11:12 AM' }
-    ];
-
-    var orderData = [
-        { number: '#1052', time: '11:42 AM', items: '2× Brown Sugar Latte, 1× Croffle', total: 570, status: 'PREPARING' },
-        { number: '#1051', time: '11:38 AM', items: '1× Classic Milk Tea, 1× Matcha Cream', total: 380, status: 'READY' },
-        { number: '#1050', time: '11:34 AM', items: '2× Spanish Latte', total: 460, status: 'CONFIRMED' },
-        { number: '#1049', time: '11:27 AM', items: '1× Cold Brew, 2× Cookies', total: 310, status: 'PENDING' },
-        { number: '#1048', time: '11:21 AM', items: '1× Brown Sugar Latte', total: 210, status: 'PENDING' }
-    ];
-
-    var stockData = [
-        { name: 'Oat milk', quantity: 4, maximum: 30 },
-        { name: 'Matcha powder', quantity: 6, maximum: 30 },
-        { name: 'Tapioca pearls', quantity: 8, maximum: 30 },
-        { name: 'Vanilla syrup', quantity: 9, maximum: 30 }
-    ];
-
-    var dailySales = [1240, 1680, 1430, 2180, 1920, 2760, 2340, 3180, 2890, 3520, 3010, 3860, 3420, 4280];
-
-    function money(amount) {
-        return '₱' + Number(amount).toLocaleString('en-PH', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
+    function money(amount, fractionDigits) {
+        return '₱' + Number(amount || 0).toLocaleString('en-PH', {
+            minimumFractionDigits: fractionDigits || 0,
+            maximumFractionDigits: fractionDigits || 0
         });
     }
 
@@ -63,9 +25,15 @@ document.addEventListener('DOMContentLoaded', function () {
         return year + '-' + month + '-' + day;
     }
 
-    function parseLocalDate(value) {
-        var parts = value.split('-').map(Number);
-        return new Date(parts[0], parts[1] - 1, parts[2]);
+    function setText(id, value) {
+        document.getElementById(id).textContent = value;
+    }
+
+    function showEmpty(container, text) {
+        var empty = document.createElement('p');
+        empty.className = 'dashboard-empty';
+        empty.textContent = text;
+        container.replaceChildren(empty);
     }
 
     function addSvgElement(name, attributes, text) {
@@ -79,52 +47,65 @@ document.addEventListener('DOMContentLoaded', function () {
         return element;
     }
 
-    function getTrendLabels(interval, startDate, endDate) {
-        if (interval === 'hour') {
-            return Array.from({ length: 12 }, function (_, index) {
-                var hour = index + 8;
-                return {
-                    label: (hour > 12 ? hour - 12 : hour) + (hour >= 12 ? ' PM' : ' AM'),
-                    title: 'Sales at ' + hour + ':00'
-                };
-            });
+    function changeLabel(value, current) {
+        if (value === null) {
+            return current > 0 ? 'New' : '0.0%';
         }
 
-        var dateSpan = Math.max(1, Math.round((endDate - startDate) / 86400000) + 1);
-        var bucketCount = interval === 'week'
-            ? Math.min(12, Math.ceil(dateSpan / 7))
-            : Math.min(14, dateSpan);
-
-        return Array.from({ length: bucketCount }, function (_, index) {
-            var offset = bucketCount === 1
-                ? 0
-                : Math.round((index / (bucketCount - 1)) * (dateSpan - 1));
-            var date = new Date(startDate);
-            date.setDate(date.getDate() + offset);
-            return {
-                label: date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
-                title: date.toLocaleDateString('en-PH', { dateStyle: 'long' })
-            };
-        });
+        var sign = value > 0 ? '+' : '';
+        return sign + value.toFixed(1) + '%';
     }
 
-    function renderTrend() {
-        if (!dateFrom.value || !dateTo.value) {
-            return;
-        }
+    function renderOverview(overview) {
+        setText('todaySales', money(overview.todaySales, 2));
+        setText('salesChange', changeLabel(overview.salesChange, overview.todaySales));
+        setText('todayOrders', String(overview.todayOrders));
+        setText('ordersChange', changeLabel(overview.ordersChange, overview.todayOrders));
+        setText('averageOrderValue', money(overview.averageOrderValue, 2));
+        setText('openOrders', String(overview.openOrders));
 
-        var startDate = parseLocalDate(dateFrom.value);
-        var endDate = parseLocalDate(dateTo.value);
-        var interval = intervalSelect.value;
-        var labels = getTrendLabels(interval, startDate, endDate);
-        var intervalScale = interval === 'hour' ? 0.38 : (interval === 'week' ? 2.1 : 1);
-        var values = labels.map(function (_, index) {
-            return Math.round(dailySales[index % dailySales.length] * intervalScale);
+        [
+            ['salesChange', overview.salesChange],
+            ['ordersChange', overview.ordersChange]
+        ].forEach(function (entry) {
+            var element = document.getElementById(entry[0]);
+            element.classList.toggle('positive', entry[1] !== null && entry[1] > 0);
+            element.classList.toggle('negative', entry[1] !== null && entry[1] < 0);
         });
-        var previousValues = values.map(function (value, index) {
-            var comparisonScale = comparePeriod.value === 'month' ? 0.68 : 0.82;
-            return Math.round(value * (comparisonScale + ((index % 4) * 0.045)));
+
+        var statusCounts = overview.statusCounts;
+        setText(
+            'openOrdersNote',
+            statusCounts.PENDING + ' pending · '
+                + (statusCounts.CONFIRMED + statusCounts.PREPARING + statusCounts.READY)
+                + ' confirmed or in progress'
+        );
+    }
+
+    function renderTrend(data) {
+        var points = data.trend;
+        var values = points.map(function (point) {
+            return Number(point.amount);
         });
+        var hasComparison = data.comparison !== '';
+        var previousValues = points.map(function (point) {
+            return Number(point.previous || 0);
+        });
+        var total = values.reduce(function (sum, amount) {
+            return sum + amount;
+        }, 0);
+        setText('trendTotal', money(total));
+
+        var previousLegend = document.querySelector('.legend-previous');
+        var previousLegendLabel = previousLegend && previousLegend.nextSibling;
+        if (previousLegend) {
+            previousLegend.style.display = hasComparison ? '' : 'none';
+            if (previousLegendLabel && previousLegendLabel.nodeType === Node.TEXT_NODE) {
+                previousLegendLabel.textContent = hasComparison
+                    ? (data.comparison === 'week' ? ' Previous week' : ' Previous month')
+                    : '';
+            }
+        }
 
         var width = 800;
         var height = 240;
@@ -134,35 +115,52 @@ document.addEventListener('DOMContentLoaded', function () {
         var bottom = 32;
         var chartWidth = width - left - right;
         var chartHeight = height - top - bottom;
-        var maximum = Math.max.apply(null, compareToggle.checked ? values.concat(previousValues) : values);
+        var allValues = hasComparison ? values.concat(previousValues) : values;
+        var maximum = Math.max.apply(null, allValues.concat([0]));
         var roundedMaximum = Math.ceil(maximum / 1000) * 1000 || 1000;
         var drawHeight = chartHeight - 8;
-        var points = values.map(function (value, index) {
+        var chartPoints = values.map(function (value, index) {
             return {
-                x: left + (labels.length === 1 ? chartWidth / 2 : (index / (labels.length - 1)) * chartWidth),
+                x: left + (points.length === 1 ? chartWidth / 2 : (index / (points.length - 1)) * chartWidth),
                 y: top + drawHeight - (value / roundedMaximum) * drawHeight,
                 value: value,
-                title: labels[index].title
+                label: points[index].label
             };
         });
         var previousPoints = previousValues.map(function (value, index) {
             return {
-                x: points[index].x,
+                x: chartPoints[index].x,
                 y: top + drawHeight - (value / roundedMaximum) * drawHeight,
                 value: value,
-                title: labels[index].title
+                label: points[index].label
             };
         });
 
         salesChart.replaceChildren();
         salesChart.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-        var intervalDescription = interval === 'day' ? 'daily' : (interval === 'week' ? 'weekly' : 'hourly');
-        salesChart.setAttribute('aria-label', 'Sales trend ' + intervalDescription + ' from ' + dateFrom.value + ' to ' + dateTo.value);
+        salesChart.setAttribute(
+            'aria-label',
+            'Completed sales from ' + data.range.from + ' to ' + data.range.to
+        );
 
         var defs = addSvgElement('defs', {});
-        var gradient = addSvgElement('linearGradient', { id: 'salesFill', x1: '0', x2: '0', y1: '0', y2: '1' });
-        gradient.appendChild(addSvgElement('stop', { offset: '0%', 'stop-color': '#9b7656', 'stop-opacity': '0.22' }));
-        gradient.appendChild(addSvgElement('stop', { offset: '100%', 'stop-color': '#9b7656', 'stop-opacity': '0' }));
+        var gradient = addSvgElement('linearGradient', {
+            id: 'salesFill',
+            x1: '0',
+            x2: '0',
+            y1: '0',
+            y2: '1'
+        });
+        gradient.appendChild(addSvgElement('stop', {
+            offset: '0%',
+            'stop-color': '#9b7656',
+            'stop-opacity': '0.22'
+        }));
+        gradient.appendChild(addSvgElement('stop', {
+            offset: '100%',
+            'stop-color': '#9b7656',
+            'stop-opacity': '0'
+        }));
         defs.appendChild(gradient);
         salesChart.appendChild(defs);
 
@@ -181,86 +179,99 @@ document.addEventListener('DOMContentLoaded', function () {
                 y: y + 3,
                 'text-anchor': 'end',
                 class: 'chart-axis-label'
-            }, tickValue === 0 ? '₱0' : '₱' + (tickValue / 1000) + 'k'));
+            }, money(tickValue)));
         }
 
-        var pointsPath = points.map(function (point, index) {
-            return (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y;
-        }).join(' ');
+        function drawLine(linePoints, className) {
+            if (linePoints.length === 0) {
+                return;
+            }
 
-        if (compareToggle.checked) {
-            var previousPath = previousPoints.map(function (point, index) {
+            var path = linePoints.map(function (point, index) {
                 return (index === 0 ? 'M' : 'L') + point.x + ' ' + point.y;
             }).join(' ');
-            salesChart.appendChild(addSvgElement('path', { d: previousPath, class: 'chart-previous-line' }));
+            salesChart.appendChild(addSvgElement('path', {
+                d: path,
+                class: className
+            }));
         }
 
-        salesChart.appendChild(addSvgElement('path', {
-            d: pointsPath + ' L' + points[points.length - 1].x + ' ' + (top + chartHeight) +
-                ' L' + points[0].x + ' ' + (top + chartHeight) + ' Z',
-            class: 'chart-area'
-        }));
-        salesChart.appendChild(addSvgElement('path', { d: pointsPath, class: 'chart-line' }));
+        if (chartPoints.length > 0) {
+            var areaPath = 'M' + chartPoints[0].x + ' ' + (top + drawHeight) + ' '
+                + chartPoints.map(function (point) {
+                    return 'L' + point.x + ' ' + point.y;
+                }).join(' ')
+                + ' L' + chartPoints[chartPoints.length - 1].x + ' ' + (top + drawHeight) + ' Z';
+            salesChart.appendChild(addSvgElement('path', {
+                d: areaPath,
+                class: 'chart-area'
+            }));
+            if (hasComparison) {
+                drawLine(previousPoints, 'chart-previous-line');
+            }
+            drawLine(chartPoints, 'chart-line');
 
-        points.forEach(function (point, index) {
-            var circle = addSvgElement('circle', {
-                cx: point.x,
-                cy: point.y,
-                r: 4,
-                class: 'chart-point'
+            chartPoints.forEach(function (point) {
+                var circle = addSvgElement('circle', {
+                    cx: point.x,
+                    cy: point.y,
+                    r: 3.5,
+                    class: 'chart-point'
+                });
+                circle.appendChild(addSvgElement('title', {}, point.label + ': ' + money(point.value)));
+                salesChart.appendChild(circle);
             });
-            circle.appendChild(addSvgElement('title', {}, point.title + ': ' + money(point.value)));
-            salesChart.appendChild(circle);
 
-            var shouldShowLabel = labels.length <= 8 || index % Math.ceil(labels.length / 7) === 0 || index === labels.length - 1;
-            if (shouldShowLabel) {
+            var labelStep = Math.max(1, Math.ceil(points.length / 8));
+            points.forEach(function (point, index) {
+                if (index % labelStep !== 0 && index !== points.length - 1) {
+                    return;
+                }
+                var pointX = chartPoints[index].x;
                 salesChart.appendChild(addSvgElement('text', {
-                    x: point.x,
+                    x: pointX,
                     y: height - 8,
-                    'text-anchor': 'middle',
+                    'text-anchor': index === 0
+                        ? 'start'
+                        : (index === points.length - 1 ? 'end' : 'middle'),
                     class: 'chart-axis-label'
-                }, labels[index].label));
-            }
-        });
-
-        trendTotal.textContent = money(values.reduce(function (total, value) {
-            return total + value;
-        }, 0));
-
-        var previousLegend = document.querySelector('.legend-previous');
-        var previousLegendLabel = previousLegend && previousLegend.nextSibling;
-        if (previousLegend) {
-            previousLegend.style.display = compareToggle.checked ? '' : 'none';
-            if (previousLegendLabel && previousLegendLabel.nodeType === Node.TEXT_NODE) {
-                previousLegendLabel.textContent = compareToggle.checked ? ' Previous period' : '';
-            }
+                }, point.label));
+            });
         }
     }
 
-    function renderHeatmap() {
-        var heatmap = document.getElementById('peakHeatmap');
+    function renderHeatmap(data) {
+        var container = document.getElementById('peakHeatmap');
         var weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         var hourLabels = ['8a', '10a', '12p', '2p', '4p', '6p', '8p', '10p'];
-        heatmap.replaceChildren();
-        heatmap.appendChild(addHeatmapLabel(''));
+        var maximum = Math.max.apply(null, data.heatmap.reduce(function (all, day) {
+            return all.concat(day);
+        }, [0]));
+        var scaleMaximum = maximum || 1;
+
+        container.replaceChildren();
+        container.appendChild(addHeatmapLabel(''));
         hourLabels.forEach(function (label) {
-            heatmap.appendChild(addHeatmapLabel(label));
+            container.appendChild(addHeatmapLabel(label));
         });
 
-        weekdays.forEach(function (weekday, dayIndex) {
-            heatmap.appendChild(addHeatmapLabel(weekday));
-            hourLabels.forEach(function (hour, hourIndex) {
-                var intensity = ((dayIndex * 3 + hourIndex * 5 + dayIndex * hourIndex) % 11) / 10;
+        data.heatmap.forEach(function (day, dayIndex) {
+            container.appendChild(addHeatmapLabel(weekdays[dayIndex]));
+            day.forEach(function (count, hourIndex) {
+                var intensity = count / scaleMaximum;
                 var cell = document.createElement('span');
                 cell.className = 'heatmap-cell';
                 cell.style.backgroundColor = intensity > 0.72
                     ? '#8a6140'
                     : (intensity > 0.48 ? '#cda982' : (intensity > 0.25 ? '#e8d8c4' : '#f3eee7'));
                 cell.setAttribute('aria-hidden', 'true');
-                cell.title = weekday + ' ' + hour + ': ' + Math.round(4 + intensity * 30) + ' orders';
-                heatmap.appendChild(cell);
+                cell.title = weekdays[dayIndex] + ' ' + hourLabels[hourIndex] + ': '
+                    + count + ' orders';
+                container.appendChild(cell);
             });
         });
+
+        setText('peakHours', maximum > 0 ? data.peakHours : 'No orders yet');
     }
 
     function addHeatmapLabel(text) {
@@ -271,14 +282,18 @@ document.addEventListener('DOMContentLoaded', function () {
         return label;
     }
 
-    function renderCategories() {
+    function renderCategories(categories) {
         var container = document.getElementById('categoryBreakdown');
-        var maximum = Math.max.apply(null, categoryData.map(function (category) {
-            return category.amount;
-        }));
         container.replaceChildren();
+        if (categories.length === 0) {
+            showEmpty(container, 'No completed sales in this date range.');
+            return;
+        }
 
-        categoryData.forEach(function (category) {
+        var maximum = Math.max.apply(null, categories.map(function (category) {
+            return Number(category.amount);
+        }));
+        categories.forEach(function (category) {
             var row = document.createElement('div');
             row.className = 'category-row';
 
@@ -290,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
             track.className = 'category-track';
             var fill = document.createElement('div');
             fill.className = 'category-fill';
-            fill.style.width = ((category.amount / maximum) * 100) + '%';
+            fill.style.width = maximum > 0 ? ((category.amount / maximum) * 100) + '%' : '0%';
             track.appendChild(fill);
 
             var value = document.createElement('span');
@@ -302,14 +317,18 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function renderBestSellers() {
+    function renderBestSellers(sellers) {
         var container = document.getElementById('bestSellers');
-        var maximumUnits = Math.max.apply(null, bestSellerData.map(function (item) {
-            return item.units;
-        }));
         container.replaceChildren();
+        if (sellers.length === 0) {
+            showEmpty(container, 'No products sold in this date range.');
+            return;
+        }
 
-        bestSellerData.forEach(function (item, index) {
+        var maximumUnits = Math.max.apply(null, sellers.map(function (item) {
+            return Number(item.units);
+        }));
+        sellers.forEach(function (item, index) {
             var row = document.createElement('div');
             row.className = 'seller-row';
 
@@ -335,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
             track.className = 'seller-track';
             var fill = document.createElement('div');
             fill.className = 'seller-fill';
-            fill.style.width = ((item.units / maximumUnits) * 100) + '%';
+            fill.style.width = maximumUnits > 0 ? ((item.units / maximumUnits) * 100) + '%' : '0%';
             track.appendChild(fill);
 
             row.append(rank, detail, revenue, track);
@@ -343,9 +362,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function renderAlerts() {
-        alertsList.replaceChildren();
-        alertData.forEach(function (alert, index) {
+    function renderAlerts(alerts) {
+        var container = document.getElementById('alertsList');
+        container.replaceChildren();
+        setText('alertCount', String(alerts.length));
+
+        if (alerts.length === 0) {
+            showEmpty(container, 'No inventory or order alerts.');
+            return;
+        }
+
+        alerts.forEach(function (alert) {
             var row = document.createElement('article');
             row.className = 'alert-item';
             row.dataset.type = alert.type;
@@ -364,31 +391,30 @@ document.addEventListener('DOMContentLoaded', function () {
             time.textContent = alert.time;
             copy.append(title, time);
 
-            var dismiss = document.createElement('button');
-            dismiss.className = 'alert-dismiss';
-            dismiss.type = 'button';
-            dismiss.textContent = 'Dismiss';
-            dismiss.setAttribute('aria-label', 'Dismiss alert: ' + alert.title);
-            dismiss.addEventListener('click', function () {
-                alertData.splice(index, 1);
-                renderAlerts();
-            });
-
-            row.append(dot, copy, dismiss);
-            alertsList.appendChild(row);
+            row.append(dot, copy);
+            container.appendChild(row);
         });
-        alertCount.textContent = String(alertData.length);
     }
 
-    function renderOrders() {
+    function renderOrders(orders) {
         var tableBody = document.getElementById('ordersTable');
         tableBody.replaceChildren();
+        if (orders.length === 0) {
+            var emptyRow = document.createElement('tr');
+            var emptyCell = document.createElement('td');
+            emptyCell.colSpan = 5;
+            emptyCell.textContent = 'There are no open orders.';
+            emptyCell.className = 'dashboard-empty';
+            emptyRow.appendChild(emptyCell);
+            tableBody.appendChild(emptyRow);
+            return;
+        }
 
-        orderData.forEach(function (order) {
+        orders.forEach(function (order) {
             var row = document.createElement('tr');
             var number = document.createElement('td');
             number.className = 'order-number';
-            number.textContent = order.number;
+            number.textContent = '#' + order.order_id;
 
             var time = document.createElement('td');
             time.textContent = order.time;
@@ -398,13 +424,14 @@ document.addEventListener('DOMContentLoaded', function () {
             items.textContent = order.items;
 
             var total = document.createElement('td');
-            total.textContent = money(order.total);
+            total.textContent = money(order.total_amount, 2);
 
             var statusCell = document.createElement('td');
             var status = document.createElement('span');
             status.className = 'order-status';
-            status.dataset.status = order.status;
-            status.textContent = order.status.charAt(0) + order.status.slice(1).toLowerCase();
+            status.dataset.status = order.order_status;
+            status.textContent = order.order_status.charAt(0)
+                + order.order_status.slice(1).toLowerCase();
             statusCell.appendChild(status);
 
             row.append(number, time, items, total, statusCell);
@@ -412,11 +439,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function renderStock() {
+    function renderStock(items, count) {
         var container = document.getElementById('lowStockList');
         container.replaceChildren();
+        setText('lowStockCount', count + ' items');
+        if (items.length === 0) {
+            showEmpty(container, 'No products are at or below the low-stock threshold.');
+            return;
+        }
 
-        stockData.forEach(function (item) {
+        items.forEach(function (item) {
             var row = document.createElement('div');
             row.className = 'stock-row';
 
@@ -432,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function () {
             track.className = 'stock-track';
             var fill = document.createElement('div');
             fill.className = 'stock-fill';
-            fill.style.width = ((item.quantity / item.maximum) * 100) + '%';
+            fill.style.width = Math.min(100, (item.quantity / 10) * 100) + '%';
             track.appendChild(fill);
 
             row.append(name, quantity, track);
@@ -440,29 +472,110 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function render(data) {
+        renderOverview(data.overview);
+        renderTrend(data);
+        renderHeatmap(data);
+        renderCategories(data.categories);
+        renderBestSellers(data.bestSellers);
+        renderAlerts(data.alerts);
+        renderOrders(data.orders);
+        renderStock(data.lowStock, data.lowStockCount);
+    }
+
+    function clearDashboard() {
+        ['todaySales', 'salesChange', 'todayOrders', 'ordersChange', 'averageOrderValue', 'openOrders']
+            .forEach(function (id) {
+                setText(id, 'Unavailable');
+            });
+        setText('trendTotal', 'Unavailable');
+        setText('peakHours', 'Unavailable');
+        setText('lowStockCount', 'Unavailable');
+        setText('alertCount', '0');
+        ['categoryBreakdown', 'bestSellers', 'alertsList', 'lowStockList'].forEach(function (id) {
+            showEmpty(document.getElementById(id), 'Dashboard data is unavailable.');
+        });
+        document.getElementById('ordersTable').replaceChildren();
+        salesChart.replaceChildren();
+    }
+
+    async function loadDashboard() {
+        if (activeRequest) {
+            activeRequest.abort();
+        }
+        activeRequest = new AbortController();
+
+        var parameters = new URLSearchParams({
+            from: dateFrom.value,
+            to: dateTo.value,
+            interval: intervalSelect.value
+        });
+        if (compareToggle.checked) {
+            parameters.set('compare', comparePeriod.value);
+        }
+
+        message.classList.add('hidden');
+        dashboard.setAttribute('aria-busy', 'true');
+        try {
+            var response = await fetch('dashboard_data.php?' + parameters.toString(), {
+                headers: { Accept: 'application/json' },
+                signal: activeRequest.signal
+            });
+            var result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Dashboard data could not be loaded.');
+            }
+            dashboardData = result;
+            render(result);
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+            dashboardData = null;
+            clearDashboard();
+            message.textContent = error.message || 'Dashboard data could not be loaded.';
+            message.classList.remove('hidden');
+        } finally {
+            dashboard.removeAttribute('aria-busy');
+        }
+    }
+
     function csvEscape(value) {
         return '"' + String(value).replace(/"/g, '""') + '"';
     }
 
     function exportCsv() {
+        if (!dashboardData) {
+            return;
+        }
+
+        var overview = dashboardData.overview;
         var rows = [
             ['Section', 'Item', 'Detail', 'Value', 'Timestamp'],
-            ['Summary', "Today's sales", '', '18420.00', localDateString(new Date())],
-            ['Summary', 'Number of orders', '', '86', localDateString(new Date())],
-            ['Summary', 'Average order value', '', '214.19', localDateString(new Date())],
-            ['Summary', 'Active / pending orders', '3 pending, 9 in progress', '12', localDateString(new Date())]
+            ['Summary', "Today's sales", '', overview.todaySales.toFixed(2), dashboardData.range.to],
+            ['Summary', 'Number of orders', '', overview.todayOrders, dashboardData.range.to],
+            ['Summary', 'Average order value', '', overview.averageOrderValue.toFixed(2), dashboardData.range.to],
+            ['Summary', 'Open orders', JSON.stringify(overview.statusCounts), overview.openOrders, ''],
+            ['Sales trend', 'Selected range total', dashboardData.range.from + ' to ' + dashboardData.range.to,
+                dashboardData.trend.reduce(function (sum, point) { return sum + Number(point.amount); }, 0).toFixed(2), '']
         ];
 
-        orderData.forEach(function (order) {
-            rows.push(['Live order', order.number, order.items, order.total.toFixed(2), order.time]);
+        dashboardData.orders.forEach(function (order) {
+            rows.push([
+                'Open order',
+                '#' + order.order_id,
+                order.items,
+                order.total_amount.toFixed(2),
+                order.time
+            ]);
         });
-        bestSellerData.forEach(function (item) {
+        dashboardData.bestSellers.forEach(function (item) {
             rows.push(['Best seller', item.name, item.units + ' units', item.revenue.toFixed(2), '']);
         });
-        stockData.forEach(function (item) {
+        dashboardData.lowStock.forEach(function (item) {
             rows.push(['Low stock', item.name, item.quantity + ' remaining', '', '']);
         });
-        alertData.forEach(function (alert) {
+        dashboardData.alerts.forEach(function (alert) {
             rows.push(['Alert', alert.title, alert.type, '', alert.time]);
         });
 
@@ -473,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var url = URL.createObjectURL(blob);
         var link = document.createElement('a');
         link.href = url;
-        link.download = 'brewski-dashboard-' + localDateString(new Date()) + '.csv';
+        link.download = 'brewski-dashboard-' + dashboardData.range.from + '.csv';
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -494,31 +607,25 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dateTo.value < dateFrom.value) {
             dateTo.value = dateFrom.value;
         }
-        renderTrend();
+        loadDashboard();
     });
     dateTo.addEventListener('change', function () {
         if (dateTo.value < dateFrom.value) {
             dateFrom.value = dateTo.value;
         }
         dateFrom.max = dateTo.value;
-        renderTrend();
+        loadDashboard();
     });
-    intervalSelect.addEventListener('change', renderTrend);
+    intervalSelect.addEventListener('change', loadDashboard);
     compareToggle.addEventListener('change', function () {
         comparePeriod.disabled = !compareToggle.checked;
-        renderTrend();
+        loadDashboard();
     });
-    comparePeriod.addEventListener('change', renderTrend);
+    comparePeriod.addEventListener('change', loadDashboard);
     document.getElementById('exportCsv').addEventListener('click', exportCsv);
     document.getElementById('exportPdf').addEventListener('click', function () {
         window.print();
     });
 
-    renderTrend();
-    renderHeatmap();
-    renderCategories();
-    renderBestSellers();
-    renderAlerts();
-    renderOrders();
-    renderStock();
+    loadDashboard();
 });
