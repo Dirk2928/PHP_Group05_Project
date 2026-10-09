@@ -11,8 +11,7 @@ $navItems = [
     'profile' => ['label' => 'Profile', 'icon' => 'user',          'href' => '../customer_profile/customer_profile.php'],
 ];
 
-// TODO: the Orders page does not exist yet. Point this at the real file once
-// it is built; for now the nav item is here to match the agreed layout.
+$checkoutHref = '/Brewski/brewski/customer/checkout/checkout.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,6 +56,43 @@ $navItems = [
     <?php endforeach; ?>
 
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Checkout button inside the cart dropdown */
+        .cart-dropdown__footer {
+            display: none;               /* toggled by cart.js when cart has items */
+            padding: 0.75rem 1rem 1rem;
+            border-top: 1px solid #e8dac4;
+            margin-top: 0.5rem;
+        }
+
+        .cart-checkout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: #1a0f0a;
+            color: #faf5ee !important;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+
+        .cart-checkout-btn:hover {
+            background: #3b2218;
+        }
+
+        .cart-checkout-btn i,
+        .cart-checkout-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: #faf5ee !important;
+        }
+    </style>
 
 </head>
 
@@ -116,6 +152,16 @@ $navItems = [
                     </h3>
 
                     <div id="cart-body"></div>
+
+                    <div class="cart-dropdown__footer" id="cart-footer">
+                        <a
+                            href="<?= e($checkoutHref) ?>"
+                            class="cart-checkout-btn"
+                        >
+                            <i data-lucide="shopping-bag"></i>
+                            Proceed to Checkout
+                        </a>
+                    </div>
 
                 </div>
 
