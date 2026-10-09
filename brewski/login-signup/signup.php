@@ -257,13 +257,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $ok = $stmt->execute();
                         }
 
-
-
-
-
-
-
-
                     } else {
 
                         $stmt = $conn->prepare(
@@ -312,13 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
-
-
-
-
-
-
-
                     if (!$ok) {
 
                         $error =
@@ -330,13 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $stmt->error
                             );
                         }
-
-
-
-
-
-
-
 
                     } else {
 
@@ -354,35 +333,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'activationUrl' => $activation_url
                             ]
                         );
-
-
-
-
-
-
-
-
                         if ($email_sent) {
 
                             $success =
                                 'Account created. We sent an activation link to ' .
                                 $email .
                                 '. Open it to activate your account before logging in.';
-
-
-
-
-
-
-
-
                         } else {
-
-
-
-
-
-
                             if ($is_new_row) {
 
                                 $delete = $conn->prepare(
@@ -402,12 +359,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 }
 
                             } else {
-
-
-
-
-
-
                                 $clear = $conn->prepare(
                                     "UPDATE users
                                      SET
