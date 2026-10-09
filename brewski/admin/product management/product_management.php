@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../login-signup/session_init.php';
+require_once __DIR__ . '/../../Db/product_images.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -40,7 +41,6 @@ if (empty($_SESSION['catalog_csrf'])) {
 
 $imagesDirectory = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'images'
     . DIRECTORY_SEPARATOR . 'menu';
-$imagePrefix = 'menu/';
 $formAction = htmlspecialchars(
     str_replace(' ', '%20', $_SERVER['SCRIPT_NAME'] ?? ''),
     ENT_QUOTES,
@@ -67,6 +67,7 @@ function catalog_remove_uploaded_image(?string $imagePath, string $imagesDirecto
 try {
     $connection = new mysqli('localhost', 'root', '', 'brewski_db');
     $connection->set_charset('utf8mb4');
+    brewski_ensure_product_image_columns($connection);
     $connection->query(
         "CREATE TABLE IF NOT EXISTS product_customization_options (
             product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -165,7 +166,6 @@ try {
     $connection->query("DELETE FROM product_customization_options WHERE option_group = 'addon'");
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $uploadedImagePath = null;
         $transactionOpen = false;
 
         try {
@@ -479,7 +479,8 @@ try {
                     $existing->close();
                 }
 
-                $imagePath = $existingImagePath;
+                $imageData = null;
+                $imageMimeType = null;
                 $upload = $_FILES['product_image'] ?? null;
                 if ($upload && $upload['error'] !== UPLOAD_ERR_NO_FILE) {
                     if ($upload['error'] === UPLOAD_ERR_INI_SIZE
@@ -493,26 +494,21 @@ try {
                     $fileInfo = new finfo(FILEINFO_MIME_TYPE);
                     $mimeType = $fileInfo->file($upload['tmp_name']);
                     $allowedMimeTypes = [
-                        'image/jpeg' => '.jpg',
-                        'image/png' => '.png',
-                        'image/webp' => '.webp',
+                        'image/jpeg' => true,
+                        'image/png' => true,
+                        'image/webp' => true,
                     ];
                     if (!isset($allowedMimeTypes[$mimeType])) {
                         throw new RuntimeException('Upload a JPG, PNG, or WebP image.');
                     }
-                    if (!is_dir($imagesDirectory)
-                        && !mkdir($imagesDirectory, 0755, true)
-                        && !is_dir($imagesDirectory)) {
-                        throw new RuntimeException('The menu image folder could not be created.');
+                    if (!is_uploaded_file($upload['tmp_name'])) {
+                        throw new RuntimeException('The product image upload could not be verified.');
                     }
-
-                    $filename = bin2hex(random_bytes(16)) . $allowedMimeTypes[$mimeType];
-                    $destination = $imagesDirectory . DIRECTORY_SEPARATOR . $filename;
-                    if (!move_uploaded_file($upload['tmp_name'], $destination)) {
-                        throw new RuntimeException('The product image could not be saved.');
+                    $imageData = file_get_contents($upload['tmp_name']);
+                    if ($imageData === false) {
+                        throw new RuntimeException('The product image could not be read.');
                     }
-                    $uploadedImagePath = $imagePrefix . $filename;
-                    $imagePath = $uploadedImagePath;
+                    $imageMimeType = $mimeType;
                 } elseif ($productId === 0) {
                     throw new RuntimeException('Choose a product image.');
                 }
@@ -520,21 +516,40 @@ try {
                 $connection->begin_transaction();
                 $transactionOpen = true;
                 if ($productId > 0) {
-                    $statement = $connection->prepare(
-                        'UPDATE products
-                         SET category_id = ?, product_name = ?, price = ?, image_path = ?
-                         WHERE product_id = ?'
-                    );
-                    $statement->bind_param('isdsi', $categoryId, $productName, $price, $imagePath, $productId);
+                    if ($imageData !== null) {
+                        $statement = $connection->prepare(
+                            'UPDATE products
+                             SET category_id = ?, product_name = ?, price = ?, image_path = NULL,
+                                 image_data = ?, image_mime_type = ?, availability = 1
+                             WHERE product_id = ?'
+                        );
+                        $statement->bind_param(
+                            'isdssi',
+                            $categoryId,
+                            $productName,
+                            $price,
+                            $imageData,
+                            $imageMimeType,
+                            $productId
+                        );
+                    } else {
+                        $statement = $connection->prepare(
+                            'UPDATE products
+                             SET category_id = ?, product_name = ?, price = ?, availability = 1
+                             WHERE product_id = ?'
+                        );
+                        $statement->bind_param('isdi', $categoryId, $productName, $price, $productId);
+                    }
                     $statement->execute();
                     $statement->close();
                     $savedProductId = $productId;
                 } else {
                     $statement = $connection->prepare(
-                        'INSERT INTO products (category_id, product_name, price, image_path)
-                         VALUES (?, ?, ?, ?)'
+                        'INSERT INTO products
+                         (category_id, product_name, price, image_path, image_data, image_mime_type, availability)
+                         VALUES (?, ?, ?, NULL, ?, ?, 1)'
                     );
-                    $statement->bind_param('isds', $categoryId, $productName, $price, $imagePath);
+                    $statement->bind_param('isdss', $categoryId, $productName, $price, $imageData, $imageMimeType);
                     $statement->execute();
                     $savedProductId = (int) $connection->insert_id;
                     $statement->close();
@@ -569,7 +584,7 @@ try {
                 $connection->commit();
                 $transactionOpen = false;
 
-                if ($uploadedImagePath !== null) {
+                if ($imageData !== null) {
                     catalog_remove_uploaded_image($existingImagePath, $imagesDirectory);
                 }
                 $message = $productId > 0 ? 'Product updated.' : 'Product created.';
@@ -610,13 +625,11 @@ try {
             if ($transactionOpen) {
                 $connection->rollback();
             }
-            catalog_remove_uploaded_image($uploadedImagePath, $imagesDirectory);
             $_SESSION['catalog_flash'] = ['type' => 'error', 'message' => $error->getMessage()];
         } catch (mysqli_sql_exception $error) {
             if ($transactionOpen) {
                 $connection->rollback();
             }
-            catalog_remove_uploaded_image($uploadedImagePath, $imagesDirectory);
             error_log('Catalog database error: ' . $error->getMessage());
             if ($operation === 'category_create' || $operation === 'category_update') {
                 $message = 'That category name may already exist.';
@@ -649,6 +662,7 @@ try {
 
     $productResult = $connection->query(
         'SELECT p.product_id, p.category_id, p.product_name, p.price, p.image_path,
+                p.image_mime_type,
                 c.category_name
          FROM products p
          INNER JOIN categories c ON c.category_id = p.category_id
@@ -1001,9 +1015,14 @@ $escape = static function ($value): string {
         <?php else: ?>
             <div class="catalog-product-list">
                 <?php foreach ($products as $product): ?>
+                    <?php
+                    $productImage = !empty($product['image_mime_type'])
+                        ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+                        : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+                    ?>
                         <article class="catalog-product">
                         <img
-                            src="../../images/<?= $escape($product['image_path'] ?: 'brewskilogo.png') ?>"
+                            src="<?= $escape($productImage) ?>"
                             alt=""
                             class="catalog-product__image"
                         >

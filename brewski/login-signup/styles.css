@@ -151,6 +151,46 @@ body {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+.otp-inputs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: 0.55rem;
+}
+
+.field .otp-input {
+    width: 100%;
+    max-width: 2.65rem;
+    height: 3rem;
+    padding: 0;
+    border: 1px solid #d8c6ad;
+    border-radius: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    justify-self: center;
+}
+
+.field .otp-input:focus {
+    border-color: var(--mocha);
+    outline: 2px solid rgb(113 73 42 / 20%);
+}
+
+.field .otp-input[aria-invalid="true"] {
+    border-color: #b42318;
+}
+
+@media (max-width: 360px) {
+    .otp-inputs {
+        gap: 0.3rem;
+    }
+
+    .field .otp-input {
+        max-width: 2.4rem;
+    }
+}
+
 
 
 .password-wrap {

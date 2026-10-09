@@ -43,7 +43,20 @@ if (isset($_GET['cancel'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $otp = preg_replace('/\D/', '', $_POST['otp'] ?? '');
+    $submittedOtp = $_POST['otp'] ?? '';
+    if (!is_string($submittedOtp)) {
+        $submittedOtp = '';
+    }
+
+    if ($submittedOtp === '' && isset($_POST['otp_digits']) && is_array($_POST['otp_digits'])) {
+        foreach (array_slice($_POST['otp_digits'], 0, 6) as $digit) {
+            if (is_string($digit) || is_int($digit)) {
+                $submittedOtp .= (string) $digit;
+            }
+        }
+    }
+
+    $otp = preg_replace('/\D/', '', $submittedOtp) ?? '';
 
     if (strlen($otp) !== 6) {
         $error = 'Please enter the 6-digit login code.';
@@ -245,7 +258,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($error !== ''): ?>
 
                 <p
+                    id="otp-error"
                     class="field__error"
+                    role="alert"
                     style="
                         text-align:center;
                         margin-bottom:1rem;
@@ -265,27 +280,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <form
                 class="form"
+                id="otp-form"
                 method="POST"
                 action="verify-otp.php"
             >
 
                 <div class="field">
 
-                    <label for="otp">
+                    <label for="otp-digit-1">
                         Verification code
                     </label>
 
                     <input
-                        type="text"
                         id="otp"
                         name="otp"
-                        inputmode="numeric"
-                        pattern="[0-9]{6}"
-                        maxlength="6"
-                        autocomplete="one-time-code"
-                        placeholder="Enter 6-digit code"
-                        required
+                        type="hidden"
                     >
+
+                    <div class="otp-inputs" role="group" aria-label="Six-digit verification code"<?= $error !== '' ? ' aria-describedby="otp-error"' : '' ?>>
+                        <?php for ($digit = 1; $digit <= 6; $digit++): ?>
+                            <input
+                                type="text"
+                                class="otp-input"
+                                name="otp_digits[]"
+                                inputmode="numeric"
+                                pattern="[0-9]"
+                                maxlength="<?= $digit === 1 ? '6' : '1' ?>"
+                                aria-label="Digit <?= $digit ?> of 6"
+                                <?= $digit === 1 ? 'autocomplete="one-time-code"' : 'autocomplete="off"' ?>
+                                required
+                            >
+                        <?php endfor; ?>
+                    </div>
 
                 </div>
 
@@ -349,6 +375,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </section>
 
 </main>
+
+<script src="otp.js"></script>
 
 </body>
 

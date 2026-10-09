@@ -106,7 +106,9 @@ require __DIR__ . '/../partials/header.php';
                 <?php foreach ($products as $product): ?>
 
                     <?php
-                    $image = '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+                    $image = !empty($product['image_mime_type'])
+                        ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+                        : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
                     $customizations = json_encode(
                         $product['customizations'],
                         JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../../Db/product_images.php';
+
 function brewski_load_catalog(): array
 {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -7,6 +9,7 @@ function brewski_load_catalog(): array
     $connection->set_charset('utf8mb4');
 
     try {
+        brewski_ensure_product_image_columns($connection);
         $connection->query(
             "CREATE TABLE IF NOT EXISTS product_customization_options (
                 product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -110,7 +113,7 @@ function brewski_load_catalog(): array
         $products = [];
         $productResult = $connection->query(
             'SELECT p.product_id, p.category_id, c.category_name, p.product_name,
-                    p.price, p.image_path
+                    p.price, p.image_path, p.image_mime_type
              FROM products p
              INNER JOIN categories c ON c.category_id = p.category_id
              WHERE p.availability = 1
