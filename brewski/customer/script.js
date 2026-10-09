@@ -274,6 +274,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             currentProduct = {
+                id: parseInt(card.dataset.id, 10) || 0,
                 name: card.dataset.name,
                 image: card.dataset.image || '',
                 basePrice: parseFloat(card.dataset.basePrice) || 0,
@@ -352,6 +353,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var temperature = activeOptions('temp')[0];
         var sugar = activeOptions('sugar')[0];
         var size = activeOptions('size')[0] || '';
+        var addons = [];
 
         if (temperature) {
             parts.push(temperature);
@@ -367,14 +369,25 @@ document.addEventListener('DOMContentLoaded', function () {
             ) || 0;
             if (quantity > 0) {
                 parts.push(addonRow.dataset.name + ' ×' + quantity);
+                addons.push({
+                    name: addonRow.dataset.name,
+                    quantity: quantity
+                });
             }
         });
 
         window.BrewskiCart.add({
+            productId: currentProduct.id,
             name: currentProduct.name,
             image: currentProduct.image,
             size: size,
             customization: parts.join(', '),
+            customizationOptions: {
+                temperature: temperature || '',
+                size: size,
+                sugar: sugar || '',
+                addons: addons
+            },
             price: calculateTotal(),
             quantity: selectedDrinkQuantity()
         });

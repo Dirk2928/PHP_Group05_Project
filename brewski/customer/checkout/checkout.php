@@ -30,7 +30,12 @@ $stmt->execute([$userId]);
 $addresses = $stmt->fetchAll();
 
 // --- Load cart items ---
-$stmt = $pdo->prepare('SELECT cart_id FROM carts WHERE user_id = ? LIMIT 1');
+$stmt = $pdo->prepare(
+    'SELECT cart_id FROM carts
+     WHERE user_id = ?
+     ORDER BY cart_id ASC
+     LIMIT 1'
+);
 $stmt->execute([$userId]);
 $cartId = $stmt->fetchColumn();
 
@@ -61,6 +66,9 @@ require __DIR__ . '/../partials/header.php';
 ?>
 
 <main class="page" style="max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem;">
+
+    <p id="cart-sync-status" role="status" hidden
+        style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1rem;"></p>
 
     <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Checkout</h1>
     <p style="color:#5c4033; margin-bottom: 2rem;">Review your order and pick a delivery address.</p>
@@ -199,6 +207,63 @@ document.getElementById('place-order-btn')?.addEventListener('click', async () =
         btn.textContent = 'Place order';
     }
 });
+</script>
+
+<script>
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('cart_synced') === '1') {
+        return;
+    }
+
+    var syncUrl = document.querySelector('meta[name="cart-session-url"]');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var syncEnabled = document.querySelector('meta[name="cart-sync-enabled"]');
+    var status = document.getElementById('cart-sync-status');
+
+    if (!syncUrl || !csrfToken || !syncEnabled || syncEnabled.content !== '1') {
+        return;
+    }
+
+    var items;
+    try {
+        items = JSON.parse(localStorage.getItem('brewski_cart') || '[]');
+    } catch (error) {
+        console.error('Could not read the browser cart on checkout:', error);
+        return;
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+        return;
+    }
+
+    status.hidden = false;
+    status.textContent = 'Updating your cart before checkout...';
+
+    fetch(syncUrl.content, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken.content
+        },
+        body: JSON.stringify({ items: items })
+    }).then(function (response) {
+        return response.json().then(function (result) {
+            if (!response.ok || !result.ok) {
+                throw new Error(result.error || 'Could not update the checkout cart.');
+            }
+        });
+    }).then(function () {
+        params.set('cart_synced', '1');
+        window.location.replace(window.location.pathname + '?' + params.toString());
+    }).catch(function (error) {
+        console.error('Could not sync the cart on checkout:', error);
+        status.style.background = '#f8e3e0';
+        status.style.borderColor = '#e6b8b2';
+        status.style.color = '#a32a1f';
+        status.textContent = error.message;
+    });
+})();
 </script>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>

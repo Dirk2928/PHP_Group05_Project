@@ -95,7 +95,7 @@
             '<div class="cart-summary">' +
             '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
             '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
-            '<a href="checkout.html" class="cart-checkout">Proceed to check out</a>' +
+            '<a href="../checkout/checkout.php" class="cart-checkout">Proceed to check out</a>' +
             '</div>';
 
         body.innerHTML = html;

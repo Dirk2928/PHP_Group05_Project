@@ -48,7 +48,12 @@ try {
     }
 
     // 2. Get the cart
-    $stmt = $pdo->prepare('SELECT cart_id FROM carts WHERE user_id = ? LIMIT 1');
+    $stmt = $pdo->prepare(
+        'SELECT cart_id FROM carts
+         WHERE user_id = ?
+         ORDER BY cart_id ASC
+         LIMIT 1'
+    );
     $stmt->execute([$userId]);
     $cartId = $stmt->fetchColumn();
 

@@ -20,6 +20,11 @@
 
     var STORAGE_KEY = 'brewski_cart';
     var MAX_QTY = 99;
+    var sessionUrl = document.querySelector('meta[name="cart-session-url"]');
+    var checkoutUrl = document.querySelector('meta[name="checkout-url"]');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var syncEnabled = document.querySelector('meta[name="cart-sync-enabled"]');
+    var pendingSync = Promise.resolve();
 
     var menu = document.getElementById('cart-menu');
     var button = document.getElementById('cart-button');
@@ -45,6 +50,49 @@
     function save(items) {
         persist(items);
         render();
+        syncWithDatabase(items).catch(function (error) {
+            console.error('Could not sync cart with checkout:', error);
+        });
+    }
+
+    function syncWithDatabase(items) {
+        if (!sessionUrl || !csrfToken || !syncEnabled || syncEnabled.content !== '1') {
+            return Promise.resolve();
+        }
+
+        pendingSync = pendingSync.catch(function () {
+            // Let a newer cart snapshot retry after an earlier failed request.
+        }).then(function () {
+            var controller = new AbortController();
+            var timeout = window.setTimeout(function () {
+                controller.abort();
+            }, 5000);
+
+            return fetch(sessionUrl.content, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken.content
+                },
+                body: JSON.stringify({ items: items }),
+                signal: controller.signal
+            }).then(function (response) {
+                return response.json().then(function (result) {
+                    if (!response.ok || !result.ok) {
+                        throw new Error(result.error || 'Cart synchronization failed.');
+                    }
+                });
+            }).catch(function (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Cart synchronization timed out.');
+                }
+                throw error;
+            }).finally(function () {
+                window.clearTimeout(timeout);
+            });
+        });
+
+        return pendingSync;
     }
 
     function makeKey(name, size, customization) {
@@ -65,13 +113,18 @@
 
         if (existing) {
             existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + quantity);
+            existing.productId = Number(item.productId) || existing.productId || 0;
+            existing.customizationOptions = item.customizationOptions || existing.customizationOptions || {};
+            existing.price = Number(item.price) || existing.price || 0;
         } else {
             items.push({
                 key: key,
+                productId: Number(item.productId) || 0,
                 name: item.name,
                 image: item.image || '',
                 size: item.size || '',
                 customization: item.customization || '',
+                customizationOptions: item.customizationOptions || {},
                 price: Number(item.price) || 0,
                 quantity: quantity
             });
@@ -166,8 +219,7 @@
                 '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
                 '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
 
-                // TODO: checkout page not built yet.
-                '<a href="../customer_checkout/checkout.php" class="cart-checkout">Proceed to check out</a>' +
+                '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
         body.innerHTML = html;
@@ -241,10 +293,36 @@
 
             save(items);
         });
+
+        body.addEventListener('click', function (event) {
+            var checkoutLink = event.target.closest('.cart-checkout');
+            if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') {
+                return;
+            }
+
+            event.preventDefault();
+            checkoutLink.setAttribute('aria-disabled', 'true');
+            checkoutLink.textContent = 'Saving your order...';
+            syncWithDatabase(load()).then(function () {
+                var checkoutDestination = new URL(checkoutLink.href);
+                checkoutDestination.searchParams.set('cart_synced', '1');
+                window.location.assign(checkoutDestination.href);
+            }).catch(function (error) {
+                console.error('Could not sync cart with checkout:', error);
+                window.alert(error.message);
+                checkoutLink.removeAttribute('aria-disabled');
+                checkoutLink.textContent = 'Proceed to checkout';
+            });
+        });
     }
 
     // Keep several tabs, and the back/forward cache, in step.
-    window.addEventListener('storage', render);
+    window.addEventListener('storage', function () {
+        render();
+        syncWithDatabase(load()).catch(function (error) {
+            console.error('Could not sync cart with checkout:', error);
+        });
+    });
     window.addEventListener('pageshow', render);
 
     window.BrewskiCart = {
@@ -257,4 +335,11 @@
     };
 
     render();
+    var isCheckoutPage = checkoutUrl
+        && new URL(checkoutUrl.content, window.location.href).pathname === window.location.pathname;
+    if (!isCheckoutPage) {
+        syncWithDatabase(load()).catch(function (error) {
+            console.error('Could not sync cart with checkout:', error);
+        });
+    }
 })();
