@@ -46,23 +46,6 @@ $display_name = htmlspecialchars(
         href="../staff.css?v=<?= filemtime(__DIR__ . '/../staff.css') ?>"
     >
 
-    <style>
-        .orders-table { width: 100%; border-collapse: collapse; }
-        .orders-table th,
-        .orders-table td { padding: .75rem 1rem; text-align: left; vertical-align: top; border-bottom: 1px solid #e5e5e5; }
-        .orders-table ul { margin: 0; padding-left: 1.1rem; }
-        .badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .8rem; font-weight: 600; }
-        .badge-pending   { background: #fff3cd; color: #7a5b00; }
-        .badge-confirmed { background: #e8e0ff; color: #3d2a8c; }
-        .badge-preparing { background: #d9eaff; color: #0b4a8f; }
-        .badge-ready     { background: #d6f5dd; color: #176b2c; }
-        .order-actions button { margin: 0 .25rem .25rem 0; padding: .35rem .7rem; border: 0; border-radius: 6px; cursor: pointer; }
-        .btn-advance { background: #4b2e1e; color: #fff; }
-        .btn-cancel  { background: #eee; color: #a11; }
-        .live-status { font-size: .8rem; color: #777; margin-top: .5rem; }
-        .live-status.error { color: #b00020; }
-    </style>
-
 </head>
 
 <body>
@@ -138,56 +121,113 @@ $display_name = htmlspecialchars(
 
         <section id="ordersView">
 
-            <div class="page-container">
-
+            <div class="page-container staff-orders">
                 <div class="page-header">
-
-                    <h1 class="page-title">
-                        Orders
-                    </h1>
-
+                    <h1 class="page-title">Orders</h1>
                     <p class="subtitle">
-                        <?php if ($is_signed_in): ?>Signed in as <?= $display_name ?>. <?php endif; ?>Track incoming orders
-                        and update their status.
+                        <?php if ($is_signed_in): ?>Signed in as <?= $display_name ?>. <?php endif; ?>
+                        Review customer orders and keep delivery status up to date.
                     </p>
-
                 </div>
 
-                <div class="table-card">
+                <div class="order-summary" aria-label="Order summary">
+                    <article class="order-summary-card">
+                        <span class="order-summary-label">Active orders</span>
+                        <strong id="activeOrderCount">0</strong>
+                        <span class="order-summary-note">Currently being handled</span>
+                    </article>
+                    <article class="order-summary-card">
+                        <span class="order-summary-label">Ready for delivery</span>
+                        <strong id="readyOrderCount">0</strong>
+                        <span class="order-summary-note">Ready to leave the counter</span>
+                    </article>
+                    <article class="order-summary-card">
+                        <span class="order-summary-label">Completed today</span>
+                        <strong id="completedOrderCount">0</strong>
+                        <span class="order-summary-note">Successfully fulfilled</span>
+                    </article>
+                </div>
 
-                    <table class="orders-table" id="ordersTable" hidden>
-                        <thead>
-                            <tr>
-                                <th>Order</th>
-                                <th>Customer</th>
-                                <th>Items</th>
-                                <th>Total</th>
-                                <th>Placed</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersBody"></tbody>
-                    </table>
-
-                    <div class="empty-state" id="ordersEmpty">
-
-                        <p class="empty-title">
-                            No orders to show yet
-                        </p>
-
-                        <p class="empty-hint">
-                            Orders placed by customers will appear here.
-                        </p>
-
+                <div class="toolbar order-toolbar">
+                    <div class="toolbar-filters">
+                        <label class="order-search">
+                            <span class="sr-only">Search orders</span>
+                            <input class="toolbar-input" id="orderSearch" type="search" placeholder="Search order or customer">
+                        </label>
+                        <label>
+                            <span class="sr-only">Filter order status</span>
+                            <select class="toolbar-select" id="orderStatusFilter">
+                                <option value="ALL">All statuses</option>
+                                <option value="PREPARING">Preparing</option>
+                                <option value="READY">Ready</option>
+                                <option value="DELIVERED">Delivered</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
+                        </label>
                     </div>
-
+                    <span class="order-count" id="orderCount"></span>
                 </div>
 
-                <p class="live-status" id="liveStatus">Connecting...</p>
-
+                <div class="table-card order-table-card">
+                    <div class="order-table-scroll">
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Placed</th>
+                                    <th>Status</th>
+                                    <th>Next step</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="orders-empty hidden" id="ordersEmpty">
+                        <span class="orders-empty-icon" aria-hidden="true">☕</span>
+                        <p class="empty-title">No matching orders</p>
+                        <p class="empty-hint">Try changing your search or status filter.</p>
+                    </div>
+                </div>
+                <p class="demo-feedback" id="orderFeedback" role="status" aria-live="polite"></p>
             </div>
+        </section>
 
+        <section id="productsView" class="hidden">
+            <div class="page-container staff-products">
+                <div class="page-header">
+                    <h1 class="page-title">Product availability</h1>
+                    <p class="subtitle">Control which menu items customers can order right now.</p>
+                </div>
+                <div class="availability-overview">
+                    <div>
+                        <span class="availability-overview-label">Available to order</span>
+                        <strong><span id="availableProductCount">0</span> <span class="availability-total">/ <span id="totalProductCount">0</span> products</span></strong>
+                    </div>
+                    <span class="availability-overview-icon" aria-hidden="true">✓</span>
+                </div>
+                <div class="table-card product-table-card">
+                    <div class="product-list-heading">
+                        <div>
+                            <h2>Menu items</h2>
+                            <p>Turn an item off when it is temporarily unavailable.</p>
+                        </div>
+                        <div class="product-list-controls">
+                            <label class="product-category-filter">
+                                <span class="sr-only">Filter products by category</span>
+                                <select class="toolbar-select" id="productCategoryFilter">
+                                    <option value="ALL">All categories</option>
+                                </select>
+                            </label>
+                            <span class="product-list-count" id="productListCount"></span>
+                        </div>
+                    </div>
+                    <div class="product-availability-list" id="productAvailabilityList"></div>
+                </div>
+                <p class="demo-feedback" id="productFeedback" role="status" aria-live="polite"></p>
+            </div>
         </section>
 
         <section id="dynamicView" class="hidden"></section>
@@ -211,181 +251,7 @@ $display_name = htmlspecialchars(
         defer
     ></script>
 
-    <script>
-    (function () {
-        const POLL_MS       = 2000;   
-        const MAX_FAILURES  = 5;     
-        const API_URL       = 'orders_api.php';
-
-        const section = document.getElementById('ordersView');
-        const table   = document.getElementById('ordersTable');
-        const body    = document.getElementById('ordersBody');
-        const empty   = document.getElementById('ordersEmpty');
-        const live    = document.getElementById('liveStatus');
-
-        let lastSnapshot = '';
-        let timer = null;
-        let failures = 0;
-        let stopped = false;
-
-        const NEXT = {
-            PENDING:   { label: 'Confirm',         to: 'CONFIRMED', cancel: true },
-            CONFIRMED: { label: 'Start preparing', to: 'PREPARING', cancel: true },
-            PREPARING: { label: 'Mark ready',      to: 'READY',     cancel: true },
-            READY:     { label: 'Complete',        to: 'COMPLETED', cancel: false }
-        };
-
-        function esc(value) {
-            const div = document.createElement('div');
-            div.textContent = String(value ?? '');
-            return div.innerHTML;
-        }
-
-        function setStatus(message, isError) {
-            live.textContent = message;
-            live.classList.toggle('error', !!isError);
-        }
-
-        function render(orders) {
-            if (orders.length === 0) {
-                table.hidden = true;
-                empty.hidden = false;
-                body.innerHTML = '';
-                return;
-            }
-
-            table.hidden = false;
-            empty.hidden = true;
-
-            body.innerHTML = orders.map(function (o) {
-                const status = String(o.status).toUpperCase();
-                const next   = NEXT[status];
-
-                const items = o.items.length
-                    ? '<ul>' + o.items.map(function (i) {
-                          return '<li>' + esc(i.quantity) + ' &times; ' + esc(i.name) + '</li>';
-                      }).join('') + '</ul>'
-                    : '-';
-
-                let actions = '';
-                if (next) {
-                    actions += '<button class="btn-advance" data-id="' + o.order_id +
-                               '" data-status="' + next.to + '">' + next.label + '</button>';
-                    if (next.cancel) {
-                        actions += '<button class="btn-cancel" data-id="' + o.order_id +
-                                   '" data-status="CANCELLED">Cancel</button>';
-                    }
-                }
-
-                return '<tr>' +
-                    '<td>#' + esc(o.order_id) + '</td>' +
-                    '<td>' + esc(o.customer || 'Customer') + '</td>' +
-                    '<td>' + items + '</td>' +
-                    '<td>' + esc(Number(o.total_amount).toFixed(2)) + '</td>' +
-                    '<td>' + esc(o.created_at) + '</td>' +
-                    '<td><span class="badge badge-' + status.toLowerCase() + '">' + esc(status) + '</span></td>' +
-                    '<td class="order-actions">' + actions + '</td>' +
-                '</tr>';
-            }).join('');
-        }
-
-        function fail(message) {
-            failures++;
-
-            if (failures >= MAX_FAILURES) {
-                stopped = true;
-                setStatus(message + ' - stopped after ' + MAX_FAILURES + ' failed attempts. Reload the page to retry.', true);
-            } else {
-                setStatus(message + ' - retrying...', true);
-            }
-        }
-
-        async function fetchOrders() {
-            try {
-                const res = await fetch(API_URL, { cache: 'no-store' });
-
-                if (res.redirected && res.url.indexOf('login') !== -1) {
-                    window.location.href = res.url;
-                    return;
-                }
-
-                const type = res.headers.get('content-type') || '';
-
-                if (!type.includes('application/json')) {
-                    const text = await res.text();
-                    const snippet = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
-                    fail('API returned a non-JSON response (HTTP ' + res.status + '): ' + snippet);
-                    return;
-                }
-
-                const data = await res.json();
-
-                if (data.error) {
-                    fail('API error: ' + data.error + (data.detail ? ' (' + data.detail + ')' : ''));
-                    return;
-                }
-
-                if (data.orders) {
-                    failures = 0;
-
-                    const snapshot = JSON.stringify(data.orders);
-
-                    if (snapshot !== lastSnapshot) {
-                        lastSnapshot = snapshot;
-                        render(data.orders);
-                    }
-
-                    setStatus('Live - updated ' + new Date().toLocaleTimeString(), false);
-                }
-            } catch (err) {
-                fail('Connection problem');
-            }
-        }
-
-        function schedule() {
-            clearTimeout(timer);
-            if (!stopped) {
-                timer = setTimeout(tick, POLL_MS);
-            }
-        }
-
-        async function tick() {
-            if (!document.hidden && !section.classList.contains('hidden')) {
-                await fetchOrders();
-            }
-            schedule();
-        }
-
-        body.addEventListener('click', async function (e) {
-            const btn = e.target.closest('button[data-id]');
-            if (!btn) return;
-
-            if (btn.dataset.status === 'CANCELLED' && !confirm('Cancel this order?')) {
-                return;
-            }
-
-            btn.disabled = true;
-
-            const form = new FormData();
-            form.append('order_id', btn.dataset.id);
-            form.append('status', btn.dataset.status);
-
-            try {
-                await fetch(API_URL, { method: 'POST', body: form });
-            } catch (err) {
-                setStatus('Could not update the order - try again.', true);
-            }
-
-            fetchOrders(); 
-        });
-
-        document.addEventListener('visibilitychange', function () {
-            if (!document.hidden && !stopped) tick();
-        });
-
-        tick();
-    })();
-    </script>
+    <script src="orders.js?v=<?= filemtime(__DIR__ . '/orders.js') ?>" defer></script>
 
 </body>
 

@@ -433,6 +433,57 @@ try {
                         throw new RuntimeException('Choose only listed customization options.');
                     }
                 }
+
+                $customSizeNames = $_POST['custom_size_name'] ?? [];
+                $customSizePrices = $_POST['custom_size_price'] ?? [];
+                if (!is_array($customSizeNames) || !is_array($customSizePrices)) {
+                    throw new RuntimeException('Enter valid custom sizes.');
+                }
+                $customSizeNames = array_values($customSizeNames);
+                $customSizePrices = array_values($customSizePrices);
+                if (count($customSizeNames) !== count($customSizePrices)) {
+                    throw new RuntimeException('Enter a price for each custom size.');
+                }
+
+                $sizeNames = ['regular' => true, 'large' => true];
+                $customSizeOptionPrices = [];
+                foreach ($customSizeNames as $index => $customSizeNameInput) {
+                    $customSizePriceInput = $customSizePrices[$index];
+                    if (!is_string($customSizeNameInput)
+                        || (!is_string($customSizePriceInput) && !is_int($customSizePriceInput))) {
+                        throw new RuntimeException('Enter valid custom size names and prices.');
+                    }
+
+                    $customSizeName = trim($customSizeNameInput);
+                    $customSizePrice = trim((string) $customSizePriceInput);
+                    if ($customSizeName === '' && $customSizePrice === '') {
+                        continue;
+                    }
+                    if ($customSizeName === '' || strlen($customSizeName) > 50
+                        || strpos($customSizeName, ':') !== false) {
+                        throw new RuntimeException('Enter a size name of 1 to 50 characters.');
+                    }
+                    $normalizedSizeName = strtolower($customSizeName);
+                    if (isset($sizeNames[$normalizedSizeName])) {
+                        throw new RuntimeException('Size names must be unique for each beverage.');
+                    }
+                    if (!is_numeric($customSizePrice)
+                        || (float) $customSizePrice < 0
+                        || (float) $customSizePrice > 99999999.99) {
+                        throw new RuntimeException('Enter a valid non-negative price for each custom size.');
+                    }
+
+                    $sizeNames[$normalizedSizeName] = true;
+                    $optionKey = 'size:' . $customSizeName;
+                    $validOptions[$optionKey] = [
+                        'group' => 'size',
+                        'name' => $customSizeName,
+                        'price' => (float) $customSizePrice,
+                    ];
+                    $customSizeOptionPrices[$optionKey] = $customSizePrice;
+                    $selectedOptions[] = $optionKey;
+                }
+
                 $selectedOptions = array_values(array_unique($selectedOptions));
                 foreach ($selectedOptions as $selectedOption) {
                     if (!isset($validOptions[$selectedOption])) {
@@ -443,6 +494,7 @@ try {
                 if (!is_array($optionPrices)) {
                     throw new RuntimeException('Invalid customization prices.');
                 }
+                $optionPrices = array_merge($optionPrices, $customSizeOptionPrices);
                 foreach ($optionPrices as $optionKey => $optionPrice) {
                     if (!is_string($optionKey)
                         || !isset($validOptions[$optionKey])
@@ -665,8 +717,8 @@ try {
                 p.image_mime_type,
                 c.category_name
          FROM products p
-         INNER JOIN categories c ON c.category_id = p.category_id
-         ORDER BY c.category_name, p.product_name'
+         LEFT JOIN categories c ON c.category_id = p.category_id
+         ORDER BY c.category_name IS NULL, c.category_name, p.product_name'
     );
     while ($product = $productResult->fetch_assoc()) {
         $product['customizations'] = [];
@@ -721,18 +773,97 @@ if ($connection) {
 $escape = static function ($value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 };
+$catalogIcon = static function (string $name): string {
+    $paths = [
+        'layers' => [
+            'M12 2 2 7l10 5 10-5-10-5z',
+            'm2 12 10 5 10-5',
+            'm2 17 10 5 10-5',
+        ],
+        'plus' => ['M12 5v14', 'M5 12h14'],
+        'sparkles' => [
+            'm12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z',
+            'M19 14v4',
+            'M17 16h4',
+        ],
+        'coffee' => [
+            'M4 8h14v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z',
+            'M18 10h1a3 3 0 0 1 0 6h-1',
+            'M2 22h20',
+            'M10 2v3',
+            'M14 2v3',
+        ],
+        'trash-2' => [
+            'M3 6h18',
+            'M8 6V4h8v2',
+            'm19 6-1 14H6L5 6',
+            'M10 11v5',
+            'M14 11v5',
+        ],
+        'pencil' => [
+            'M12 20h9',
+            'M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z',
+        ],
+        'check' => ['m20 6-11 11-5-5'],
+    ];
+
+    if (!isset($paths[$name])) {
+        throw new InvalidArgumentException('Unknown catalog icon.');
+    }
+
+    $iconPaths = implode('', array_map(
+        static fn (string $path): string => '<path d="' . $path . '"></path>',
+        $paths[$name]
+    ));
+
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"'
+        . ' stroke="currentColor" stroke-width="1.8" stroke-linecap="round"'
+        . ' stroke-linejoin="round" aria-hidden="true" focusable="false">'
+        . $iconPaths . '</svg>';
+};
 ?>
 
 <section class="product-management-page">
     <header class="page-header">
         <div>
+            <span class="catalog-eyebrow">CATALOG OPERATIONS</span>
             <h1>Menu Management</h1>
             <p class="subtitle">Create categories and manage customer-facing beverages.</p>
         </div>
+        <nav class="catalog-shortcuts" aria-label="Menu management sections">
+            <a href="#catalog-categories"><?= $catalogIcon('layers') ?>Categories</a>
+            <a href="#catalog-create"><?= $catalogIcon('plus') ?>Add beverage</a>
+            <a href="#catalog-addons"><?= $catalogIcon('sparkles') ?>Add-ons</a>
+            <a href="#catalog-items"><?= $catalogIcon('coffee') ?>Menu items</a>
+        </nav>
     </header>
 
+    <div class="catalog-overview" aria-label="Catalog overview">
+        <article class="catalog-overview-card">
+            <span class="catalog-overview-icon"><?= $catalogIcon('layers') ?></span>
+            <span class="catalog-overview-copy">
+                <span class="catalog-overview-label">Categories</span>
+                <strong><?= count($categories) ?></strong>
+            </span>
+        </article>
+        <article class="catalog-overview-card">
+            <span class="catalog-overview-icon"><?= $catalogIcon('coffee') ?></span>
+            <span class="catalog-overview-copy">
+                <span class="catalog-overview-label">Menu items</span>
+                <strong><?= count($products) ?></strong>
+            </span>
+        </article>
+        <article class="catalog-overview-card">
+            <span class="catalog-overview-icon"><?= $catalogIcon('sparkles') ?></span>
+            <span class="catalog-overview-copy">
+                <span class="catalog-overview-label">Add-ons</span>
+                <strong><?= count($addOns) ?></strong>
+            </span>
+        </article>
+    </div>
+
     <?php if ($flash): ?>
-        <p class="catalog-message catalog-message--<?= $escape($flash['type']) ?>" role="status">
+        <p class="catalog-message catalog-message--<?= $escape($flash['type']) ?>" role="<?= ($flash['type'] ?? '') === 'error' ? 'alert' : 'status' ?>">
             <?= $escape($flash['message']) ?>
         </p>
     <?php endif; ?>
@@ -740,8 +871,8 @@ $escape = static function ($value): string {
         <p class="catalog-message catalog-message--error" role="alert"><?= $escape($pageError) ?></p>
     <?php endif; ?>
 
-    <section class="catalog-panel">
-        <h2>Categories</h2>
+    <section class="catalog-panel" id="catalog-categories">
+        <h2><?= $catalogIcon('layers') ?>Categories</h2>
         <form class="catalog-form catalog-category-create" method="post" action="<?= $formAction ?>">
             <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
             <input type="hidden" name="operation" value="category_create">
@@ -749,7 +880,7 @@ $escape = static function ($value): string {
                 Category name
                 <input type="text" name="category_name" maxlength="100" required>
             </label>
-            <button type="submit" class="catalog-button">Add category</button>
+            <button type="submit" class="catalog-button"><?= $catalogIcon('plus') ?>Add category</button>
         </form>
 
         <?php if ($categories): ?>
@@ -774,7 +905,9 @@ $escape = static function ($value): string {
                                     <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                     <input type="hidden" name="operation" value="category_delete">
                                     <input type="hidden" name="category_id" value="<?= (int) $category['category_id'] ?>">
-                                    <button type="submit" class="catalog-button catalog-button--danger">Delete</button>
+                                    <button type="submit" class="catalog-button catalog-button--danger catalog-icon-button" aria-label="Delete category <?= $escape($category['category_name']) ?>" title="Delete category">
+                                        <?= $catalogIcon('trash-2') ?>
+                                    </button>
                                 </form>
                             </td>
                         </tr>
@@ -787,8 +920,8 @@ $escape = static function ($value): string {
         <?php endif; ?>
     </section>
 
-    <section class="catalog-panel">
-        <h2>Add a beverage</h2>
+    <section class="catalog-panel" id="catalog-create">
+        <h2><?= $catalogIcon('coffee') ?>Add a beverage</h2>
         <?php if (!$categories): ?>
             <p class="catalog-empty">Create a category first to enable product creation.</p>
         <?php else: ?>
@@ -844,16 +977,22 @@ $escape = static function ($value): string {
                                     </div>
                                 <?php endforeach; ?>
                             </div>
+                            <?php if ($group === 'size'): ?>
+                                <div class="catalog-custom-sizes" data-custom-sizes></div>
+                                <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
+                                    <?= $catalogIcon('plus') ?>Add another size
+                                </button>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </fieldset>
-                <button type="submit" class="catalog-button">Create beverage</button>
+                <button type="submit" class="catalog-button"><?= $catalogIcon('plus') ?>Create beverage</button>
             </form>
         <?php endif; ?>
     </section>
 
-    <section class="catalog-panel">
-        <h2>Add-on management</h2>
+    <section class="catalog-panel" id="catalog-addons">
+        <h2><?= $catalogIcon('sparkles') ?>Add-on management</h2>
         <p class="catalog-option-hint">Create and edit add-ons, then choose which drinks can use each one. Select all drinks to make an add-on available across the whole menu.</p>
         <?php if (!$products): ?>
             <p class="catalog-empty">Add a beverage before assigning add-ons.</p>
@@ -913,7 +1052,7 @@ $escape = static function ($value): string {
                         <?php endforeach; ?>
                     </div>
                 </fieldset>
-                <button type="submit" class="catalog-button">Create add-on</button>
+                <button type="submit" class="catalog-button"><?= $catalogIcon('plus') ?>Create add-on</button>
             </form>
         <?php endif; ?>
 
@@ -930,7 +1069,7 @@ $escape = static function ($value): string {
                             </p>
                         </div>
                         <details class="catalog-product__edit">
-                            <summary class="catalog-button catalog-button--secondary">Edit</summary>
+                            <summary class="catalog-button catalog-button--secondary"><?= $catalogIcon('pencil') ?>Edit</summary>
                             <form class="catalog-form catalog-addon-form" method="post" action="<?= $formAction ?>">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="addon_save">
@@ -991,13 +1130,15 @@ $escape = static function ($value): string {
                                         <?php endforeach; ?>
                                     </div>
                                 </fieldset>
-                                <button type="submit" class="catalog-button">Save add-on</button>
+                                <button type="submit" class="catalog-button"><?= $catalogIcon('check') ?>Save add-on</button>
                             </form>
                             <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this add-on? It will be removed from all assigned drinks.">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="addon_delete">
                                 <input type="hidden" name="addon_id" value="<?= (int) $addOn['addon_id'] ?>">
-                                <button type="submit" class="catalog-button catalog-button--danger">Delete add-on</button>
+                                <button type="submit" class="catalog-button catalog-button--danger catalog-icon-button" aria-label="Delete add-on <?= $escape($addOn['addon_name']) ?>" title="Delete add-on">
+                                    <?= $catalogIcon('trash-2') ?>
+                                </button>
                             </form>
                         </details>
                     </article>
@@ -1008,8 +1149,8 @@ $escape = static function ($value): string {
         <?php endif; ?>
     </section>
 
-    <section class="catalog-panel">
-        <h2>Menu items</h2>
+    <section class="catalog-panel" id="catalog-items">
+        <h2><?= $catalogIcon('coffee') ?>Menu items</h2>
         <?php if (!$products): ?>
             <p class="catalog-empty">No beverages have been added yet.</p>
         <?php else: ?>
@@ -1028,10 +1169,10 @@ $escape = static function ($value): string {
                         >
                         <div class="catalog-product__summary">
                             <h3><?= $escape($product['product_name']) ?></h3>
-                            <p><?= $escape($product['category_name']) ?> · ₱<?= number_format((float) $product['price'], 2) ?></p>
+                            <p><?= $escape($product['category_name'] ?? 'Category unavailable') ?> · ₱<?= number_format((float) $product['price'], 2) ?></p>
                         </div>
                         <details class="catalog-product__edit">
-                            <summary class="catalog-button catalog-button--secondary">Edit</summary>
+                            <summary class="catalog-button catalog-button--secondary"><?= $catalogIcon('pencil') ?>Edit</summary>
                             <form class="catalog-form catalog-product-form" method="post" action="<?= $formAction ?>" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="product_save">
@@ -1044,6 +1185,9 @@ $escape = static function ($value): string {
                                     <label>
                                         Category
                                         <select name="category_id" required>
+                                            <?php if (empty($product['category_name'])): ?>
+                                                <option value="" selected>Category unavailable - choose a category</option>
+                                            <?php endif; ?>
                                             <?php foreach ($categories as $category): ?>
                                                 <option value="<?= (int) $category['category_id'] ?>"<?= (int) $category['category_id'] === (int) $product['category_id'] ? ' selected' : '' ?>>
                                                     <?= $escape($category['category_name']) ?>
@@ -1068,11 +1212,38 @@ $escape = static function ($value): string {
                                             $product['customizations'],
                                             static fn ($option): bool => strpos($option, $group . ':') === 0
                                         );
+                                        $customSizeOptions = $group === 'size'
+                                            ? array_map(
+                                                static function (string $option) use ($product): array {
+                                                    $optionName = substr($option, strlen('size:'));
+                                                    return [
+                                                        'name' => $optionName,
+                                                        'price' => (float) ($product['option_prices'][$option] ?? 0),
+                                                    ];
+                                                },
+                                                array_filter(
+                                                    $selectedGroupOptions,
+                                                    static fn (string $option): bool => !in_array(
+                                                        substr($option, strlen('size:')),
+                                                        ['Regular', 'Large'],
+                                                        true
+                                                    )
+                                                )
+                                            )
+                                            : [];
+                                        $selectedChoiceCount = count(array_filter(
+                                            $choices,
+                                            static fn ($choice): bool => in_array(
+                                                $group . ':' . $choice['name'],
+                                                $product['customizations'],
+                                                true
+                                            )
+                                        ));
                                         ?>
                                         <div class="catalog-option-group" data-customization-group>
                                             <strong><?= $escape(ucfirst($group)) ?></strong>
                                             <label class="catalog-select-all">
-                                                <input type="checkbox" data-select-all-customizations<?= count($selectedGroupOptions) === count($choices) ? ' checked' : '' ?>>
+                                                <input type="checkbox" data-select-all-customizations<?= $selectedChoiceCount === count($choices) ? ' checked' : '' ?>>
                                                 Select all <?= $escape($group) ?> options
                                             </label>
                                             <div class="catalog-option-list">
@@ -1092,16 +1263,38 @@ $escape = static function ($value): string {
                                                     </div>
                                                 <?php endforeach; ?>
                                             </div>
+                                            <?php if ($group === 'size'): ?>
+                                                <div class="catalog-custom-sizes" data-custom-sizes>
+                                                    <?php foreach ($customSizeOptions as $customSize): ?>
+                                                        <div class="catalog-custom-size-row">
+                                                            <label>
+                                                                Size name
+                                                                <input type="text" name="custom_size_name[]" maxlength="50" value="<?= $escape($customSize['name']) ?>" required>
+                                                            </label>
+                                                            <label>
+                                                                Extra price (₱)
+                                                                <input type="number" name="custom_size_price[]" min="0" max="99999999.99" step="0.01" value="<?= number_format((float) $customSize['price'], 2, '.', '') ?>" required>
+                                                            </label>
+                                                            <button type="button" class="catalog-button catalog-button--danger" data-remove-size>Remove</button>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                                <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
+                                                    <?= $catalogIcon('plus') ?>Add another size
+                                                </button>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </fieldset>
-                                <button type="submit" class="catalog-button">Save changes</button>
+                                <button type="submit" class="catalog-button"><?= $catalogIcon('check') ?>Save changes</button>
                             </form>
                             <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this beverage? Orders that already contain it will prevent deletion.">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="product_delete">
                                 <input type="hidden" name="product_id" value="<?= (int) $product['product_id'] ?>">
-                                <button type="submit" class="catalog-button catalog-button--danger">Delete beverage</button>
+                                <button type="submit" class="catalog-button catalog-button--danger catalog-icon-button" aria-label="Delete beverage <?= $escape($product['product_name']) ?>" title="Delete beverage">
+                                    <?= $catalogIcon('trash-2') ?>
+                                </button>
                             </form>
                         </details>
                     </article>
@@ -1113,8 +1306,49 @@ $escape = static function ($value): string {
 
 <script>
 (function () {
+    function showCatalogToast(page, message, type) {
+        var existingToast = page.querySelector('.catalog-toast');
+        if (existingToast) existingToast.remove();
+
+        var toast = document.createElement('div');
+        toast.className = 'catalog-toast catalog-toast--' + type;
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
+        var text = document.createElement('span');
+        text.textContent = message;
+        toast.appendChild(text);
+
+        var closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'catalog-toast__close';
+        closeButton.setAttribute('aria-label', 'Dismiss notification');
+        closeButton.textContent = '\u00d7';
+        closeButton.addEventListener('click', function () {
+            toast.remove();
+        });
+        toast.appendChild(closeButton);
+        page.appendChild(toast);
+
+        if (type === 'success') {
+            window.setTimeout(function () {
+                toast.remove();
+            }, 8000);
+        }
+    }
+
+    var initialPage = document.querySelector('.product-management-page');
+    if (initialPage) {
+        initialPage.querySelectorAll('.catalog-message').forEach(function (feedback) {
+            showCatalogToast(
+                initialPage,
+                feedback.textContent.trim(),
+                feedback.classList.contains('catalog-message--error') ? 'error' : 'success'
+            );
+            feedback.remove();
+        });
+    }
+
     if (window.brewskiCatalogFormsBound) {
-        refreshCatalogControls();
         return;
     }
     window.brewskiCatalogFormsBound = true;
@@ -1143,11 +1377,49 @@ $escape = static function ($value): string {
             if (!updatedPage || !currentPage) {
                 throw new Error('The server returned an unexpected catalog response.');
             }
+
+            var feedback = updatedPage.querySelector('.catalog-message');
+            var feedbackMessage = feedback ? feedback.textContent.trim() : '';
+            var feedbackType = feedback && feedback.classList.contains('catalog-message--error')
+                ? 'error'
+                : 'success';
+            if (feedback) feedback.remove();
             currentPage.replaceWith(updatedPage);
+            if (feedbackMessage) showCatalogToast(updatedPage, feedbackMessage, feedbackType);
         }).catch(function (error) {
-            window.alert(error.message);
+            var page = document.querySelector('.product-management-page');
+            if (page) {
+                showCatalogToast(page, error.message, 'error');
+            } else {
+                window.alert(error.message);
+            }
             if (submitButton) submitButton.disabled = false;
         });
+    });
+
+    document.addEventListener('click', function (event) {
+        var addSizeButton = event.target.closest('[data-add-size]');
+        if (addSizeButton) {
+            var sizeGroup = addSizeButton.closest('[data-customization-group]');
+            var sizeList = sizeGroup && sizeGroup.querySelector('[data-custom-sizes]');
+            if (!sizeList) return;
+
+            var row = document.createElement('div');
+            row.className = 'catalog-custom-size-row';
+            row.innerHTML =
+                '<label>Size name<input type="text" name="custom_size_name[]" maxlength="50" required></label>' +
+                '<label>Extra price (₱)<input type="number" name="custom_size_price[]" min="0" max="99999999.99" step="0.01" value="0.00" required></label>' +
+                '<button type="button" class="catalog-button catalog-button--danger" data-remove-size>Remove</button>';
+            sizeList.appendChild(row);
+            row.querySelector('input[type="text"]').focus();
+            return;
+        }
+
+        var removeSizeButton = event.target.closest('[data-remove-size]');
+        if (removeSizeButton) {
+            var sizeRow = removeSizeButton.closest('.catalog-custom-size-row');
+            if (sizeRow) sizeRow.remove();
+        }
     });
 
     document.addEventListener('change', function (event) {
@@ -1244,7 +1516,7 @@ $escape = static function ($value): string {
             if (selectAll) updateGroupSelectAll(selectAll, group.querySelectorAll('[data-customization-option]'));
         });
     }
-
+    refreshCatalogControls();
     refreshCatalogControls();
 }());
 </script>

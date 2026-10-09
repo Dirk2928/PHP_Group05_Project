@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var navItems = document.querySelectorAll('.nav-item[data-view]');
 
     var ordersView = document.getElementById('ordersView');
+    var productsView = document.getElementById('productsView');
     var dynamicView = document.getElementById('dynamicView');
     var placeholderView = document.getElementById('placeholderView');
     var placeholderTitle = document.getElementById('placeholderTitle');
@@ -156,8 +157,9 @@ document.addEventListener('DOMContentLoaded', function () {
             activeModal.close();
         }
 
-        if (viewIdentifier === 'orders') {
-            ordersView.classList.remove('hidden');
+        if (viewIdentifier === 'orders' || viewIdentifier === 'products') {
+            ordersView.classList.toggle('hidden', viewIdentifier !== 'orders');
+            productsView.classList.toggle('hidden', viewIdentifier !== 'products');
             dynamicView.classList.add('hidden');
             placeholderView.classList.add('hidden');
 
@@ -170,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
             dynamicView.innerHTML = '<div style="padding: 20px; text-align: center;"><p>Loading...</p></div>';
 
             ordersView.classList.add('hidden');
+            productsView.classList.add('hidden');
             placeholderView.classList.add('hidden');
             dynamicView.classList.remove('hidden');
 
@@ -200,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         else {
             ordersView.classList.add('hidden');
+            productsView.classList.add('hidden');
             dynamicView.classList.add('hidden');
             placeholderView.classList.remove('hidden');
 
