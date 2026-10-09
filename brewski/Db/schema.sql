@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS settings (
         ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- ============================================================
+-- Settings seeds: password policy, session, choice catalog,
+-- and delivery (fee / free threshold / enabled flag).
+-- ============================================================
 INSERT IGNORE INTO settings (setting_key, setting_value)
 VALUES
     ('min_password_length', '12'),
@@ -51,7 +55,10 @@ VALUES
     ('password_min_special', '1'),
     ('session_idle_timeout', '1800'),
     ('session_absolute_timeout', '28800'),
-    ('choice_catalog_fingerprint', '');
+    ('choice_catalog_fingerprint', ''),
+    ('delivery_fee', '50'),
+    ('free_delivery_threshold', '500'),
+    ('delivery_enabled', '1');
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -226,6 +233,54 @@ CREATE TABLE IF NOT EXISTS order_items (
         ON DELETE RESTRICT
 );
 
+-- ============================================================
+-- DELIVERIES  (added with delivery feature)
+-- ------------------------------------------------------------
+-- One row per order. Tracks the rider, delivery lifecycle,
+-- fee, and notes. Starts as UNASSIGNED; a STAFF user picks it
+-- up and stamps assigned_at / picked_up_at / delivered_at /
+-- failed_at as the delivery progresses.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS deliveries (
+    delivery_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    staff_id INT NULL,
+    delivery_status ENUM(
+        'UNASSIGNED',
+        'ASSIGNED',
+        'PICKED_UP',
+        'IN_TRANSIT',
+        'DELIVERED',
+        'FAILED',
+        'CANCELLED'
+    ) NOT NULL DEFAULT 'UNASSIGNED',
+    delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    notes TEXT NULL,
+    assigned_at DATETIME NULL,
+    picked_up_at DATETIME NULL,
+    delivered_at DATETIME NULL,
+    failed_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_delivery_per_order (order_id),
+    KEY idx_deliveries_status (delivery_status),
+    KEY idx_deliveries_staff (staff_id),
+
+    CONSTRAINT fk_deliveries_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_deliveries_staff
+        FOREIGN KEY (staff_id)
+        REFERENCES users(user_id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+);
+
 CREATE TABLE IF NOT EXISTS preferences (
     preference_id INT AUTO_INCREMENT PRIMARY KEY,
     preference_name VARCHAR(100) NOT NULL UNIQUE,
@@ -336,6 +391,10 @@ CREATE TABLE IF NOT EXISTS recommendations (
         ON DELETE CASCADE
 );
 
+-- ============================================================
+-- Migration-safe ALTER statements (kept from original)
+-- Uses IF NOT EXISTS so re-running on an existing DB is safe.
+-- ============================================================
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) NOT NULL,
     ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) NOT NULL,
