@@ -91,6 +91,9 @@ document.addEventListener('DOMContentLoaded', function () {
             saveButton.disabled = true;
 
             var payload = new URLSearchParams();
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
+            payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
 
             Object.keys(answers).forEach(function (questionKey) {
                 payload.append('answers[' + questionKey + ']', answers[questionKey]);

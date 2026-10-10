@@ -209,6 +209,15 @@ document.addEventListener('DOMContentLoaded', function () {
     window.openAdminModal = openModal;
 
 
+    window.brewskiReloadView = function () {
+        var activeItem = document.querySelector('.nav-item.active[data-view]');
+
+        if (activeItem) {
+            loadView(activeItem.getAttribute('data-view'));
+        }
+    };
+
+
 
 
 

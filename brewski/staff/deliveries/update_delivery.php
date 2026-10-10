@@ -1,26 +1,61 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
 
 header('Content-Type: application/json');
 
-if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'STAFF') {
+if (!brewski_is_logged_in() || !in_array(brewski_current_role(), ['STAFF', 'ADMIN'], true)) {
     http_response_code(403);
     echo json_encode(['ok' => false, 'error' => 'Staff only.']);
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['ok' => false, 'error' => 'Method not allowed.']);
+    exit;
+}
+
+$submittedToken = $_POST['csrf_token'] ?? '';
+
+if (
+    empty($_SESSION['csrf_token'])
+    || !is_string($submittedToken)
+    || !hash_equals($_SESSION['csrf_token'], $submittedToken)
+) {
+    http_response_code(403);
+    echo json_encode(['ok' => false, 'error' => 'Invalid session token. Please reload the page.']);
+    exit;
+}
+
 $staffId    = (int) $_SESSION['user_id'];
 $deliveryId = (int) ($_POST['delivery_id'] ?? 0);
-$newStatus  = $_POST['status'] ?? '';
-$notes      = trim($_POST['notes'] ?? '');
+$newStatus  = strtoupper(trim((string) ($_POST['status'] ?? '')));
+$notes      = trim((string) ($_POST['notes'] ?? ''));
 
-$allowed = ['ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'FAILED', 'CANCELLED'];
+$transitions = [
+    'UNASSIGNED' => ['ASSIGNED', 'CANCELLED'],
+    'ASSIGNED'   => ['PICKED_UP', 'FAILED', 'CANCELLED'],
+    'PICKED_UP'  => ['IN_TRANSIT', 'FAILED', 'CANCELLED'],
+    'IN_TRANSIT' => ['DELIVERED', 'FAILED'],
+];
 
-if ($deliveryId <= 0 || !in_array($newStatus, $allowed, true)) {
+if ($deliveryId <= 0) {
     http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Invalid input.']);
+    echo json_encode(['ok' => false, 'error' => 'Please choose a delivery.']);
+    exit;
+}
+
+if ($newStatus === '' || !preg_match('/^[A-Z_]+$/', $newStatus)) {
+    http_response_code(422);
+    echo json_encode(['ok' => false, 'error' => 'Please choose a valid status.']);
+    exit;
+}
+
+if (mb_strlen($notes) > 500) {
+    http_response_code(422);
+    echo json_encode(['ok' => false, 'error' => 'Delivery notes must be 500 characters or fewer.']);
     exit;
 }
 
@@ -28,13 +63,23 @@ try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT delivery_id, order_id, staff_id FROM deliveries WHERE delivery_id = ? FOR UPDATE'
+        'SELECT delivery_id, order_id, staff_id, delivery_status
+         FROM deliveries
+         WHERE delivery_id = ?
+         FOR UPDATE'
     );
     $stmt->execute([$deliveryId]);
     $delivery = $stmt->fetch();
 
     if (!$delivery) {
         throw new RuntimeException('Delivery not found.');
+    }
+
+    if (!in_array($newStatus, $transitions[$delivery['delivery_status']] ?? [], true)) {
+        throw new RuntimeException(
+            'A delivery that is ' . $delivery['delivery_status']
+            . ' cannot be changed to ' . $newStatus . '.'
+        );
     }
 
     $assignStaff = $delivery['staff_id'] === null ? $staffId : $delivery['staff_id'];
@@ -53,7 +98,6 @@ try {
     $pdo->prepare('UPDATE deliveries SET ' . implode(', ', $sets) . ' WHERE delivery_id = ?')
         ->execute($params);
 
-    // Sync parent order status
     $map = [
         'DELIVERED' => 'COMPLETED',
         'FAILED'    => 'CANCELLED',

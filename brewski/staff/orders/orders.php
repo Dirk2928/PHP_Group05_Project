@@ -21,6 +21,12 @@ $display_name = htmlspecialchars(
     'UTF-8'
 );
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
 ?>
 
 <!DOCTYPE html>
@@ -158,10 +164,12 @@ $display_name = htmlspecialchars(
                             <span class="sr-only">Filter order status</span>
                             <select class="toolbar-select" id="orderStatusFilter">
                                 <option value="ALL">All statuses</option>
+                                <option value="PENDING">Pending</option>
+                                <option value="CONFIRMED">Confirmed</option>
                                 <option value="PREPARING">Preparing</option>
                                 <option value="READY">Ready</option>
-                                <option value="DELIVERED">Delivered</option>
                                 <option value="COMPLETED">Completed</option>
+                                <option value="CANCELLED">Cancelled</option>
                             </select>
                         </label>
                     </div>
@@ -245,6 +253,11 @@ $display_name = htmlspecialchars(
         </section>
 
     </main>
+
+    <script>
+        window.BREWSKI_CSRF = <?= json_encode($csrf_token) ?>;
+        window.BREWSKI_ORDERS_API = <?= json_encode('orders_api.php') ?>;
+    </script>
 
     <script
         src="../staff.js?v=<?= filemtime(__DIR__ . '/../staff.js') ?>"

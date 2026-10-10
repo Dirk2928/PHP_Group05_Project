@@ -69,9 +69,8 @@ $navItems = [
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Checkout button inside the cart dropdown */
         .cart-dropdown__footer {
-            display: none;               /* toggled by cart.js when cart has items */
+            display: none;
             padding: 0.75rem 1rem 1rem;
             border-top: 1px solid #e8dac4;
             margin-top: 0.5rem;

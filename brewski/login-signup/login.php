@@ -151,7 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     $passwordOk = password_verify($password, $stored_password);
 
-                    // Legacy plain-text passwords: accept once, then upgrade to a hash
                     if (
                         !$passwordOk &&
                         hash_equals((string) $stored_password, $password)

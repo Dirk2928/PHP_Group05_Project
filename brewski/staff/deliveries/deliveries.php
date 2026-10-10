@@ -1,17 +1,16 @@
 <?php
 
-session_start();
+require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
 
-// --- Staff auth ---
-if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'STAFF') {
-    http_response_code(403);
-    exit('Access denied. Staff only.');
+brewski_require_role(['STAFF', 'ADMIN']);
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 $staffId = (int) $_SESSION['user_id'];
 
-// --- Load all non-completed deliveries ---
 $stmt = $pdo->prepare(
     'SELECT d.delivery_id, d.order_id, d.delivery_status, d.delivery_fee, d.notes,
             d.created_at, d.assigned_at, d.picked_up_at, d.delivered_at,

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
+    job_title VARCHAR(50) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     activation_token VARCHAR(255) NULL,
     activation_expires DATETIME NULL,
@@ -42,10 +43,6 @@ CREATE TABLE IF NOT EXISTS settings (
         ON UPDATE CURRENT_TIMESTAMP
 );
 
--- ============================================================
--- Settings seeds: password policy, session, choice catalog,
--- and delivery (fee / free threshold / enabled flag).
--- ============================================================
 INSERT IGNORE INTO settings (setting_key, setting_value)
 VALUES
     ('min_password_length', '12'),
@@ -233,14 +230,6 @@ CREATE TABLE IF NOT EXISTS order_items (
         ON DELETE RESTRICT
 );
 
--- ============================================================
--- DELIVERIES  (added with delivery feature)
--- ------------------------------------------------------------
--- One row per order. Tracks the rider, delivery lifecycle,
--- fee, and notes. Starts as UNASSIGNED; a STAFF user picks it
--- up and stamps assigned_at / picked_up_at / delivered_at /
--- failed_at as the delivery progresses.
--- ============================================================
 CREATE TABLE IF NOT EXISTS deliveries (
     delivery_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
@@ -391,10 +380,6 @@ CREATE TABLE IF NOT EXISTS recommendations (
         ON DELETE CASCADE
 );
 
--- ============================================================
--- Migration-safe ALTER statements (kept from original)
--- Uses IF NOT EXISTS so re-running on an existing DB is safe.
--- ============================================================
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) NOT NULL,
     ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) NOT NULL,

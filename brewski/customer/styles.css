@@ -6,8 +6,6 @@
     --dark-mocha: #3c3027;
     --white: #ffffff;
 
-    /* Absorbed from customer_profile.css, which used to redefine the whole
-       palette in its own :root and quietly overrode these values. */
     --foam: #f2e4cc;
     --danger: #a32a1f;
     --success: #2f6b3a;

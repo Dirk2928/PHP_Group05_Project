@@ -1,12 +1,3 @@
-/*
- * customer_profile.css — styles for the My Profile page only.
- *
- * The header/navbar and dropdown rules that used to live here now belong to
- * partials/header.php and are in ../header.css. The :root block that redefined
- * the whole palette is gone too — those tokens are in ../styles.css, so this
- * page no longer silently overrode the shared colours.
- */
-
 * {
     margin: 0;
     padding: 0;
@@ -25,8 +16,6 @@ svg.lucide {
     stroke-width: 1.8;
 }
 
-
-/* --- page ---------------------------------------------------------------- */
 
 .page {
     max-width: calc(1420px + 3rem);
@@ -53,8 +42,6 @@ svg.lucide {
 }
 
 
-/* --- alerts -------------------------------------------------------------- */
-
 .alert {
     padding: 1rem 1.25rem;
     border-radius: 0.75rem;
@@ -75,8 +62,6 @@ svg.lucide {
     color: var(--danger);
 }
 
-
-/* --- layout -------------------------------------------------------------- */
 
 .profile-grid {
     display: grid;
@@ -103,8 +88,6 @@ svg.lucide {
     margin-bottom: 1.25rem;
 }
 
-
-/* --- summary card -------------------------------------------------------- */
 
 .profile-summary {
     display: flex;
@@ -153,8 +136,6 @@ svg.lucide {
 }
 
 
-/* --- forms --------------------------------------------------------------- */
-
 .form {
     display: flex;
     flex-direction: column;
@@ -198,8 +179,6 @@ svg.lucide {
     box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12);
 }
 
-
-/* --- buttons ------------------------------------------------------------- */
 
 .btn {
     display: inline-flex;

@@ -1,20 +1,3 @@
-/*
- * cart.js — the one cart implementation, shared by every customer page.
- *
- * There used to be two, writing to different localStorage keys with different
- * item shapes (brewskiCart in script.js, brewski_cart in the menu profile
- * script), so a drink added on Home never appeared in the Menu cart. This file
- * merges them onto brewski_cart and the richer item shape.
- *
- * Item: { key, name, image, size, customization, price, quantity }
- *
- * Public API — window.BrewskiCart:
- *     add(item)    add item quantity, merging into a matching line
- *     load()       current items
- *     save(items)  replace items and re-render
- *     count()      total quantity
- *     render()     redraw badge + dropdown
- */
 (function () {
     'use strict';
 
@@ -60,9 +43,7 @@
             return Promise.resolve();
         }
 
-        pendingSync = pendingSync.catch(function () {
-            // Let a newer cart snapshot retry after an earlier failed request.
-        }).then(function () {
+        pendingSync = pendingSync.catch(function () {}).then(function () {
             var controller = new AbortController();
             var timeout = window.setTimeout(function () {
                 controller.abort();
@@ -316,7 +297,6 @@
         });
     }
 
-    // Keep several tabs, and the back/forward cache, in step.
     window.addEventListener('storage', function () {
         render();
         syncWithDatabase(load()).catch(function (error) {

@@ -3,7 +3,6 @@
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
 
-// --- Auth guard ---
 if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
     exit;
@@ -15,13 +14,11 @@ $pageTitle   = 'Checkout | brewski';
 $active      = 'checkout';
 $extraStyles = ['menu.css'];
 
-// --- CSRF ---
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['csrf_token'];
 
-// --- Load user's addresses ---
 $stmt = $pdo->prepare(
     'SELECT address_id, address_line, city, province, postal_code
      FROM addresses WHERE user_id = ? ORDER BY address_id DESC'
@@ -29,7 +26,6 @@ $stmt = $pdo->prepare(
 $stmt->execute([$userId]);
 $addresses = $stmt->fetchAll();
 
-// --- Load cart items ---
 $stmt = $pdo->prepare(
     'SELECT cart_id FROM carts
      WHERE user_id = ?
@@ -84,7 +80,6 @@ require __DIR__ . '/../partials/header.php';
 
     <div style="display:grid; grid-template-columns: 1fr 380px; gap:1.5rem; align-items:start;">
 
-        <!-- LEFT: Address picker + items -->
         <section>
 
             <h2 style="font-size:1.15rem; margin-bottom:1rem;">Delivery address</h2>
@@ -136,7 +131,6 @@ require __DIR__ . '/../partials/header.php';
 
         </section>
 
-        <!-- RIGHT: Summary -->
         <aside style="background:#f2e4cc; border-radius:1.25rem; padding:1.75rem; position:sticky; top:1.5rem;">
 
             <h2 style="font-size:1.15rem; margin-bottom:1rem;">Order summary</h2>

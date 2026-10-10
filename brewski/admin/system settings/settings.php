@@ -5,6 +5,12 @@ require_once __DIR__ . '/../../login-signup/settings.php';
 
 $settings_endpoint = BREWSKI_BASE_URL . '/admin/system%20settings/settings.php';
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
 $password_bounds = brewski_password_length_bounds();
 $password_rule_bounds = brewski_password_rule_bounds();
 $password_rule_definitions = brewski_password_rule_definitions();
@@ -20,6 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: text/plain; charset=utf-8');
 
     if (!brewski_is_logged_in() || brewski_current_role() !== 'ADMIN') {
+        echo 'Your session expired. Reload the page and sign in again.';
+        exit;
+    }
+
+    $submitted_token = $_POST['csrf_token'] ?? '';
+
+    if (
+        empty($_SESSION['csrf_token'])
+        || !is_string($submitted_token)
+        || !hash_equals($_SESSION['csrf_token'], $submitted_token)
+    ) {
         echo 'Your session expired. Reload the page and sign in again.';
         exit;
     }
@@ -205,6 +222,12 @@ unset($record);
         method="POST"
         action="<?php echo htmlspecialchars($settings_endpoint, ENT_QUOTES, 'UTF-8'); ?>"
     >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>"
+        >
+
         <div class="form-field form-field-full">
             <label for="settingsMinPasswordLength">Minimum password length</label>
 

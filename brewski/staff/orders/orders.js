@@ -13,67 +13,28 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    var orders = [
-        {
-            id: 'BK-1048',
-            customer: 'Alana Santos',
-            initials: 'AS',
-            phone: '+63 917 555 0124',
-            items: ['1 × Iced Caramel Latte', '1 × Blueberry Muffin'],
-            total: 245,
-            placed: 'Today, 10:42 AM',
-            status: 'DELIVERED'
-        },
-        {
-            id: 'BK-1047',
-            customer: 'Miguel Reyes',
-            initials: 'MR',
-            phone: '+63 918 402 7751',
-            items: ['2 × Spanish Latte (Large)'],
-            total: 380,
-            placed: 'Today, 10:36 AM',
-            status: 'PREPARING'
-        },
-        {
-            id: 'BK-1046',
-            customer: 'Sofia Cruz',
-            initials: 'SC',
-            phone: '+63 905 223 4180',
-            items: ['1 × Matcha Latte', '1 × Butter Croissant'],
-            total: 290,
-            placed: 'Today, 10:21 AM',
-            status: 'READY'
-        },
-        {
-            id: 'BK-1045',
-            customer: 'Daniel Garcia',
-            initials: 'DG',
-            phone: '+63 917 604 2298',
-            items: ['2 × Americano', '1 × Chocolate Cookie'],
-            total: 310,
-            placed: 'Today, 9:58 AM',
-            status: 'COMPLETED'
-        },
-        {
-            id: 'BK-1044',
-            customer: 'Bea Mendoza',
-            initials: 'BM',
-            phone: '+63 927 100 4821',
-            items: ['1 × Mocha Frappe'],
-            total: 185,
-            placed: 'Today, 9:40 AM',
-            status: 'DELIVERED'
-        }
-    ];
+    var endpoint = window.BREWSKI_ORDERS_API || 'orders_api.php';
+    var csrfToken = window.BREWSKI_CSRF || '';
 
-    var products = [
-        { id: 1, name: 'Iced Caramel Latte', category: 'Coffee', price: 160, available: true },
-        { id: 2, name: 'Spanish Latte', category: 'Coffee', price: 190, available: true },
-        { id: 3, name: 'Matcha Latte', category: 'Non-coffee', price: 170, available: true },
-        { id: 4, name: 'Mocha Frappe', category: 'Blended drinks', price: 185, available: false },
-        { id: 5, name: 'Americano', category: 'Coffee', price: 120, available: true },
-        { id: 6, name: 'Blueberry Muffin', category: 'Pastries', price: 85, available: true }
-    ];
+    var transitions = {
+        PENDING: ['CONFIRMED', 'CANCELLED'],
+        CONFIRMED: ['PREPARING', 'CANCELLED'],
+        PREPARING: ['READY', 'CANCELLED'],
+        READY: ['COMPLETED', 'CANCELLED'],
+        COMPLETED: [],
+        CANCELLED: []
+    };
+
+    var advanceLabels = {
+        CONFIRMED: 'Confirm order',
+        PREPARING: 'Start preparing',
+        READY: 'Mark ready',
+        COMPLETED: 'Mark completed',
+        CANCELLED: 'Cancel order'
+    };
+
+    var orders = [];
+    var products = [];
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, function (character) {
@@ -87,55 +48,147 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function initialsOf(name) {
+        var parts = String(name).trim().split(/\s+/);
+        var first = parts[0] ? parts[0].charAt(0) : '?';
+        var last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+
+        return (first + last).toUpperCase();
+    }
+
+    function parseDate(value) {
+        if (!value) {
+            return null;
+        }
+
+        var date = new Date(String(value).replace(' ', 'T'));
+
+        return isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatPlaced(value) {
+        var date = parseDate(value);
+
+        if (!date) {
+            return value || '';
+
+        }
+
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+            ', ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function isToday(value) {
+        var date = parseDate(value);
+        var now = new Date();
+
+        if (!date) {
+            return false;
+        }
+
+        return date.getFullYear() === now.getFullYear() &&
+            date.getMonth() === now.getMonth() &&
+            date.getDate() === now.getDate();
+    }
+
+    function requestJson(body) {
+        return fetch(endpoint, {
+            method: 'POST',
+            body: body,
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (response) {
+            return response.json();
+        });
+    }
+
+    function post(action, fields) {
+        var body = new FormData();
+        body.append('csrf_token', csrfToken);
+        body.append('action', action);
+
+        Object.keys(fields).forEach(function (key) {
+            body.append(key, fields[key]);
+        });
+
+        return requestJson(body);
+    }
+
     function updateOrderSummary() {
         document.getElementById('activeOrderCount').textContent = orders.filter(function (order) {
-            return order.status !== 'COMPLETED';
+            return order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
         }).length;
+
         document.getElementById('readyOrderCount').textContent = orders.filter(function (order) {
             return order.status === 'READY';
         }).length;
+
         document.getElementById('completedOrderCount').textContent = orders.filter(function (order) {
-            return order.status === 'COMPLETED';
+            return order.status === 'COMPLETED' && isToday(order.created_at);
         }).length;
+    }
+
+    function actionCell(order) {
+        var nextSteps = transitions[order.status] || [];
+
+        if (!nextSteps.length) {
+            return order.status === 'COMPLETED'
+                ? '<span class="order-action-done">Order complete</span>'
+                : '<span class="order-action-done">Order cancelled</span>';
+        }
+
+        var advance = nextSteps.filter(function (status) {
+            return status !== 'CANCELLED';
+        })[0];
+
+        var html = '';
+
+        if (advance) {
+            html += '<button type="button" class="btn btn-primary order-advance" data-order-id="' +
+                order.order_id + '" data-status="' + escapeHtml(advance) + '">' +
+                escapeHtml(advanceLabels[advance] || advance) + '</button>';
+        } else {
+            html += '<span class="order-action-waiting">In progress</span>';
+        }
+
+        if (nextSteps.indexOf('CANCELLED') !== -1) {
+            html += ' <button type="button" class="btn btn-secondary order-cancel" data-order-id="' +
+                order.order_id + '" data-status="CANCELLED">Cancel</button>';
+        }
+
+        return html;
     }
 
     function renderOrders() {
         var query = orderSearch.value.trim().toLowerCase();
         var status = statusFilter.value;
         var visibleOrders = orders.filter(function (order) {
-            var matchesQuery = (order.id + ' ' + order.customer).toLowerCase().includes(query);
-            return matchesQuery && (status === 'ALL' || order.status === status);
+            var haystack = (order.order_id + ' ' + order.customer).toLowerCase();
+
+            return (!query || haystack.indexOf(query) !== -1) &&
+                (status === 'ALL' || order.status === status);
         });
 
         ordersBody.innerHTML = visibleOrders.map(function (order) {
-            var action = '';
-            if (order.status === 'DELIVERED') {
-                action = '<button type="button" class="btn btn-primary order-complete" data-order-id="' +
-                    escapeHtml(order.id) + '">Mark completed</button>';
-            } else if (order.status === 'READY') {
-                action = '<button type="button" class="btn btn-secondary order-deliver" data-order-id="' +
-                    escapeHtml(order.id) + '">Mark delivered</button>';
-            } else if (order.status === 'COMPLETED') {
-                action = '<span class="order-action-done">Order complete</span>';
-            } else {
-                action = '<span class="order-action-waiting">In progress</span>';
-            }
-
             var items = order.items.map(function (item) {
-                return '<li>' + escapeHtml(item) + '</li>';
+                return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
             }).join('');
 
+            if (!items) {
+                items = '<li>No items</li>';
+            }
+
             return '<tr>' +
-                '<td><span class="order-id">#' + escapeHtml(order.id) + '</span></td>' +
-                '<td><div class="order-customer"><span class="customer-avatar">' + escapeHtml(order.initials) +
-                    '</span><span><strong>' + escapeHtml(order.customer) + '</strong><small>' +
-                    escapeHtml(order.phone) + '</small></span></div></td>' +
+                '<td><span class="order-id">#' + escapeHtml(order.order_id) + '</span></td>' +
+                '<td><div class="order-customer"><span class="customer-avatar">' +
+                    escapeHtml(initialsOf(order.customer || 'Guest')) +
+                    '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong></span></div></td>' +
                 '<td><ul class="order-items">' + items + '</ul></td>' +
-                '<td class="order-total">₱' + Number(order.total).toFixed(2) + '</td>' +
-                '<td class="order-placed">' + escapeHtml(order.placed) + '</td>' +
-                '<td><span class="order-status order-status--' + order.status.toLowerCase() + '">' +
+                '<td class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</td>' +
+                '<td class="order-placed">' + escapeHtml(formatPlaced(order.created_at)) + '</td>' +
+                '<td><span class="order-status order-status--' + String(order.status).toLowerCase() + '">' +
                     escapeHtml(order.status) + '</span></td>' +
-                '<td>' + action + '</td>' +
+                '<td>' + actionCell(order) + '</td>' +
                 '</tr>';
         }).join('');
 
@@ -157,11 +210,13 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('totalProductCount').textContent = products.length;
         document.getElementById('productListCount').textContent =
             visibleProducts.length + (visibleProducts.length === 1 ? ' item' : ' items');
+
         productList.innerHTML = visibleProducts.map(function (product) {
             var state = product.available ? 'Available' : 'Unavailable';
+
             return '<article class="availability-product">' +
                 '<div class="availability-product-icon" aria-hidden="true">' +
-                    escapeHtml(product.name.charAt(0)) +
+                    escapeHtml(String(product.name).charAt(0)) +
                 '</div>' +
                 '<div class="availability-product-details"><strong>' + escapeHtml(product.name) +
                     '</strong><span>' + escapeHtml(product.category) + '</span></div>' +
@@ -177,14 +232,55 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
     }
 
-    Array.from(new Set(products.map(function (product) {
-        return product.category;
-    }))).sort().forEach(function (category) {
-        var option = document.createElement('option');
-        option.value = category;
-        option.textContent = category;
-        productCategoryFilter.appendChild(option);
-    });
+    function renderCategoryOptions() {
+        var selected = productCategoryFilter.value;
+        var categories = [];
+
+        products.forEach(function (product) {
+            if (categories.indexOf(product.category) === -1) {
+                categories.push(product.category);
+            }
+        });
+
+        categories.sort();
+
+        productCategoryFilter.innerHTML = '<option value="ALL">All categories</option>';
+
+        categories.forEach(function (category) {
+            var option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            productCategoryFilter.appendChild(option);
+        });
+
+        productCategoryFilter.value = categories.indexOf(selected) === -1 ? 'ALL' : selected;
+    }
+
+    function load() {
+        fetch(endpoint, {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (payload) {
+                if (!payload.ok) {
+                    feedback.textContent = payload.error || 'We could not load the orders.';
+                    return;
+                }
+
+                orders = payload.orders || [];
+                products = payload.products || [];
+
+                renderCategoryOptions();
+                renderOrders();
+                renderProducts();
+            })
+            .catch(function () {
+                feedback.textContent = 'We could not reach the server. Please reload the page.';
+            });
+    }
 
     ordersBody.addEventListener('click', function (event) {
         var button = event.target.closest('button[data-order-id]');
@@ -192,24 +288,25 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        var order = orders.find(function (candidate) {
-            return candidate.id === button.dataset.orderId;
+        button.disabled = true;
+        feedback.textContent = '';
+
+        post('update_status', {
+            order_id: button.dataset.orderId,
+            status: button.dataset.status
+        }).then(function (payload) {
+            if (!payload.ok) {
+                feedback.textContent = payload.error || 'We could not update that order.';
+                button.disabled = false;
+                return;
+            }
+
+            feedback.textContent = payload.message || 'Order updated.';
+            load();
+        }).catch(function () {
+            feedback.textContent = 'We could not reach the server. Please try again.';
+            button.disabled = false;
         });
-        if (!order) {
-            return;
-        }
-
-        if (button.classList.contains('order-complete') && order.status === 'DELIVERED') {
-            order.status = 'COMPLETED';
-            feedback.textContent = 'Order #' + order.id + ' marked as completed.';
-        } else if (button.classList.contains('order-deliver') && order.status === 'READY') {
-            order.status = 'DELIVERED';
-            feedback.textContent = 'Order #' + order.id + ' marked as delivered.';
-        } else {
-            return;
-        }
-
-        renderOrders();
     });
 
     productList.addEventListener('click', function (event) {
@@ -218,23 +315,37 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        var product = products.find(function (candidate) {
-            return candidate.id === Number(button.dataset.productId);
-        });
-        if (!product) {
-            return;
-        }
+        button.disabled = true;
+        productFeedback.textContent = '';
 
-        product.available = !product.available;
-        productFeedback.textContent = product.name + ' is now ' +
-            (product.available ? 'available' : 'unavailable') + ' for orders.';
-        renderProducts();
+        post('toggle_product', {
+            product_id: button.dataset.productId
+        }).then(function (payload) {
+            if (!payload.ok) {
+                productFeedback.textContent = payload.error || 'We could not update that product.';
+                button.disabled = false;
+                return;
+            }
+
+            products = products.map(function (product) {
+                if (product.id === payload.product_id) {
+                    product.available = payload.available;
+                }
+
+                return product;
+            });
+
+            productFeedback.textContent = 'Product availability updated.';
+            renderProducts();
+        }).catch(function () {
+            productFeedback.textContent = 'We could not reach the server. Please try again.';
+            button.disabled = false;
+        });
     });
 
     orderSearch.addEventListener('input', renderOrders);
     statusFilter.addEventListener('change', renderOrders);
     productCategoryFilter.addEventListener('change', renderProducts);
 
-    renderOrders();
-    renderProducts();
+    load();
 });

@@ -1,21 +1,9 @@
-/*
- * script.js — page behaviour shared by the customer pages.
- *
- * Covers: icon rendering, the profile dropdown, the menu filters, and the
- * customization modal. Everything cart-related lives in cart.js, which must be
- * loaded first — adding to the cart goes through window.BrewskiCart.
- *
- * Each feature is guarded on the elements it needs, so a page can include this
- * without having filters or a product grid.
- */
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
     if (window.lucide) {
         window.lucide.createIcons();
     }
-
-    /* --- profile dropdown ------------------------------------------------ */
 
     var profileMenu = document.querySelector('.profile-menu');
     var profileButton = document.getElementById('profile-button');
@@ -42,8 +30,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-
-    /* --- menu filters (menu page only) ----------------------------------- */
 
     var productCards = document.querySelectorAll('.product-card');
     var noResults = document.getElementById('no-results');
@@ -91,8 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setupFilterGroup('category-filters', 'category');
     applyFilters();
-
-    /* --- customization modal --------------------------------------------- */
 
     var modal = document.getElementById('customization-modal');
     var modalProductName = document.getElementById('modal-product-name');

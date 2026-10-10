@@ -12,8 +12,6 @@ const HOST = "127.0.0.1";
 const emailUser = process.env.EMAIL_USER?.trim();
 const emailPassword = process.env.EMAIL_PASSWORD?.trim();
 
-// Dev mode: set MAIL_MODE=console in email-service/.env to print emails in this
-// terminal instead of sending them through Gmail. Leave it out for real sending.
 const consoleMode = process.env.MAIL_MODE?.trim().toLowerCase() === "console";
 
 if (!consoleMode && (!emailUser || !emailPassword)) {

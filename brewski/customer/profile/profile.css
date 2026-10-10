@@ -35,8 +35,6 @@ svg.lucide {
     stroke-width: 1.8;
 }
 
-/* ---------- Navbar (same as home) ---------- */
-
 .navbar {
     display: flex;
     align-items: center;
@@ -206,8 +204,6 @@ svg.lucide {
     color: var(--mocha);
 }
 
-/* ---------- Page layout (width matches the home page) ---------- */
-
 .page {
     max-width: calc(1420px + 3rem);
     margin: 0 auto;
@@ -330,8 +326,6 @@ svg.lucide {
     margin-top: 1.75rem;
 }
 
-/* ---------- Forms ---------- */
-
 .form {
     display: flex;
     flex-direction: column;
@@ -374,8 +368,6 @@ svg.lucide {
     border-color: var(--mocha);
     box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12);
 }
-
-/* ---------- Buttons ---------- */
 
 .btn {
     display: inline-flex;
@@ -424,8 +416,6 @@ svg.lucide {
 .btn--light:hover {
     background-color: var(--latte);
 }
-
-/* ---------- Responsive ---------- */
 
 @media (max-width: 900px) {
     .profile-grid {

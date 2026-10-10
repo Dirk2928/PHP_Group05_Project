@@ -1,11 +1,5 @@
 <?php
 
-/**
- * Brewski database connection (PDO).
- * Include this from any page that needs DB access:
- *     require_once __DIR__ . '/../Db/connection.php';
- */
-
 if (!isset($pdo)) {
     $dbHost = 'localhost';
     $dbName = 'brewski_db';

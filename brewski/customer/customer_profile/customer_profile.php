@@ -7,157 +7,159 @@ $pageTitle = 'Profile | brewski';
 $active = 'profile';
 $extraStyles = ['customer_profile.css', 'choice.css'];
 
-/*
- * ---------------------------------------------------------------------------
- * BACKEND NOT WIRED UP YET.
- *
- * The session, PDO connection, CSRF check and both POST handlers are still
- * commented out below, exactly as they were before this file moved. The page
- * renders and the markup is intact, but the two forms currently post to a
- * handler that does nothing, and the CSRF field renders empty.
- *
- * Restore this block to make the page functional. Note that the auth guard it
- * used to carry now lives in partials/bootstrap.php, so it does not need to
- * come back here.
- * ---------------------------------------------------------------------------
- *
- * if (!function_exists('e')) {
- *     function e($value)
- *     {
- *         return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
- *     }
- * }
- *
- * $dbHost = 'localhost';
- * $dbName = 'brewski_db';
- * $dbUser = 'root';
- * $dbPass = '';
- *
- * try {
- *     $pdo = new PDO(
- *         "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4",
- *         $dbUser,
- *         $dbPass,
- *         [
- *             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
- *             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
- *         ]
- *     );
- * } catch (PDOException $e) {
- *     http_response_code(500);
- *     exit('Database connection failed.');
- * }
- *
- * if (empty($_SESSION['csrf_token'])) {
- *     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
- * }
- *
- * $errors = [];
- * $success = '';
- *
- * if (!empty($_SESSION['user_id'])) {
- *     $userId = (int) $_SESSION['user_id'];
- * } else {
- *     $userId = (int) $pdo->query('SELECT id FROM users ORDER BY id ASC LIMIT 1')->fetchColumn();
- * }
- *
- * if ($_SERVER['REQUEST_METHOD'] === 'POST') {
- *     $token = $_POST['csrf_token'] ?? '';
- *
- *     if (!hash_equals($_SESSION['csrf_token'], $token)) {
- *         $errors[] = 'Invalid request. Please refresh the page and try again.';
- *     } else {
- *         $action = $_POST['action'] ?? '';
- *
- *         if ($action === 'update_profile') {
- *             $firstName = trim($_POST['first_name'] ?? '');
- *             $lastName = trim($_POST['last_name'] ?? '');
- *             $email = trim($_POST['email'] ?? '');
- *
- *             if ($firstName === '' || mb_strlen($firstName) > 50) {
- *                 $errors[] = 'Please enter a valid first name.';
- *             }
- *
- *             if ($lastName === '' || mb_strlen($lastName) > 50) {
- *                 $errors[] = 'Please enter a valid last name.';
- *             }
- *
- *             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
- *                 $errors[] = 'Please enter a valid email address.';
- *             }
- *
- *             if (!$errors) {
- *                 $check = $pdo->prepare('SELECT id FROM users WHERE email = ? AND id <> ?');
- *                 $check->execute([$email, $userId]);
- *
- *                 if ($check->fetch()) {
- *                     $errors[] = 'That email is already used by another account.';
- *                 }
- *             }
- *
- *             if (!$errors) {
- *                 $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE id = ?');
- *                 $update->execute([$firstName, $lastName, $email, $userId]);
- *                 $success = 'Your profile has been updated.';
- *             }
- *         }
- *
- *         if ($action === 'change_password') {
- *             $current = $_POST['current_password'] ?? '';
- *             $new = $_POST['new_password'] ?? '';
- *             $confirm = $_POST['confirm_password'] ?? '';
- *
- *             $row = $pdo->prepare('SELECT password FROM users WHERE id = ?');
- *             $row->execute([$userId]);
- *             $hash = $row->fetchColumn();
- *
- *             if (!$hash || !password_verify($current, $hash)) {
- *                 $errors[] = 'Your current password is incorrect.';
- *             }
- *
- *             if (strlen($new) < 8) {
- *                 $errors[] = 'The new password must be at least 8 characters.';
- *             }
- *
- *             if ($new !== $confirm) {
- *                 $errors[] = 'The new passwords do not match.';
- *             }
- *
- *             if (!$errors) {
- *                 $update = $pdo->prepare('UPDATE users SET password = ? WHERE id = ?');
- *                 $update->execute([password_hash($new, PASSWORD_DEFAULT), $userId]);
- *                 $success = 'Your password has been changed.';
- *             }
- *         }
- *     }
- * }
- *
- * $stmt = $pdo->prepare('SELECT id, first_name, last_name, email FROM users WHERE id = ?');
- * $stmt->execute([$userId]);
- * $user = $stmt->fetch();
- *
- * if (!$user) {
- *     $user = [
- *         'id' => 0,
- *         'first_name' => 'Guest',
- *         'last_name' => '',
- *         'email' => '',
- *     ];
- * }
- *
- * $display_first_name = e($user['first_name']);
- * $display_last_name = e($user['last_name']);
- * $display_email = e($user['email']);
- */
+require_once __DIR__ . '/../../Db/connection.php';
 
-// Placeholders standing in for what the commented block above produces.
-$success = $success ?? '';
-$errors = $errors ?? [];
-$csrf_token = $_SESSION['csrf_token'] ?? '';
+$errors = [];
+$success = '';
+$userId = (int) ($_SESSION['user_id'] ?? 0);
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$csrf_token = $_SESSION['csrf_token'];
+
+if (!empty($_SESSION['profile_flash'])) {
+    $success = (string) $_SESSION['profile_flash'];
+    unset($_SESSION['profile_flash']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
+
+    $submittedToken = $_POST['csrf_token'] ?? '';
+
+    if (!is_string($submittedToken) || !hash_equals($csrf_token, $submittedToken)) {
+
+        $errors[] = 'Invalid request. Please refresh the page and try again.';
+
+    } else {
+
+        $action = (string) ($_POST['action'] ?? '');
+
+        if ($action === 'update_profile') {
+
+            $firstNameInput = trim((string) ($_POST['first_name'] ?? ''));
+            $lastNameInput  = trim((string) ($_POST['last_name'] ?? ''));
+            $emailInput     = trim((string) ($_POST['email'] ?? ''));
+
+            if ($firstNameInput === '' || mb_strlen($firstNameInput) > 50) {
+                $errors[] = 'Please enter a valid first name.';
+            } elseif (!preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $firstNameInput)) {
+                $errors[] = 'First name may only contain letters, spaces, hyphens, and apostrophes.';
+            }
+
+            if ($lastNameInput === '' || mb_strlen($lastNameInput) > 50) {
+                $errors[] = 'Please enter a valid last name.';
+            } elseif (!preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $lastNameInput)) {
+                $errors[] = 'Last name may only contain letters, spaces, hyphens, and apostrophes.';
+            }
+
+            if ($emailInput === '' || mb_strlen($emailInput) > 255) {
+                $errors[] = 'Please enter a valid email address.';
+            } elseif (!filter_var($emailInput, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'Please enter a valid email address.';
+            }
+
+            if (!$errors) {
+
+                $check = $pdo->prepare(
+                    'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
+                );
+                $check->execute([$emailInput, $userId]);
+
+                if ($check->fetch()) {
+                    $errors[] = 'That email is already used by another account.';
+                }
+            }
+
+            if (!$errors) {
+
+                $update = $pdo->prepare(
+                    'UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?'
+                );
+                $update->execute([$firstNameInput, $lastNameInput, $emailInput, $userId]);
+
+                $_SESSION['first_name'] = $firstNameInput;
+                $_SESSION['last_name']  = $lastNameInput;
+                $_SESSION['email']      = $emailInput;
+                $_SESSION['profile_flash'] = 'Your profile has been updated.';
+
+                header('Location: customer_profile.php');
+                exit;
+            }
+        }
+
+        if ($action === 'change_password') {
+
+            $currentInput = (string) ($_POST['current_password'] ?? '');
+            $newInput     = (string) ($_POST['new_password'] ?? '');
+            $confirmInput = (string) ($_POST['confirm_password'] ?? '');
+
+            $passwordPolicy = brewski_password_policy();
+
+            $row = $pdo->prepare('SELECT password FROM users WHERE user_id = ?');
+            $row->execute([$userId]);
+            $storedHash = $row->fetchColumn();
+
+            if (!$storedHash || !password_verify($currentInput, $storedHash)) {
+                $errors[] = 'Your current password is incorrect.';
+            }
+
+            if ($newInput === '') {
+
+                $errors[] = 'Enter a new password.';
+
+            } else {
+
+                foreach (brewski_password_failures($newInput, $passwordPolicy) as $failure) {
+                    $errors[] = $failure;
+                }
+            }
+
+            if ($newInput !== $confirmInput) {
+                $errors[] = 'The new passwords do not match.';
+            }
+
+            if (!$errors && $newInput === $currentInput) {
+                $errors[] = 'The new password must be different from your current password.';
+            }
+
+            if (!$errors) {
+
+                $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+                $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
+
+                session_regenerate_id(true);
+                $_SESSION['profile_flash'] = 'Your password has been changed.';
+
+                header('Location: customer_profile.php');
+                exit;
+            }
+        }
+    }
+}
+
+$stmt = $pdo->prepare(
+    'SELECT first_name, last_name, email FROM users WHERE user_id = ? LIMIT 1'
+);
+$stmt->execute([$userId]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    $user = [
+        'first_name' => $first_name,
+        'last_name'  => $last_name,
+        'email'      => $email,
+    ];
+}
+
+$display_first_name = e($user['first_name']);
+$display_last_name  = e($user['last_name']);
+$display_email      = e($user['email']);
 
 $initials = strtoupper(
-    mb_substr($first_name, 0, 1) .
-    mb_substr($last_name, 0, 1)
+    mb_substr((string) $user['first_name'], 0, 1) .
+    mb_substr((string) $user['last_name'], 0, 1)
 );
 
 $choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
@@ -172,11 +174,6 @@ require __DIR__ . '/../partials/header.php';
 
 ?>
 
-    <!--
-        All profile styles are inside this file on purpose, so the page does
-        not depend on customer_profile.css being found. Once the stylesheet
-        loads correctly through $extraStyles you can delete this block.
-    -->
     <style>
         :root {
             --espresso: #1a0f0a;
@@ -408,11 +405,6 @@ require __DIR__ . '/../partials/header.php';
             background-color: var(--latte);
         }
 
-        /*
-         * Dark buttons: the rule ".page a { color: inherit }" above is more
-         * specific than ".btn--dark", which made the Logout text dark on a
-         * dark background. These rules win over it and over shared styles.
-         */
         .page .btn--dark,
         .page a.btn--dark,
         .page button.btn--dark {
@@ -518,7 +510,6 @@ require __DIR__ . '/../partials/header.php';
 
                 <div class="profile-summary__actions">
 
-                    <!-- TODO: Orders page does not exist yet. -->
                     <a href="../customer_orders/orders.php" class="btn btn--light">
 
                         <i data-lucide="receipt"></i>
