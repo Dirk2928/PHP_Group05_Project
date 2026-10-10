@@ -9,6 +9,10 @@ $extraStyles = ['customer_profile.css', 'choice.css'];
 
 require_once __DIR__ . '/../../Db/connection.php';
 
+if (!brewski_is_logged_in()) {
+    brewski_end_session();
+}
+
 $errors = [];
 $success = '';
 $userId = (int) ($_SESSION['user_id'] ?? 0);
