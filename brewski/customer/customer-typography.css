@@ -1,0 +1,98 @@
+main h1,
+main h2,
+main h3,
+main h4,
+main h5,
+main h6,
+.modal-overlay h1,
+.modal-overlay h2,
+.modal-overlay h3,
+.modal-overlay h4,
+.modal-overlay h5,
+.modal-overlay h6 {
+    font-weight: 700 !important;
+    line-height: 1.3;
+}
+
+main h1,
+.modal-overlay h1 {
+    font-size: var(--type-page-title) !important;
+}
+
+main h2,
+.modal-overlay h2 {
+    font-size: var(--type-section-title) !important;
+}
+
+main .category__title {
+    font-size: calc(1.2rem + 2px) !important;
+}
+
+main h3,
+.modal-overlay h3 {
+    font-size: var(--type-subsection-title) !important;
+}
+
+#customization-modal h2 {
+    font-size: calc(var(--type-section-title) - 2px) !important;
+}
+
+#customization-modal h3 {
+    font-size: calc(var(--type-subsection-title) - 2px) !important;
+}
+
+.choice-modal .choice-question h3 {
+    font-weight: 700 !important;
+}
+
+.choice-modal .choice-answer,
+.choice-modal .btn-confirm {
+    font-weight: 400 !important;
+}
+
+main h4,
+main h5,
+main h6,
+.modal-overlay h4,
+.modal-overlay h5,
+.modal-overlay h6 {
+    font-size: var(--type-small-heading) !important;
+}
+
+main p,
+main li,
+main label,
+main time,
+main dt,
+main dd,
+.modal-overlay p,
+.modal-overlay li,
+.modal-overlay label {
+    font-size: var(--type-body) !important;
+    font-weight: 400 !important;
+    line-height: 1.5;
+}
+
+main small,
+.modal-overlay small {
+    font-size: var(--type-supporting) !important;
+    font-weight: 400 !important;
+    line-height: 1.45;
+}
+
+main strong,
+main b,
+.modal-overlay strong,
+.modal-overlay b {
+    font-weight: 700 !important;
+}
+
+main .price {
+    font-weight: 400 !important;
+}
+
+@media (max-width: 640px) {
+    :root {
+        --type-page-title: 1.725rem;
+    }
+}

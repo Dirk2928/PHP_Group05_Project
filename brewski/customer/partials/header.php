@@ -66,6 +66,8 @@ $navItems = [
 
     <?php endforeach; ?>
 
+    <link rel="stylesheet" href="../customer-typography.css">
+
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>

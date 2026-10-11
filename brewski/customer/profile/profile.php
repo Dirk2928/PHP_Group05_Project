@@ -168,6 +168,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="profile.css">
+    <link rel="stylesheet" href="../customer-typography.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>

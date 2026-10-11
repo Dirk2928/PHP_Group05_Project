@@ -16,6 +16,13 @@
 
     --font-brand: "Fredoka", "Century Gothic", sans-serif;
     --font-body:  "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
+
+    --type-page-title: clamp(1.675rem, 2.7vw, 2.025rem);
+    --type-section-title: 1.025rem;
+    --type-subsection-title: 0.925rem;
+    --type-small-heading: 0.825rem;
+    --type-body: 0.95rem;
+    --type-supporting: 0.82rem;
 }
 
 *, *::before, *::after { box-sizing: border-box; }

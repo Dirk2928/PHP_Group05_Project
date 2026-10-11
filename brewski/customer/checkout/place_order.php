@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../partials/order_support.php';
 
 header('Content-Type: application/json');
 
@@ -114,11 +115,13 @@ try {
         ]);
     }
 
-    $stmt = $pdo->prepare(
-        'INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
-         VALUES (?, "UNASSIGNED", ?, ?)'
-    );
-    $stmt->execute([$orderId, $deliveryFee, $notes !== '' ? $notes : null]);
+    if (customer_has_deliveries_table($pdo)) {
+        $stmt = $pdo->prepare(
+            'INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
+             VALUES (?, "UNASSIGNED", ?, ?)'
+        );
+        $stmt->execute([$orderId, $deliveryFee, $notes !== '' ? $notes : null]);
+    }
 
     $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([$cartId]);
 

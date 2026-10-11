@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../partials/order_support.php';
 
 if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
@@ -10,12 +11,15 @@ if (empty($_SESSION['user_id'])) {
 
 $orderId = (int) ($_GET['order_id'] ?? 0);
 $userId  = (int) $_SESSION['user_id'];
+$hasDeliveries = customer_has_deliveries_table($pdo);
+$deliverySelect = $hasDeliveries ? 'd.delivery_status' : 'NULL AS delivery_status';
+$deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id' : '';
 
 $stmt = $pdo->prepare(
-    'SELECT o.order_id, o.total_amount, o.order_status, d.delivery_status
+    "SELECT o.order_id, o.total_amount, o.order_status, $deliverySelect
      FROM orders o
-     LEFT JOIN deliveries d ON d.order_id = o.order_id
-     WHERE o.order_id = ? AND o.user_id = ?'
+     $deliveryJoin
+     WHERE o.order_id = ? AND o.user_id = ?"
 );
 $stmt->execute([$orderId, $userId]);
 $order = $stmt->fetch();
@@ -26,37 +30,63 @@ if (!$order) {
 }
 
 $pageTitle = 'Order placed | brewski';
+$extraStyles = ['customer_orders/orders.css'];
 require __DIR__ . '/../partials/header.php';
 ?>
 
-<main style="max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem; text-align:center;">
+<main class="order-success-page">
+    <section class="order-success-card">
+        <div class="order-success-hero">
+            <div class="order-success-mark" aria-hidden="true">
+                <i data-lucide="circle-check"></i>
+            </div>
+            <p class="orders-eyebrow">Thanks for choosing brewski</p>
+            <h1>Order placed!</h1>
+            <p class="order-success-message">
+                Order <strong>#<?= (int)$order['order_id'] ?></strong> is in. We’ll keep you updated as it moves along.
+            </p>
+        </div>
 
-    <div style="font-size: 3rem;">☕</div>
+    <?php if (!$hasDeliveries): ?>
+        <p class="order-success-notice" role="status">
+            <i data-lucide="info" aria-hidden="true"></i>
+            <span>Delivery tracking is not set up yet. You can still view your order details and status.</span>
+        </p>
+    <?php endif; ?>
 
-    <h1 style="font-size: 2rem; margin: 1rem 0;">Order placed!</h1>
+        <div class="order-success-details" aria-label="Order summary">
+            <div class="order-success-detail">
+                <span class="order-success-detail__icon"><i data-lucide="receipt" aria-hidden="true"></i></span>
+                <span class="order-success-detail__copy"><small>Order status</small><strong><?= htmlspecialchars($order['order_status']) ?></strong></span>
+            </div>
+            <div class="order-success-detail">
+                <span class="order-success-detail__icon"><i data-lucide="bike" aria-hidden="true"></i></span>
+                <span class="order-success-detail__copy"><small>Delivery</small><strong><?= htmlspecialchars($order['delivery_status'] ?? ($hasDeliveries ? 'UNASSIGNED' : 'Not available')) ?></strong></span>
+            </div>
+            <div class="order-success-detail order-success-detail--total">
+                <span class="order-success-detail__icon"><i data-lucide="wallet" aria-hidden="true"></i></span>
+                <span class="order-success-detail__copy"><small>Total paid</small><strong>₱<?= number_format((float)$order['total_amount'], 2) ?></strong></span>
+            </div>
+        </div>
 
-    <p style="color:#5c4033; margin-bottom: 2rem;">
-        Your order <strong>#<?= (int)$order['order_id'] ?></strong> has been received.
-        We'll notify you when a rider is on the way.
-    </p>
-
-    <div style="display:inline-block; text-align:left; background:#f2e4cc; padding:1.5rem 2rem; border-radius:1rem; margin-bottom:2rem;">
-        <div><strong>Total:</strong> ₱<?= number_format((float)$order['total_amount'], 2) ?></div>
-        <div><strong>Order status:</strong> <?= htmlspecialchars($order['order_status']) ?></div>
-        <div><strong>Delivery:</strong> <?= htmlspecialchars($order['delivery_status'] ?? 'UNASSIGNED') ?></div>
-    </div>
-
-    <div style="display:flex; gap:1rem; justify-content:center;">
-        <a href="track_order.php?order_id=<?= (int)$order['order_id'] ?>"
-           style="padding:1rem 1.5rem; background:#1a0f0a; color:#faf5ee; border-radius:0.75rem; text-decoration:none; font-weight:600;">
-            Track order
-        </a>
-        <a href="../customer_menu/customermenu.php"
-           style="padding:1rem 1.5rem; background:#faf5ee; color:#1a0f0a; border:1px solid #e8dac4; border-radius:0.75rem; text-decoration:none; font-weight:600;">
-            Back to menu
-        </a>
-    </div>
-
+        <div class="order-success-actions">
+            <a class="order-success-button order-success-button--primary" href="track_order.php?order_id=<?= (int)$order['order_id'] ?>">
+                <i data-lucide="map-pin" aria-hidden="true"></i>
+                View order details
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </a>
+            <a class="order-success-button order-success-button--secondary" href="../customer_menu/customermenu.php">
+                <i data-lucide="coffee" aria-hidden="true"></i>
+                Back to menu
+            </a>
+        </div>
+    </section>
 </main>
+
+<script>
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+</script>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>
