@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
     activation_expires DATETIME NULL,
     email_activation_token CHAR(64) NULL,
     email_activation_expires DATETIME NULL,
+    totp_secret_encrypted TEXT NULL,
+    totp_enabled_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
@@ -30,6 +32,20 @@ CREATE TABLE IF NOT EXISTS otp_codes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_otp_codes_user_id (user_id),
     CONSTRAINT fk_otp_codes_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(user_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS totp_recovery_codes (
+    recovery_code_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code_hash VARCHAR(255) NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_totp_recovery_codes_user_id (user_id),
+    CONSTRAINT fk_totp_recovery_codes_user
         FOREIGN KEY (user_id)
         REFERENCES users(user_id)
         ON UPDATE CASCADE
@@ -391,6 +407,8 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS activation_expires DATETIME NULL,
     ADD COLUMN IF NOT EXISTS email_activation_token CHAR(64) NULL,
     ADD COLUMN IF NOT EXISTS email_activation_expires DATETIME NULL,
+    ADD COLUMN IF NOT EXISTS totp_secret_encrypted TEXT NULL,
+    ADD COLUMN IF NOT EXISTS totp_enabled_at DATETIME NULL,
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP;

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/session_init.php';
-require_once __DIR__ . '/email-service-client.php';
+require_once __DIR__ . '/totp.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -69,6 +69,10 @@ if (isset($_GET['msg']) && $_GET['msg'] === 'otp_cancelled') {
     $error = 'Login cancelled. Please log in again.';
 }
 
+if (isset($_GET['msg']) && $_GET['msg'] === 'login_method_changed') {
+    $error = 'Sign-in now uses an authenticator. Enter your password to continue.';
+}
+
 if (isset($_GET['timeout'])) {
     $error = 'Your session expired. Please log in again.';
 }
@@ -111,7 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 email,
                 password,
                 role,
-                is_active
+                is_active,
+                totp_secret_encrypted,
+                totp_enabled_at
              FROM users
              WHERE email = ?
              LIMIT 1"
@@ -142,7 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $user_email,
                         $stored_password,
                         $role,
-                        $is_active
+                        $is_active,
+                        $totp_secret_encrypted,
+                        $totp_enabled_at
                     );
 
                     $stmt->fetch();
@@ -181,78 +189,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = 'Your account is not verified yet. Please complete the email verification first.';
 
                     } else {
-
                         try {
-                            $otp = (string) random_int(100000, 999999);
-                        } catch (Exception $e) {
-                            $otp = null;
-                            $error = 'Unable to generate a login code. Please try again.';
+                            brewski_totp_encryption_key();
+                        } catch (Throwable $exception) {
+                            error_log('Authenticator login is unavailable: ' . $exception->getMessage());
+                            $error = 'Authenticator sign-in is unavailable. Please contact support.';
                         }
 
-                        if ($otp !== null) {
-                            $otp_hash = password_hash($otp, PASSWORD_DEFAULT);
+                        if ($error === '') {
+                            $hasSecret = !empty($totp_secret_encrypted);
+                            $isEnabled = !empty($totp_enabled_at);
 
-                            $delete = $conn->prepare('DELETE FROM otp_codes WHERE user_id = ?');
-                            if (!$delete) {
-                                $error = 'Unable to prepare your login code. Please try again.';
+                            if ($hasSecret !== $isEnabled) {
+                                error_log('Incomplete authenticator configuration for user ' . (int) $user_id);
+                                $error = 'Authenticator sign-in is unavailable. Please contact support.';
                             } else {
-                                $delete->bind_param('i', $user_id);
-                                if (!$delete->execute()) {
-                                    $error = 'Unable to prepare your login code. Please try again.';
-                                }
-                                $delete->close();
-                            }
-
-                            if ($error === '') {
-                                $insert = $conn->prepare(
-                                    'INSERT INTO otp_codes (user_id, code_hash, expires_at, attempts) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), 0)'
-                                );
-
-                                if (!$insert) {
-                                    $error = 'Unable to save your login code. Please try again.';
-                                } else {
-                                    $insert->bind_param('is', $user_id, $otp_hash);
-                                    if (!$insert->execute()) {
-                                        $error = 'Unable to save your login code. Please try again.';
-                                    }
-                                    $insert->close();
-                                }
-                            }
-
-                            if ($error === '') {
-                                $email_sent = email_service_send(
-                                    'send-login-otp',
-                                    [
-                                        'email' => $user_email,
-                                        'firstName' => $first_name,
-                                        'otp' => $otp
-                                    ]
-                                );
-
-                                if ($email_sent) {
-                                    session_regenerate_id(true);
-                                    $_SESSION['otp_pending'] = [
+                                session_regenerate_id(true);
+                                if ($hasSecret) {
+                                    $_SESSION['totp_login_pending'] = [
                                         'user_id' => (int) $user_id,
-                                        'first_name' => $first_name,
-                                        'last_name' => $last_name,
-                                        'email' => $user_email,
-                                        'role' => $role,
-                                        'last_sent' => time()
+                                        'expires_at' => time() + 600,
+                                        'attempts' => 0,
                                     ];
-                                    header('Location: verify-otp.php');
-                                    exit;
+                                    header('Location: verify-authenticator.php');
+                                } else {
+                                    $_SESSION['totp_enrollment_pending'] = [
+                                        'user_id' => (int) $user_id,
+                                        'expires_at' => time() + 900,
+                                    ];
+                                    header('Location: setup-authenticator.php');
                                 }
-
-                                $error = 'We could not send your login code. Please try again.';
-                            }
-
-                            if ($error !== '') {
-                                $clear = $conn->prepare('DELETE FROM otp_codes WHERE user_id = ?');
-                                if ($clear) {
-                                    $clear->bind_param('i', $user_id);
-                                    $clear->execute();
-                                    $clear->close();
-                                }
+                                exit;
                             }
                         }
                     }

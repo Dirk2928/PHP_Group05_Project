@@ -21,7 +21,7 @@ function email_service_send(string $endpoint, array $payload): bool
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 15
+        CURLOPT_TIMEOUT => 45
     ]);
 
     $response = curl_exec($ch);

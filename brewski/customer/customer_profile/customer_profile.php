@@ -616,7 +616,10 @@ require __DIR__ . '/../partials/header.php';
                 <p class="profile-summary__email"><?= e($display_email) ?></p>
 
                 <div class="profile-summary__actions">
-
+                    <a href="../../login-signup/setup-authenticator.php" class="btn btn--light">
+                        <i data-lucide="shield-check"></i>
+                        <span>Set up authenticator</span>
+                    </a>
                     <a href="../customer_orders/orders.php" class="btn btn--light">
 
                         <i data-lucide="receipt"></i>

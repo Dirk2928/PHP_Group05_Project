@@ -17,10 +17,11 @@ dashboard for viewing shop activity.
 
 New customers register with their name, email, and password. The account stays
 inactive until the customer clicks an activation link sent to their email. Once
-activated, every login requires a second step: a six-digit one-time code is
-emailed to the customer and must be entered to finish signing in. After login,
-users are routed by role — customers to the shop home page, and staff or
-administrators to the admin dashboard.
+activated, users sign in with their password and a six-digit code from an
+authenticator app. Accounts without an authenticator are required to enroll at
+their next login. After verification, users are routed by role — customers to
+the shop home page, staff to the staff orders page, and administrators to the
+admin dashboard.
 
 ## Technologies Used
 
@@ -82,6 +83,24 @@ cd PHP_Group05_Project/brewski
 1. Start **MySQL** (e.g. via XAMPP Control Panel).
 2. Open **phpMyAdmin** → **SQL** tab, or use the MySQL CLI.
 3. Run the contents of `Db/schema.sql`. This creates the `brewski_db` database and all required tables.
+   For an existing installation, apply new scripts in `Db/migrations/` to upgrade its schema.
+
+### Authenticator foundation
+The TOTP helper encrypts authenticator secrets with AES-256-GCM and requires a
+64-character hexadecimal key in the `BREWSKI_TOTP_ENCRYPTION_KEY` environment
+variable. Generate a key once with:
+```bash
+php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+```
+Configure the value in the environment used by PHP/Apache, then restart Apache.
+Keep the key outside the repository and database, and back it up securely. Do
+not rotate it without first re-encrypting all stored authenticator secrets.
+All accounts must enroll an authenticator at their next login if they do not
+already have one. Recovery codes are shown once during enrollment and can be
+used once each to sign in. Resetting a lost authenticator requires the current
+password and an unused recovery code; reset invalidates the remaining codes
+and starts setup again. Login no longer uses email OTP; the email service is
+still used for account activation, order verification, and receipts.
 
 ### 3. Configure the database connection
 The app connects via `mysqli` with these defaults (matching a stock XAMPP install):
@@ -99,7 +118,7 @@ Copy or symlink the `brewski` folder into `htdocs/`, then start **Apache** and *
 php -S localhost:8000
 ```
 
-### 5. Set up the email service (account and order receipt emails)
+### 5. Set up the email service (account activation, order verification, and receipts)
 ```bash
 cd email-service
 cp .env.example .env
@@ -120,4 +139,4 @@ npm start
 With Apache: `http://localhost/brewski/login-signup/login.php`
 With the built-in server: `http://localhost:8000/login-signup/login.php`
 
-Make sure MySQL and the email service are both running before testing registration/login or placing an order. Receipts are emailed to the address on the customer account.
+Make sure MySQL and the email service are running before testing account activation or placing an order. Login verification uses the authenticator app; order verification codes and receipts are emailed to the address on the customer account.

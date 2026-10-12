@@ -169,43 +169,239 @@ require __DIR__ . '/../partials/header.php';
 
 </main>
 
-<script>
-document.getElementById('place-order-btn')?.addEventListener('click', async () => {
-    const btn  = document.getElementById('place-order-btn');
-    const msg  = document.getElementById('checkout-msg');
-    const form = document.getElementById('checkout-form');
-
-    if (!form) return;
-
-    const data = new FormData(form);
-    btn.disabled = true;
-    btn.textContent = 'Placing order…';
-    msg.textContent = '';
-
-    try {
-        const res  = await fetch('place_order.php', { method: 'POST', body: data });
-        const json = await res.json();
-
-        if (json.ok) {
-            try {
-                localStorage.removeItem('brewski_cart');
-            } catch (storageError) {
-                console.error('Order placed, but the browser cart could not be cleared:', storageError);
-            }
-            window.location.href = json.redirect;
-        } else {
-            msg.style.color = '#a32a1f';
-            msg.textContent = json.error || 'Something went wrong.';
-            btn.disabled = false;
-            btn.textContent = 'Place order';
-        }
-    } catch (e) {
-        msg.style.color = '#a32a1f';
-        msg.textContent = 'Network error. Please try again.';
-        btn.disabled = false;
-        btn.textContent = 'Place order';
+<style>
+    #order-otp-dialog {
+        width: min(440px, calc(100% - 2rem));
+        padding: 0;
+        border: 1px solid #e8dac4;
+        border-radius: 1rem;
+        background: #faf5ee;
+        color: #1a0f0a;
+        box-shadow: 0 1.5rem 4rem rgba(26, 15, 10, 0.28);
     }
-});
+
+    #order-otp-dialog::backdrop {
+        background: rgba(26, 15, 10, 0.58);
+        backdrop-filter: blur(3px);
+    }
+
+    .order-otp-dialog__content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+    }
+
+    .order-otp-dialog__content h2,
+    .order-otp-dialog__content p {
+        margin: 0;
+    }
+
+    .order-otp-dialog__content p {
+        color: #5c4033;
+        line-height: 1.5;
+    }
+
+    .order-otp-dialog__content label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .order-otp-dialog__content input {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 1px solid #e8dac4;
+        border-radius: 0.65rem;
+        background: #fff;
+        color: #1a0f0a;
+        font: inherit;
+        font-size: 1.25rem;
+        letter-spacing: 0.3rem;
+        text-align: center;
+    }
+
+    .order-otp-dialog__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+    }
+
+    .order-otp-dialog__actions button {
+        flex: 1 1 8rem;
+        min-height: 2.8rem;
+        padding: 0.65rem 0.85rem;
+        border: 1px solid #e8dac4;
+        border-radius: 0.65rem;
+        background: #fff;
+        color: #1a0f0a;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .order-otp-dialog__actions button[type="submit"] {
+        border-color: #1a0f0a;
+        background: #1a0f0a;
+        color: #faf5ee;
+    }
+
+    .order-otp-dialog__actions button:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
+</style>
+
+<dialog id="order-otp-dialog" aria-labelledby="order-otp-title">
+    <form id="order-otp-form" class="order-otp-dialog__content">
+        <h2 id="order-otp-title">Verify your order</h2>
+        <p id="order-otp-instructions">We’ll email you a 6-digit code. It expires in 10 minutes.</p>
+        <label for="order-otp-code">
+            Verification code
+            <input
+                type="text"
+                id="order-otp-code"
+                name="otp"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                required
+            >
+        </label>
+        <p id="order-otp-message" role="status" aria-live="polite"></p>
+        <div class="order-otp-dialog__actions">
+            <button type="button" id="order-otp-resend">Resend code</button>
+            <button type="button" id="order-otp-cancel">Cancel</button>
+            <button type="submit" id="order-otp-verify">Verify &amp; place order</button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+(function () {
+    var placeOrderButton = document.getElementById('place-order-btn');
+    var checkoutMessage = document.getElementById('checkout-msg');
+    var checkoutForm = document.getElementById('checkout-form');
+    var dialog = document.getElementById('order-otp-dialog');
+    var otpForm = document.getElementById('order-otp-form');
+    var otpInput = document.getElementById('order-otp-code');
+    var otpMessage = document.getElementById('order-otp-message');
+    var verifyButton = document.getElementById('order-otp-verify');
+    var resendButton = document.getElementById('order-otp-resend');
+
+    if (!placeOrderButton || !checkoutForm || !dialog || !otpForm) {
+        return;
+    }
+
+    function showError(message, target) {
+        target.textContent = message;
+        target.style.color = '#a32a1f';
+    }
+
+    function formData(action) {
+        var data = new FormData(checkoutForm);
+        data.set('action', action);
+        return data;
+    }
+
+    async function sendCode() {
+        resendButton.disabled = true;
+        otpMessage.textContent = 'Sending verification code…';
+        otpMessage.style.color = '#5c4033';
+
+        try {
+            var response = await fetch('place_order.php', {
+                method: 'POST',
+                body: formData('request_otp')
+            });
+            var result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                showError(result.error || 'Could not send a verification code.', otpMessage);
+                resendButton.disabled = false;
+                return false;
+            }
+
+            otpMessage.textContent = result.message;
+            otpMessage.style.color = '#2f6b3a';
+            resendButton.disabled = false;
+            otpInput.value = '';
+            otpInput.focus();
+            return true;
+        } catch (error) {
+            showError('Network error. Please try again.', otpMessage);
+            resendButton.disabled = false;
+            return false;
+        }
+    }
+
+    placeOrderButton.addEventListener('click', async function () {
+        placeOrderButton.disabled = true;
+        placeOrderButton.textContent = 'Sending code…';
+        checkoutMessage.textContent = '';
+
+        var sent = await sendCode();
+        placeOrderButton.disabled = false;
+        placeOrderButton.textContent = 'Place order';
+
+        if (sent) {
+            dialog.showModal();
+        } else if (otpMessage.textContent) {
+            showError(otpMessage.textContent, checkoutMessage);
+        }
+    });
+
+    resendButton.addEventListener('click', sendCode);
+
+    document.getElementById('order-otp-cancel').addEventListener('click', function () {
+        dialog.close();
+    });
+
+    otpForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (!otpForm.reportValidity()) {
+            return;
+        }
+
+        verifyButton.disabled = true;
+        resendButton.disabled = true;
+        otpMessage.textContent = 'Verifying code and placing your order…';
+        otpMessage.style.color = '#5c4033';
+
+        var data = formData('verify_otp');
+        data.set('otp', otpInput.value);
+
+        try {
+            var response = await fetch('place_order.php', { method: 'POST', body: data });
+            var result = await response.json();
+
+            if (result.ok) {
+                try {
+                    localStorage.removeItem('brewski_cart');
+                } catch (storageError) {
+                    console.error('Order placed, but the browser cart could not be cleared:', storageError);
+                }
+                window.location.href = result.redirect;
+                return;
+            }
+
+            showError(result.error || 'Could not verify your code.', otpMessage);
+        } catch (error) {
+            showError('Network error. Please try again.', otpMessage);
+        }
+
+        verifyButton.disabled = false;
+        resendButton.disabled = false;
+    });
+
+    dialog.addEventListener('close', function () {
+        otpMessage.textContent = '';
+        otpInput.value = '';
+    });
+})();
 </script>
 
 <script>
