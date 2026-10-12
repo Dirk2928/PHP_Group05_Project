@@ -99,7 +99,7 @@ Copy or symlink the `brewski` folder into `htdocs/`, then start **Apache** and *
 php -S localhost:8000
 ```
 
-### 5. Set up the email service (OTP/account emails)
+### 5. Set up the email service (account and order receipt emails)
 ```bash
 cd email-service
 cp .env.example .env
@@ -120,4 +120,4 @@ npm start
 With Apache: `http://localhost/brewski/login-signup/login.php`
 With the built-in server: `http://localhost:8000/login-signup/login.php`
 
-Make sure MySQL and the email service are both running before testing registration/login.
+Make sure MySQL and the email service are both running before testing registration/login or placing an order. Receipts are emailed to the address on the customer account.

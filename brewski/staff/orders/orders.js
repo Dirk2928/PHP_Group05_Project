@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var query = orderSearch.value.trim().toLowerCase();
         var status = statusFilter.value;
         var visibleOrders = orders.filter(function (order) {
-            var haystack = (order.order_id + ' ' + order.customer).toLowerCase();
+            var haystack = (order.order_id + ' ' + order.customer + ' ' + (order.delivery_notes || '')).toLowerCase();
 
             return (!query || haystack.indexOf(query) !== -1) &&
                 (status === 'ALL' || order.status === status);
@@ -183,7 +183,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<td><div class="order-customer"><span class="customer-avatar">' +
                     escapeHtml(initialsOf(order.customer || 'Guest')) +
                     '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong></span></div></td>' +
-                '<td><ul class="order-items">' + items + '</ul></td>' +
+                '<td><ul class="order-items">' + items + '</ul>' +
+                    (order.delivery_notes
+                        ? '<p class="order-delivery-notes"><strong>Delivery notes:</strong> ' +
+                            escapeHtml(order.delivery_notes) + '</p>'
+                        : '') +
+                    '</td>' +
                 '<td class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</td>' +
                 '<td class="order-placed">' + escapeHtml(formatPlaced(order.created_at)) + '</td>' +
                 '<td><span class="order-status order-status--' + String(order.status).toLowerCase() + '">' +

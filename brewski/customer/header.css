@@ -137,6 +137,7 @@
     box-shadow: var(--shadow-md);
 
     padding: 1rem;
+    color: var(--espresso);
 
     opacity: 0;
     visibility: hidden;
@@ -159,7 +160,7 @@
 .cart-dropdown__title {
     font-size: 0.75rem;
     margin: 0 0 0.75rem 0;
-    color: var(--dark-mocha);
+    color: var(--espresso);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -170,7 +171,7 @@
     padding: 1.5rem 0;
     text-align: center;
     font-size: 0.85rem;
-    color: var(--dark-mocha);
+    color: var(--espresso);
 }
 
 .cart-row {
@@ -184,6 +185,7 @@
     border-bottom: 1px solid var(--latte);
 
     font-size: 0.8rem;
+    color: var(--espresso);
 }
 
 .cart-row--head {
@@ -194,8 +196,8 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
 
-    color: var(--dark-mocha);
-    opacity: 0.7;
+    color: var(--espresso);
+    opacity: 1;
 }
 
 .cart-list {
@@ -225,10 +227,12 @@
 
 .cart-drink span {
     overflow-wrap: anywhere;
+    color: #120a06 !important;
+    font-weight: 700;
 }
 
 .cart-custom {
-    color: var(--dark-mocha);
+    color: var(--espresso);
     overflow-wrap: anywhere;
 }
 
@@ -272,12 +276,14 @@
     min-width: 1.5rem;
     text-align: center;
     font-weight: 700;
+    color: #120a06 !important;
 }
 
 .cart-price {
     font-weight: 700;
     text-align: right;
     white-space: nowrap;
+    color: #120a06 !important;
 }
 
 .cart-remove__btn {
@@ -293,7 +299,7 @@
     background: transparent;
     border: none;
 
-    color: var(--dark-mocha);
+    color: var(--espresso);
     cursor: pointer;
 
     transition: color 0.15s ease;
@@ -318,7 +324,7 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.8rem;
-    color: var(--dark-mocha);
+    color: var(--espresso);
     margin-bottom: 0.35rem;
 }
 

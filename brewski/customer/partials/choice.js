@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 payload.append('answers[' + questionKey + ']', answers[questionKey]);
             });
 
-            fetch('../choice-save.php', {
+            fetch('../partials/choice-save.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: payload.toString(),

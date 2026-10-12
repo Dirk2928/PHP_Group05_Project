@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/partials/bootstrap.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/partials/preferences.php';
 
 header('Content-Type: text/plain; charset=utf-8');

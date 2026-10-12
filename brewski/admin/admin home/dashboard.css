@@ -1,11 +1,23 @@
 .dashboard {
-    --dashboard-gap: 18px;
-    --dashboard-card-radius: 12px;
+    --dashboard-gap: 20px;
+    --dashboard-card-radius: 16px;
+    --type-page-title: clamp(1.675rem, 2.7vw, 2.025rem);
+    --type-section-title: 1.025rem;
+    --type-subsection-title: 0.925rem;
+    --type-small-heading: 0.825rem;
+    --type-body: 0.95rem;
+    --type-supporting: 0.82rem;
+    --surface: #ffffff;
+    --surface-subtle: var(--cream);
+    --line: var(--latte);
+    --dashboard-card-shadow: 0 2px 8px rgba(30, 17, 10, 0.08);
     display: flex;
     flex-direction: column;
     gap: 22px;
     max-width: 1800px;
     margin: 0 auto;
+    color: var(--espresso);
+    font-family: var(--font-body);
 }
 
 .dashboard h1,
@@ -153,7 +165,7 @@
 
 .dashboard-heading h1 {
     font-family: var(--font-brand);
-    font-size: 26px;
+    font-size: var(--type-page-title);
     line-height: 1.2;
 }
 
@@ -184,7 +196,7 @@
     border: 1px solid var(--line);
     border-radius: var(--dashboard-card-radius);
     background: var(--surface);
-    box-shadow: 0 2px 8px rgba(60, 48, 39, 0.035);
+    box-shadow: var(--dashboard-card-shadow);
 }
 
 .dashboard-section h2 {
@@ -218,9 +230,9 @@
 .kpi-card {
     min-width: 0;
     padding: 17px;
-    border: 1px solid var(--line);
+    border: 1px solid transparent;
     border-radius: var(--dashboard-card-radius);
-    background: linear-gradient(145deg, #fffdf9 55%, #fbf5ec);
+    background: var(--latte);
 }
 
 .kpi-topline {
@@ -428,7 +440,7 @@
     padding: 13px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #fffefa;
+    background: var(--cream);
 }
 
 .insight-heading {
@@ -960,5 +972,112 @@
 
     .dashboard-side-stack {
         grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-toolbar {
+    box-shadow: var(--dashboard-card-shadow);
+}
+
+.date-range-control label,
+.comparison-control {
+    font-size: var(--type-supporting);
+}
+
+.date-range-control input,
+.comparison-control select,
+.select-control select,
+.dashboard-button {
+    font-size: var(--type-supporting);
+}
+
+.dashboard-button {
+    min-height: 40px;
+    border-radius: 8px;
+}
+
+.dashboard-heading h1 {
+    font-size: var(--type-page-title);
+}
+
+.dashboard-subtitle {
+    font-size: var(--type-body);
+}
+
+.dashboard-message,
+.dashboard-empty,
+.section-heading p,
+.insight-heading p,
+.kpi-label,
+.kpi-note,
+.chart-summary-label,
+.category-name,
+.category-value,
+.seller-name,
+.seller-revenue,
+.alert-title,
+.stock-name,
+.dashboard-table td {
+    font-size: var(--type-supporting);
+}
+
+.dashboard-eyebrow,
+.kpi-change,
+.kpi-status,
+.chart-legend,
+.total-caption,
+.peak-time,
+.heatmap-label,
+.heatmap-legend,
+.section-tag,
+.seller-units,
+.alert-count,
+.alert-time,
+.alert-dismiss,
+.live-indicator,
+.dashboard-table th,
+.order-status,
+.stock-quantity {
+    font-size: 0.75rem;
+}
+
+.dashboard-section h2 {
+    font-size: var(--type-section-title);
+}
+
+.insight-heading h3 {
+    font-size: var(--type-subsection-title);
+}
+
+.kpi-value {
+    font-size: clamp(1.35rem, 2vw, 1.65rem);
+}
+
+.chart-summary strong {
+    font-size: 1.25rem;
+}
+
+.chart-axis-label {
+    font-size: 11px;
+}
+
+.seller-rank {
+    width: 28px;
+    height: 28px;
+    font-size: var(--type-supporting);
+}
+
+.dashboard-table th,
+.dashboard-table td {
+    padding: 12px;
+}
+
+@media (max-width: 640px) {
+    .dashboard {
+        --type-page-title: 1.725rem;
+    }
+
+    .dashboard-heading h1 {
+        font-size: var(--type-page-title);
     }
 }

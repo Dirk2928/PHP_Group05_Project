@@ -1173,6 +1173,20 @@ body {
     line-height: 1.65;
 }
 
+.order-delivery-notes {
+    max-width: 280px;
+    margin: 0.45rem 0 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.order-delivery-notes strong {
+    color: var(--text);
+}
+
 .order-total {
     font-weight: 600;
     white-space: nowrap;

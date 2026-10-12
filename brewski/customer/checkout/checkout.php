@@ -12,7 +12,7 @@ $userId = (int) $_SESSION['user_id'];
 
 $pageTitle   = 'Checkout | brewski';
 $active      = 'checkout';
-$extraStyles = ['menu.css'];
+$extraStyles = ['partials/menu.css'];
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -187,6 +187,11 @@ document.getElementById('place-order-btn')?.addEventListener('click', async () =
         const json = await res.json();
 
         if (json.ok) {
+            try {
+                localStorage.removeItem('brewski_cart');
+            } catch (storageError) {
+                console.error('Order placed, but the browser cart could not be cleared:', storageError);
+            }
             window.location.href = json.redirect;
         } else {
             msg.style.color = '#a32a1f';

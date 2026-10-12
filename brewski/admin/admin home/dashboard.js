@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (orders.length === 0) {
             var emptyRow = document.createElement('tr');
             var emptyCell = document.createElement('td');
-            emptyCell.colSpan = 5;
+            emptyCell.colSpan = 6;
             emptyCell.textContent = 'There are no open orders.';
             emptyCell.className = 'dashboard-empty';
             emptyRow.appendChild(emptyCell);
@@ -423,6 +423,10 @@ document.addEventListener('DOMContentLoaded', function () {
             items.className = 'order-items';
             items.textContent = order.items;
 
+            var notes = document.createElement('td');
+            notes.textContent = order.delivery_notes || '—';
+            notes.style.whiteSpace = 'pre-wrap';
+
             var total = document.createElement('td');
             total.textContent = money(order.total_amount, 2);
 
@@ -434,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 + order.order_status.slice(1).toLowerCase();
             statusCell.appendChild(status);
 
-            row.append(number, time, items, total, statusCell);
+            row.append(number, time, items, notes, total, statusCell);
             tableBody.appendChild(row);
         });
     }

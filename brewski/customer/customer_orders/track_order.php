@@ -14,14 +14,14 @@ $orderId = (int) ($_GET['order_id'] ?? 0);
 $hasDeliveries = customer_has_deliveries_table($pdo);
 
 $deliverySelect = $hasDeliveries
-    ? 'd.delivery_id, d.delivery_status, d.delivery_fee, d.notes,
+    ? 'd.delivery_id, d.delivery_status, d.delivery_fee, d.notes AS delivery_notes,
        d.assigned_at, d.picked_up_at, d.delivered_at, d.failed_at,
        u.first_name AS driver_first, u.last_name AS driver_last'
     : 'NULL AS delivery_id, NULL AS delivery_status,
        (o.total_amount - COALESCE((SELECT SUM(oi.subtotal)
                                     FROM order_items oi
                                    WHERE oi.order_id = o.order_id), 0)) AS delivery_fee,
-       NULL AS notes, NULL AS assigned_at, NULL AS picked_up_at,
+       NULL AS delivery_notes, NULL AS assigned_at, NULL AS picked_up_at,
        NULL AS delivered_at, NULL AS failed_at,
        NULL AS driver_first, NULL AS driver_last';
 $deliveryJoins = $hasDeliveries
@@ -104,9 +104,6 @@ if ($current_index === false) $current_index = -1;
         <?php elseif ($status === 'FAILED' || $status === 'CANCELLED'): ?>
             <div style="padding:1rem; background:#f8e3e0; border:1px solid #e6b8b2; border-radius:0.75rem; color:#a32a1f; margin-bottom:1rem;">
                 <strong><?= htmlspecialchars($timeline[$status]) ?></strong>
-                <?php if ($order['notes']): ?>
-                    <br><small><?= htmlspecialchars($order['notes']) ?></small>
-                <?php endif; ?>
             </div>
         <?php else: ?>
             <ol style="list-style:none; padding:0; margin:0;">
@@ -151,6 +148,13 @@ if ($current_index === false) $current_index = -1;
             <p style="margin:0; color:#5c4033;">Address not available.</p>
         <?php endif; ?>
     </section>
+
+    <?php if (!empty($order['delivery_notes'])): ?>
+        <section style="background:#faf5ee; border:1px solid #e8dac4; border-radius:1.25rem; padding:1.75rem; margin-bottom:1.5rem;">
+            <h2 style="margin:0 0 1rem;">Delivery notes</h2>
+            <p style="margin:0; color:#3b2218; white-space:pre-wrap;"><?= htmlspecialchars($order['delivery_notes'], ENT_QUOTES, 'UTF-8') ?></p>
+        </section>
+    <?php endif; ?>
 
     <section style="background:#faf5ee; border:1px solid #e8dac4; border-radius:1.25rem; padding:1.75rem; margin-bottom:1.5rem;">
         <h2 style="margin:0 0 1rem;">Items in this order</h2>

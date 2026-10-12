@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!$has_field_errors) {
 
         $check = $conn->prepare(
-            "SELECT user_id, is_active
+            "SELECT user_id, is_active, role
              FROM users
              WHERE email = ?
              LIMIT 1"
@@ -174,14 +174,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $check->bind_result(
                     $existing_user_id,
-                    $existing_is_active
+                    $existing_is_active,
+                    $existing_role
                 );
 
                 $check->fetch();
 
                 $existing = [
                     'user_id'   => $existing_user_id,
-                    'is_active' => $existing_is_active
+                    'is_active' => $existing_is_active,
+                    'role'      => $existing_role,
                 ];
             }
 
@@ -189,7 +191,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (
                 $existing &&
-                (int)$existing['is_active'] === 1
+                (
+                    strtoupper(trim((string) $existing['role'])) !== 'CUSTOMER'
+                    || (int)$existing['is_active'] === 1
+                )
             ) {
 
                 $errors['email'][] =

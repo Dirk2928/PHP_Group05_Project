@@ -111,6 +111,7 @@ $transactions = $pdo->query(
             o.order_status,
             TRIM(CONCAT(COALESCE(cu.first_name, ''), ' ', COALESCE(cu.last_name, ''))) AS customer_name,
             TRIM(CONCAT(COALESCE(su.first_name, ''), ' ', COALESCE(su.last_name, ''))) AS staff_name,
+            d.notes AS delivery_notes,
             (SELECT GROUP_CONCAT(
                         CONCAT(oi.quantity, 'x ', COALESCE(p.product_name, 'Unknown item'))
                         SEPARATOR ', '
@@ -195,6 +196,7 @@ function admin_transaction_badge(string $status): string
                         $orderCustomer = trim((string) $transaction['customer_name']);
                         $orderStaff = trim((string) $transaction['staff_name']);
                         $orderItems = (string) ($transaction['item_summary'] ?? '');
+                        $deliveryNotes = (string) ($transaction['delivery_notes'] ?? '');
                         $orderTotal = (float) $transaction['total_amount'];
 
                         if ($orderCustomer === '') {
@@ -217,6 +219,7 @@ function admin_transaction_badge(string $status): string
                             data-status="<?= htmlspecialchars($orderStatus, ENT_QUOTES, 'UTF-8') ?>"
                             data-amount="<?= number_format($orderTotal, 2, '.', '') ?>"
                             data-staff="<?= htmlspecialchars($orderStaff, ENT_QUOTES, 'UTF-8') ?>"
+                            data-notes="<?= htmlspecialchars($deliveryNotes, ENT_QUOTES, 'UTF-8') ?>"
                         >
                             <td>
                                 <div class="cell-stack">
@@ -377,6 +380,7 @@ function admin_transaction_badge(string $status): string
                         '<dt>Status</dt><dd><span class="badge ' + statusClass(data.status) + '">' + escapeHtml(data.status) + '</span></dd>' +
                         '<dt>Total</dt><dd>' + escapeHtml(formatPeso(data.amount)) + '</dd>' +
                         '<dt>Staff</dt><dd>' + escapeHtml(data.staff) + '</dd>' +
+                        '<dt>Delivery notes</dt><dd>' + escapeHtml(data.notes || 'None') + '</dd>' +
                       '</dl>'
             });
         }

@@ -3,9 +3,11 @@
 require __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../partials/preferences.php';
 
+brewski_require_role(['CUSTOMER']);
+
 $pageTitle = 'Profile | brewski';
 $active = 'profile';
-$extraStyles = ['customer_profile.css', 'choice.css'];
+$extraStyles = ['customer_profile/customer_profile.css', 'partials/choice.css'];
 
 require_once __DIR__ . '/../../Db/connection.php';
 
@@ -15,6 +17,12 @@ if (!brewski_is_logged_in()) {
 
 $errors = [];
 $success = '';
+$addressFormValues = [
+    'address_line' => '',
+    'city' => '',
+    'province' => '',
+    'postal_code' => '',
+];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
 if (empty($_SESSION['csrf_token'])) {
@@ -93,6 +101,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
+        if ($action === 'add_address') {
+
+            foreach (array_keys($addressFormValues) as $field) {
+                $submittedValue = $_POST[$field] ?? '';
+                $addressFormValues[$field] = is_string($submittedValue)
+                    ? trim($submittedValue)
+                    : '';
+            }
+
+            if (
+                $addressFormValues['address_line'] === '' ||
+                mb_strlen($addressFormValues['address_line']) > 255
+            ) {
+                $errors[] = 'Please enter a street address no longer than 255 characters.';
+            }
+
+            foreach (['city' => 'city or municipality', 'province' => 'province'] as $field => $label) {
+                if (
+                    $addressFormValues[$field] === '' ||
+                    mb_strlen($addressFormValues[$field]) > 100
+                ) {
+                    $errors[] = 'Please enter a ' . $label . ' no longer than 100 characters.';
+                }
+            }
+
+            if (!preg_match('/^\d{4}$/', $addressFormValues['postal_code'])) {
+                $errors[] = 'Please enter a valid 4-digit Philippine ZIP code.';
+            }
+
+            if (!$errors) {
+                $insert = $pdo->prepare(
+                    'INSERT INTO addresses (user_id, address_line, city, province, postal_code)
+                     VALUES (?, ?, ?, ?, ?)'
+                );
+                $insert->execute([
+                    $userId,
+                    $addressFormValues['address_line'],
+                    $addressFormValues['city'],
+                    $addressFormValues['province'],
+                    $addressFormValues['postal_code'],
+                ]);
+
+                $_SESSION['profile_flash'] = 'Your delivery address has been added.';
+                header('Location: customer_profile.php');
+                exit;
+            }
+        }
+
         if ($action === 'change_password') {
 
             $currentInput = (string) ($_POST['current_password'] ?? '');
@@ -148,6 +204,15 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
+
+$addressStmt = $pdo->prepare(
+    'SELECT address_id, address_line, city, province, postal_code
+     FROM addresses
+     WHERE user_id = ?
+     ORDER BY address_id DESC'
+);
+$addressStmt->execute([$userId]);
+$addresses = $addressStmt->fetchAll();
 
 if (!$user) {
     $user = [
@@ -367,6 +432,44 @@ require __DIR__ . '/../partials/header.php';
             box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12);
         }
 
+        .address-section {
+            border-top: 1px solid var(--latte);
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+        }
+
+        .address-section__title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 0 0 1rem;
+        }
+
+        .address-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            list-style: none;
+            margin-bottom: 1.25rem;
+        }
+
+        .address-list__item {
+            background: var(--cream);
+            border: 1px solid var(--latte);
+            border-radius: 0.75rem;
+            padding: 0.9rem 1rem;
+            line-height: 1.5;
+        }
+
+        .address-list__item strong {
+            display: block;
+        }
+
+        .address-list__empty {
+            color: var(--dark-mocha);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -522,7 +625,7 @@ require __DIR__ . '/../partials/header.php';
 
                     </a>
 
-                    <a href="../../login-signup/logout.php" class="btn btn--dark">
+                    <a href="../../login-signup/logout.php" class="btn btn--dark" data-cart-logout>
 
                         <i data-lucide="log-out"></i>
 
@@ -619,6 +722,120 @@ require __DIR__ . '/../partials/header.php';
                         </button>
 
                     </form>
+
+                    <div class="address-section">
+
+                        <h4 class="address-section__title">Delivery addresses</h4>
+
+                        <?php if ($addresses): ?>
+
+                            <ul class="address-list">
+
+                                <?php foreach ($addresses as $address): ?>
+
+                                    <li class="address-list__item">
+                                        <strong><?= e($address['address_line']) ?></strong>
+                                        <?= e($address['city'] . ', ' . $address['province'] . ' ' . $address['postal_code']) ?>
+                                    </li>
+
+                                <?php endforeach; ?>
+
+                            </ul>
+
+                        <?php else: ?>
+
+                            <p class="address-list__empty">No delivery addresses saved yet.</p>
+
+                        <?php endif; ?>
+
+                        <form
+                            method="post"
+                            action="customer_profile.php"
+                            class="form"
+                        >
+
+                            <input
+                                type="hidden"
+                                name="csrf_token"
+                                value="<?= e($csrf_token) ?>"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="action"
+                                value="add_address"
+                            >
+
+                            <div class="form__group">
+                                <label for="address_line">Street address</label>
+                                <input
+                                    type="text"
+                                    id="address_line"
+                                    name="address_line"
+                                    value="<?= e($addressFormValues['address_line']) ?>"
+                                    autocomplete="street-address"
+                                    maxlength="255"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form__row">
+
+                                <div class="form__group">
+                                    <label for="city">City / Municipality</label>
+                                    <input
+                                        type="text"
+                                        id="city"
+                                        name="city"
+                                        value="<?= e($addressFormValues['city']) ?>"
+                                        autocomplete="address-level2"
+                                        maxlength="100"
+                                        required
+                                    >
+                                </div>
+
+                                <div class="form__group">
+                                    <label for="province">Province</label>
+                                    <input
+                                        type="text"
+                                        id="province"
+                                        name="province"
+                                        value="<?= e($addressFormValues['province']) ?>"
+                                        autocomplete="address-level1"
+                                        maxlength="100"
+                                        required
+                                    >
+                                </div>
+
+                            </div>
+
+                            <div class="form__group">
+                                <label for="postal_code">ZIP code</label>
+                                <input
+                                    type="text"
+                                    id="postal_code"
+                                    name="postal_code"
+                                    value="<?= e($addressFormValues['postal_code']) ?>"
+                                    inputmode="numeric"
+                                    autocomplete="postal-code"
+                                    pattern="[0-9]{4}"
+                                    maxlength="4"
+                                    title="Enter a 4-digit Philippine ZIP code."
+                                    required
+                                >
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="btn btn--dark btn--block"
+                            >
+                                <i data-lucide="map-pin"></i>
+                                <span>Add address</span>
+                            </button>
+
+                        </form>
+
+                    </div>
 
                 </section>
 

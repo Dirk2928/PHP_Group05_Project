@@ -139,9 +139,11 @@ try {
                 o.order_status AS status,
                 o.total_amount,
                 o.order_date AS created_at,
-                TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer
+                TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
+                d.notes AS delivery_notes
            FROM orders o
            LEFT JOIN users u ON u.user_id = o.user_id
+           LEFT JOIN deliveries d ON d.order_id = o.order_id
           ORDER BY o.order_date DESC, o.order_id DESC
           LIMIT 100"
     );

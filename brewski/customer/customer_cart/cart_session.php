@@ -232,7 +232,7 @@ try {
     }
     cart_session_respond(422, ['ok' => false, 'error' => $error->getMessage()]);
 } catch (Throwable $error) {
-    if ($pdo->inTransaction()) {
+    if ($pdo->inTransaction()) {    
         $pdo->rollBack();
     }
     error_log('Customer cart synchronization failed: ' . $error->getMessage());

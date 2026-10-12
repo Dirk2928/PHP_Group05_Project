@@ -92,6 +92,35 @@
     color: var(--espresso);
 }
 
+.order-success-email-notice {
+    margin: 0.75rem auto 0;
+    color: var(--success);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.order-success-email-notice--failed {
+    color: var(--danger);
+}
+
+.order-success-notes {
+    margin: 1rem clamp(1rem, 4vw, 3rem) 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--latte);
+    border-radius: 0.75rem;
+    background: var(--white);
+    color: var(--dark-mocha);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.order-success-notes strong {
+    color: var(--espresso);
+}
+
 .order-success-notice {
     display: flex;
     align-items: flex-start;
@@ -525,6 +554,21 @@
     border-top: 1px solid #f1e2ca;
     border-bottom: 1px solid #f1e2ca;
     background: var(--cream);
+}
+
+.order-card__notes {
+    margin: 0;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid #f1e2ca;
+    color: var(--dark-mocha);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.order-card__notes strong {
+    color: var(--espresso);
 }
 
 .order-card__items {

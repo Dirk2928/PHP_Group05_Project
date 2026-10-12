@@ -62,6 +62,108 @@ const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
     "'": "&#39;"
 })[character]);
 
+app.post("/send-order-receipt", async (req, res) => {
+    try {
+        const {
+            email,
+            customerName,
+            receiptNumber,
+            orderDate,
+            address,
+            deliveryNotes,
+            items,
+            subtotal,
+            deliveryFee,
+            total
+        } = req.body;
+        const hasText = (value, maxLength) =>
+            typeof value === "string" && value.trim().length > 0 && value.length <= maxLength;
+        const hasAmount = (value) => {
+            if (typeof value === "number") {
+                return Number.isFinite(value) && value >= 0;
+            }
+            return typeof value === "string"
+                && /^\d+(?:\.\d{1,2})?$/.test(value)
+                && Number.isFinite(Number(value));
+        };
+
+        if (
+            !hasText(email, 254)
+            || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+            || !hasText(customerName, 200)
+            || !hasText(receiptNumber, 40)
+            || !hasText(orderDate, 40)
+            || !address
+            || !hasText(address.addressLine, 255)
+            || !hasText(address.city, 100)
+            || !hasText(address.province, 100)
+            || !hasText(address.postalCode, 20)
+            || (deliveryNotes !== undefined
+                && (typeof deliveryNotes !== "string" || deliveryNotes.length > 500))
+            || !Array.isArray(items)
+            || items.length === 0
+            || items.length > 100
+            || !items.every((item) =>
+                item
+                && hasText(item.name, 255)
+                && hasText(item.size, 100)
+                && Number.isInteger(item.quantity)
+                && item.quantity > 0
+                && item.quantity <= 99
+                && hasAmount(item.unitPrice)
+                && hasAmount(item.lineTotal)
+            )
+            || !hasAmount(subtotal)
+            || !hasAmount(deliveryFee)
+            || !hasAmount(total)
+        ) {
+            return res.status(400).json({ success: false, message: "Missing or invalid receipt information." });
+        }
+
+        const addressText = [
+            address.addressLine,
+            address.city,
+            address.province,
+            address.postalCode
+        ].join(", ");
+        const safeDeliveryNotes = typeof deliveryNotes === "string" ? deliveryNotes.trim() : "";
+        const formatAmount = (amount) => Number(amount).toFixed(2);
+        const itemText = items.map((item) =>
+            `${item.name} (${item.size}) x ${item.quantity} - PHP ${formatAmount(item.lineTotal)}`
+        ).join("\n");
+        const deliveryNotesText = safeDeliveryNotes
+            ? `\nDelivery notes: ${safeDeliveryNotes}\n`
+            : "";
+        const itemRows = items.map((item) => `
+            <tr>
+                <td style="padding:10px;border-bottom:1px solid #e8dac4">${escapeHtml(item.name)} (${escapeHtml(item.size)})</td>
+                <td style="padding:10px;border-bottom:1px solid #e8dac4;text-align:center">${item.quantity}</td>
+                <td style="padding:10px;border-bottom:1px solid #e8dac4;text-align:right">PHP ${formatAmount(item.lineTotal)}</td>
+            </tr>`
+        ).join("");
+        const safeCustomerName = escapeHtml(customerName);
+        const safeReceiptNumber = escapeHtml(receiptNumber);
+        const safeOrderDate = escapeHtml(orderDate);
+        const safeAddress = escapeHtml(addressText);
+        const deliveryNotesHtml = safeDeliveryNotes
+            ? `<p><strong>Delivery notes:</strong><br>${escapeHtml(safeDeliveryNotes).replace(/\r?\n/g, "<br>")}</p>`
+            : "";
+        const info = await deliver({
+            from: `"Brewski" <${fromAddress}>`,
+            to: email,
+            subject: `Your Brewski order receipt - ${receiptNumber}`,
+            text: `Hello ${customerName},\n\nThank you for your order. Here is your receipt.\n\nReceipt: ${receiptNumber}\nOrder date: ${orderDate}\nDelivery address: ${addressText}${deliveryNotesText}\n\n${itemText}\n\nSubtotal: PHP ${formatAmount(subtotal)}\nDelivery fee: PHP ${formatAmount(deliveryFee)}\nTotal: PHP ${formatAmount(total)}\n`,
+            html: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a0f0a"><h2>Brewski order receipt</h2><p>Hello ${safeCustomerName}, thank you for your order.</p><p><strong>Receipt:</strong> ${safeReceiptNumber}<br><strong>Order date:</strong> ${safeOrderDate}<br><strong>Delivery address:</strong> ${safeAddress}</p>${deliveryNotesHtml}<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:10px;text-align:left;border-bottom:2px solid #5c4033">Item</th><th style="padding:10px;border-bottom:2px solid #5c4033">Qty</th><th style="padding:10px;text-align:right;border-bottom:2px solid #5c4033">Amount</th></tr></thead><tbody>${itemRows}</tbody></table><p style="text-align:right">Subtotal: PHP ${formatAmount(subtotal)}<br>Delivery fee: PHP ${formatAmount(deliveryFee)}<br><strong>Total: PHP ${formatAmount(total)}</strong></p></div>`
+        });
+
+        console.log("Order receipt email sent:", info.messageId);
+        return res.json({ success: true });
+    } catch (error) {
+        console.error("Order receipt email error:", error instanceof Error ? error.message : error);
+        return res.status(500).json({ success: false, message: "Unable to send order receipt." });
+    }
+});
+
 app.post("/send-activation", async (req, res) => {
     try {
         const { email, firstName, activationUrl } = req.body;

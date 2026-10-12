@@ -42,8 +42,8 @@ if ($search !== '') {
 $where = implode(' AND ', $conditions);
 $hasDeliveries = customer_has_deliveries_table($pdo);
 $deliverySelect = $hasDeliveries
-    ? 'd.delivery_status'
-    : 'NULL AS delivery_status';
+    ? 'd.delivery_status, d.notes AS delivery_notes'
+    : 'NULL AS delivery_status, NULL AS delivery_notes';
 $deliveryJoin = $hasDeliveries
     ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id'
     : '';
@@ -232,6 +232,13 @@ $deliveryIcons = [
                             <strong>₱<?= number_format((float) $order['total_amount'], 2) ?></strong>
                         </div>
                     </div>
+
+                    <?php if (!empty($order['delivery_notes'])): ?>
+                        <p class="order-card__notes">
+                            <strong>Delivery notes:</strong>
+                            <?= htmlspecialchars($order['delivery_notes'], ENT_QUOTES, 'UTF-8') ?>
+                        </p>
+                    <?php endif; ?>
 
                     <div class="order-card__bottom">
                         <span class="order-delivery">

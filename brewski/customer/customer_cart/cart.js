@@ -135,6 +135,7 @@
     function renderBadge(total) {
         document.querySelectorAll('[data-cart-count]').forEach(function (element) {
             element.textContent = total;
+            element.hidden = total < 1;
         });
     }
 
@@ -239,6 +240,8 @@
         });
 
         body.addEventListener('click', function (event) {
+            event.stopPropagation();
+
             var target = event.target.closest('[data-action]');
 
             if (!target) {
@@ -296,6 +299,16 @@
             });
         });
     }
+
+    document.querySelectorAll('[data-cart-logout]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            try {
+                localStorage.removeItem(STORAGE_KEY);
+            } catch (error) {
+                console.warn('Could not clear cart from browser storage:', error);
+            }
+        });
+    });
 
     window.addEventListener('storage', function () {
         render();

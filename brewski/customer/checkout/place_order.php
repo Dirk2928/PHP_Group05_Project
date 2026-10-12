@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../partials/order_support.php';
+require_once __DIR__ . '/../../login-signup/email-service-client.php';
 
 header('Content-Type: application/json');
 
@@ -43,6 +44,17 @@ if ($addressId <= 0) {
 if (mb_strlen($notes) > 500) {
     http_response_code(422);
     echo json_encode(['ok' => false, 'error' => 'Delivery notes must be 500 characters or fewer.']);
+    exit;
+}
+
+$hasDeliveries = customer_has_deliveries_table($pdo);
+
+if ($notes !== '' && !$hasDeliveries) {
+    http_response_code(503);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Custom delivery notes are unavailable right now. Please try again later.',
+    ]);
     exit;
 }
 
@@ -115,7 +127,7 @@ try {
         ]);
     }
 
-    if (customer_has_deliveries_table($pdo)) {
+    if ($hasDeliveries) {
         $stmt = $pdo->prepare(
             'INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
              VALUES (?, "UNASSIGNED", ?, ?)'
@@ -127,11 +139,87 @@ try {
 
     $pdo->commit();
 
+    $receiptEmailSent = false;
+    try {
+        $notesSelect = $hasDeliveries
+            ? 'd.notes AS delivery_notes'
+            : 'NULL AS delivery_notes';
+        $deliveryJoin = $hasDeliveries
+            ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id'
+            : '';
+        $receiptStatement = $pdo->prepare(
+            'SELECT u.email, u.first_name, u.last_name, o.order_date, o.total_amount,
+                    a.address_line, a.city, a.province, a.postal_code,
+                    ' . $notesSelect . '
+             FROM orders o
+             INNER JOIN users u ON u.user_id = o.user_id
+             INNER JOIN addresses a ON a.address_id = o.address_id
+             ' . $deliveryJoin . '
+             WHERE o.order_id = ? AND o.user_id = ?
+             LIMIT 1'
+        );
+        $receiptStatement->execute([$orderId, $userId]);
+        $receiptOrder = $receiptStatement->fetch();
+
+        $receiptItemsStatement = $pdo->prepare(
+            'SELECT p.product_name, s.size_name, oi.quantity, oi.unit_price, oi.subtotal
+             FROM order_items oi
+             LEFT JOIN products p ON p.product_id = oi.product_id
+             LEFT JOIN sizes s ON s.size_id = oi.size_id
+             WHERE oi.order_id = ?
+             ORDER BY oi.order_item_id ASC'
+        );
+        $receiptItemsStatement->execute([$orderId]);
+        $receiptItems = $receiptItemsStatement->fetchAll();
+
+        if (!$receiptOrder || !$receiptItems) {
+            throw new RuntimeException('Saved order details are unavailable for the receipt email.');
+        }
+
+        $emailItems = [];
+        $subtotalCents = 0;
+        foreach ($receiptItems as $receiptItem) {
+            $unitPriceCents = (int) round((float) $receiptItem['unit_price'] * 100);
+            $lineTotalCents = (int) round((float) $receiptItem['subtotal'] * 100);
+            $subtotalCents += $lineTotalCents;
+            $emailItems[] = [
+                'name' => (string) $receiptItem['product_name'],
+                'size' => (string) $receiptItem['size_name'],
+                'quantity' => (int) $receiptItem['quantity'],
+                'unitPrice' => number_format($unitPriceCents / 100, 2, '.', ''),
+                'lineTotal' => number_format($lineTotalCents / 100, 2, '.', ''),
+            ];
+        }
+
+        $totalCents = (int) round((float) $receiptOrder['total_amount'] * 100);
+        $receiptEmailSent = email_service_send('send-order-receipt', [
+            'email' => (string) $receiptOrder['email'],
+            'customerName' => trim($receiptOrder['first_name'] . ' ' . $receiptOrder['last_name']),
+            'receiptNumber' => 'BRW-' . str_pad((string) $orderId, 8, '0', STR_PAD_LEFT),
+            'orderDate' => (string) $receiptOrder['order_date'],
+            'address' => [
+                'addressLine' => (string) $receiptOrder['address_line'],
+                'city' => (string) $receiptOrder['city'],
+                'province' => (string) $receiptOrder['province'],
+                'postalCode' => (string) $receiptOrder['postal_code'],
+            ],
+            'deliveryNotes' => (string) ($receiptOrder['delivery_notes'] ?? ''),
+            'items' => $emailItems,
+            'subtotal' => number_format($subtotalCents / 100, 2, '.', ''),
+            'deliveryFee' => number_format($deliveryFee, 2, '.', ''),
+            'total' => number_format($totalCents / 100, 2, '.', ''),
+        ]);
+    } catch (Throwable $emailError) {
+        error_log('Could not email receipt for order ' . $orderId . ': ' . $emailError->getMessage());
+    }
+
     echo json_encode([
-        'ok'       => true,
-        'order_id' => $orderId,
-        'total'    => number_format($total, 2, '.', ''),
-        'redirect' => '../customer_orders/order_success.php?order_id=' . $orderId,
+        'ok'                 => true,
+        'order_id'           => $orderId,
+        'total'              => number_format($total, 2, '.', ''),
+        'receipt_email_sent' => $receiptEmailSent,
+        'redirect'           => '../customer_orders/order_success.php?order_id=' . $orderId
+            . '&receipt_email_sent=' . ($receiptEmailSent ? '1' : '0'),
     ]);
 
 } catch (RuntimeException $e) {

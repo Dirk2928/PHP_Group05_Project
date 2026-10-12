@@ -150,6 +150,7 @@ $navItems = [
                     <span
                         class="cart-badge"
                         data-cart-count
+                        <?= (int) $cart_count > 0 ? '' : 'hidden' ?>
                     ><?= (int) $cart_count ?></span>
 
                 </button>
@@ -239,6 +240,7 @@ $navItems = [
                     <a
                         href="../../login-signup/logout.php"
                         class="logout-button"
+                        data-cart-logout
                     >
                         <i data-lucide="log-out"></i>
                         Logout

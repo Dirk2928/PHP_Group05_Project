@@ -12,12 +12,15 @@ if (empty($_SESSION['user_id'])) {
 $orderId = (int) ($_GET['order_id'] ?? 0);
 $userId  = (int) $_SESSION['user_id'];
 $hasDeliveries = customer_has_deliveries_table($pdo);
-$deliverySelect = $hasDeliveries ? 'd.delivery_status' : 'NULL AS delivery_status';
+$deliverySelect = $hasDeliveries
+    ? 'd.delivery_status, d.notes AS delivery_notes'
+    : 'NULL AS delivery_status, NULL AS delivery_notes';
 $deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id' : '';
 
 $stmt = $pdo->prepare(
-    "SELECT o.order_id, o.total_amount, o.order_status, $deliverySelect
+    "SELECT o.order_id, o.total_amount, o.order_status, u.email, $deliverySelect
      FROM orders o
+     INNER JOIN users u ON u.user_id = o.user_id
      $deliveryJoin
      WHERE o.order_id = ? AND o.user_id = ?"
 );
@@ -45,6 +48,15 @@ require __DIR__ . '/../partials/header.php';
             <p class="order-success-message">
                 Order <strong>#<?= (int)$order['order_id'] ?></strong> is in. We’ll keep you updated as it moves along.
             </p>
+            <?php if (($_GET['receipt_email_sent'] ?? '') === '1'): ?>
+                <p class="order-success-email-notice" role="status">
+                    Your receipt was emailed to <?= htmlspecialchars($order['email'], ENT_QUOTES, 'UTF-8') ?>.
+                </p>
+            <?php elseif (($_GET['receipt_email_sent'] ?? '') === '0'): ?>
+                <p class="order-success-email-notice order-success-email-notice--failed" role="status">
+                    Your order was placed, but the receipt email could not be sent. Please check the email service configuration or contact support.
+                </p>
+            <?php endif; ?>
         </div>
 
     <?php if (!$hasDeliveries): ?>
@@ -53,6 +65,13 @@ require __DIR__ . '/../partials/header.php';
             <span>Delivery tracking is not set up yet. You can still view your order details and status.</span>
         </p>
     <?php endif; ?>
+
+        <?php if (!empty($order['delivery_notes'])): ?>
+            <p class="order-success-notes">
+                <strong>Delivery notes:</strong>
+                <?= htmlspecialchars($order['delivery_notes'], ENT_QUOTES, 'UTF-8') ?>
+            </p>
+        <?php endif; ?>
 
         <div class="order-success-details" aria-label="Order summary">
             <div class="order-success-detail">
@@ -84,6 +103,12 @@ require __DIR__ . '/../partials/header.php';
 </main>
 
 <script>
+    try {
+        localStorage.removeItem('brewski_cart');
+    } catch (error) {
+        console.error('Order placed, but the browser cart could not be cleared:', error);
+    }
+
     if (window.lucide) {
         window.lucide.createIcons();
     }
