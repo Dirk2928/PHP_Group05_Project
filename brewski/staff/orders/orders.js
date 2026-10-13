@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var productList = document.getElementById('productAvailabilityList');
     var productFeedback = document.getElementById('productFeedback');
     var productCategoryFilter = document.getElementById('productCategoryFilter');
+    var ordersPageInfo = document.getElementById('ordersPageInfo');
+    var ordersPagination = document.getElementById('ordersPagination');
 
     if (!ordersBody || !ordersEmpty || !productList) {
         return;
@@ -35,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var orders = [];
     var products = [];
+    var ordersPage = 1;
+    var ordersPageSize = 5;
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, function (character) {
@@ -159,6 +163,43 @@ document.addEventListener('DOMContentLoaded', function () {
         return html;
     }
 
+    function pageButton(label, disabled, active, handler) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'page-link' + (active ? ' active' : '');
+        item.textContent = label;
+        item.disabled = disabled;
+        item.addEventListener('click', handler);
+        return item;
+    }
+
+    function renderOrdersPagination(pageCount) {
+        if (!ordersPagination) {
+            return;
+        }
+
+        ordersPagination.innerHTML = '';
+
+        ordersPagination.appendChild(pageButton('Previous', ordersPage === 1, false, function () {
+            ordersPage--;
+            renderOrders();
+        }));
+
+        for (var page = 1; page <= pageCount; page++) {
+            (function (target) {
+                ordersPagination.appendChild(pageButton(String(target), false, target === ordersPage, function () {
+                    ordersPage = target;
+                    renderOrders();
+                }));
+            })(page);
+        }
+
+        ordersPagination.appendChild(pageButton('Next', ordersPage === pageCount, false, function () {
+            ordersPage++;
+            renderOrders();
+        }));
+    }
+
     function renderOrders() {
         var query = orderSearch.value.trim().toLowerCase();
         var status = statusFilter.value;
@@ -169,7 +210,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 (status === 'ALL' || order.status === status);
         });
 
-        ordersBody.innerHTML = visibleOrders.map(function (order) {
+        var pageCount = Math.max(1, Math.ceil(visibleOrders.length / ordersPageSize));
+        if (ordersPage > pageCount) ordersPage = pageCount;
+
+        var start = (ordersPage - 1) * ordersPageSize;
+        var pageOrders = visibleOrders.slice(start, start + ordersPageSize);
+
+        ordersBody.innerHTML = pageOrders.map(function (order) {
             var items = order.items.map(function (item) {
                 return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
             }).join('');
@@ -199,6 +246,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         ordersEmpty.classList.toggle('hidden', visibleOrders.length > 0);
         orderCount.textContent = visibleOrders.length + (visibleOrders.length === 1 ? ' order' : ' orders');
+
+        if (ordersPageInfo) {
+            ordersPageInfo.textContent = visibleOrders.length === 0
+                ? 'No results'
+                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + ordersPageSize, visibleOrders.length) +
+                  ' of ' + visibleOrders.length + ' orders';
+        }
+
+        renderOrdersPagination(pageCount);
         updateOrderSummary();
     }
 
@@ -348,8 +404,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    orderSearch.addEventListener('input', renderOrders);
-    statusFilter.addEventListener('change', renderOrders);
+    orderSearch.addEventListener('input', function () {
+        ordersPage = 1;
+        renderOrders();
+    });
+    statusFilter.addEventListener('change', function () {
+        ordersPage = 1;
+        renderOrders();
+    });
     productCategoryFilter.addEventListener('change', renderProducts);
 
     load();

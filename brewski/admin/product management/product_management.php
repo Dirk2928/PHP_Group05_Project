@@ -821,6 +821,9 @@ $catalogIcon = static function (string $name): string {
         . ' stroke-linejoin="round" aria-hidden="true" focusable="false">'
         . $iconPaths . '</svg>';
 };
+
+$imageFallback = brewski_product_image_fallback();
+$pageSize = 10;
 ?>
 
 <section class="product-management-page">
@@ -1166,6 +1169,8 @@ $catalogIcon = static function (string $name): string {
                             src="<?= $escape($productImage) ?>"
                             alt=""
                             class="catalog-product__image"
+                            loading="lazy"
+                            onerror="this.onerror=null;this.src='<?= $escape($imageFallback) ?>';this.classList.add('is-placeholder')"
                         >
                         <div class="catalog-product__summary">
                             <h3><?= $escape($product['product_name']) ?></h3>
@@ -1299,6 +1304,11 @@ $catalogIcon = static function (string $name): string {
                         </details>
                     </article>
                 <?php endforeach; ?>
+            </div>
+
+            <div class="pagination-footer">
+                <p class="pagination-info" id="productPageInfo"></p>
+                <div class="pagination-nav" id="productPagination"></div>
             </div>
         <?php endif; ?>
     </section>
@@ -1518,5 +1528,67 @@ $catalogIcon = static function (string $name): string {
     }
     refreshCatalogControls();
     refreshCatalogControls();
+
+    var productList = document.querySelector('#catalog-items .catalog-product-list');
+    var productPageInfo = document.getElementById('productPageInfo');
+    var productPagination = document.getElementById('productPagination');
+
+    if (productList && productPageInfo && productPagination) {
+        var productCards = Array.prototype.slice.call(productList.querySelectorAll('.catalog-product'));
+        var productPageSize = <?= (int) $pageSize ?>;
+        var productPage = 1;
+
+        function productPageButton(label, disabled, active, handler) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'page-link' + (active ? ' active' : '');
+            item.textContent = label;
+            item.disabled = disabled;
+            item.addEventListener('click', handler);
+            return item;
+        }
+
+        function renderProductPagination(pageCount) {
+            productPagination.innerHTML = '';
+
+            productPagination.appendChild(productPageButton('Previous', productPage === 1, false, function () {
+                productPage--;
+                renderProductPage();
+            }));
+
+            for (var page = 1; page <= pageCount; page++) {
+                (function (target) {
+                    productPagination.appendChild(productPageButton(String(target), false, target === productPage, function () {
+                        productPage = target;
+                        renderProductPage();
+                    }));
+                })(page);
+            }
+
+            productPagination.appendChild(productPageButton('Next', productPage === pageCount, false, function () {
+                productPage++;
+                renderProductPage();
+            }));
+        }
+
+        function renderProductPage() {
+            var pageCount = Math.max(1, Math.ceil(productCards.length / productPageSize));
+            if (productPage > pageCount) productPage = pageCount;
+
+            var start = (productPage - 1) * productPageSize;
+            var end = start + productPageSize;
+
+            productCards.forEach(function (card, index) {
+                card.classList.toggle('hidden', index < start || index >= end);
+            });
+
+            productPageInfo.textContent = 'Showing ' + (start + 1) + ' to ' +
+                Math.min(end, productCards.length) + ' of ' + productCards.length + ' menu items';
+
+            renderProductPagination(pageCount);
+        }
+
+        renderProductPage();
+    }
 }());
 </script>

@@ -18,14 +18,15 @@ $endpoint = htmlspecialchars(
 );
 
 $deliveryStatuses = [
-    'UNASSIGNED',
     'ASSIGNED',
-    'PICKED_UP',
-    'IN_TRANSIT',
+    'CANCELLED',
     'DELIVERED',
     'FAILED',
-    'CANCELLED',
+    'IN_TRANSIT',
+    'PICKED_UP',
+    'UNASSIGNED',
 ];
+$pageSize = 5;
 
 function admin_handled_respond(bool $ok, string $message, int $status = 200): void
 {
@@ -299,6 +300,7 @@ sort($staffNames);
 
         <div class="pagination-footer">
             <p class="pagination-info" id="handledCount"></p>
+            <div class="pagination-nav" id="handledPagination"></div>
         </div>
     </div>
 </div>
@@ -315,6 +317,8 @@ sort($staffNames);
         const tbody = document.getElementById('handledTableBody');
         const noResults = document.getElementById('handledNoResults');
         const count = document.getElementById('handledCount');
+        const pagination = document.getElementById('handledPagination');
+        const pageSize = <?= (int) $pageSize ?>;
         const statusLine = document.getElementById('handledStatus');
 
         if (!search || !tbody) return;
@@ -386,29 +390,72 @@ sort($staffNames);
             }).join('');
         }
 
-        function applyFilters() {
+        let currentPage = 1;
+
+        function pageButton(label, disabled, active, handler) {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'page-link' + (active ? ' active' : '');
+            item.textContent = label;
+            item.disabled = disabled;
+            item.addEventListener('click', handler);
+            return item;
+        }
+
+        function renderPagination(pageCount) {
+            pagination.innerHTML = '';
+
+            pagination.appendChild(pageButton('Previous', currentPage === 1, false, function () {
+                currentPage--;
+                render();
+            }));
+
+            for (let page = 1; page <= pageCount; page++) {
+                (function (target) {
+                    pagination.appendChild(pageButton(String(target), false, target === currentPage, function () {
+                        currentPage = target;
+                        render();
+                    }));
+                })(page);
+            }
+
+            pagination.appendChild(pageButton('Next', currentPage === pageCount, false, function () {
+                currentPage++;
+                render();
+            }));
+        }
+
+        function render() {
             const term = search.value.trim().toLowerCase();
             const staff = staffFilter.value;
             const status = statusFilter.value;
-            let visible = 0;
 
-            rows.forEach(function (row) {
+            const filtered = rows.filter(function (row) {
                 const data = row.dataset;
                 const haystack = (data.id + ' ' + data.staff + ' ' + data.customer + ' ' + data.items).toLowerCase();
 
-                const show = (!term || haystack.includes(term)) &&
+                return (!term || haystack.includes(term)) &&
                     (staff === 'all' || data.staff === staff) &&
                     (status === 'all' || data.status === status);
-
-                row.classList.toggle('hidden', !show);
-
-                if (show) visible++;
             });
 
-            noResults.classList.toggle('hidden', visible > 0);
-            count.textContent = visible
-                ? 'Showing ' + visible + ' of ' + rows.length + ' transactions'
-                : 'No results';
+            const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (currentPage > pageCount) currentPage = pageCount;
+
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = filtered.slice(start, start + pageSize);
+
+            rows.forEach(function (row) { row.classList.add('hidden'); });
+            pageRows.forEach(function (row) { row.classList.remove('hidden'); });
+
+            noResults.classList.toggle('hidden', filtered.length > 0);
+
+            count.textContent = filtered.length === 0
+                ? 'No results'
+                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + pageSize, filtered.length) +
+                  ' of ' + filtered.length + ' transactions';
+
+            renderPagination(pageCount);
         }
 
         function viewDelivery(row) {
@@ -500,9 +547,18 @@ sort($staffNames);
             });
         }
 
-        search.addEventListener('input', applyFilters);
-        staffFilter.addEventListener('change', applyFilters);
-        statusFilter.addEventListener('change', applyFilters);
+        search.addEventListener('input', function () {
+            currentPage = 1;
+            render();
+        });
+        staffFilter.addEventListener('change', function () {
+            currentPage = 1;
+            render();
+        });
+        statusFilter.addEventListener('change', function () {
+            currentPage = 1;
+            render();
+        });
 
         tbody.addEventListener('click', function (event) {
             const action = event.target.closest('button[data-action]');
@@ -516,6 +572,6 @@ sort($staffNames);
             if (action.dataset.action === 'delete') deleteDelivery(row);
         });
 
-        applyFilters();
+        render();
     })();
 </script>

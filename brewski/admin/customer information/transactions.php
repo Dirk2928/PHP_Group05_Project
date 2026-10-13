@@ -18,13 +18,14 @@ $endpoint = htmlspecialchars(
 );
 
 $orderStatuses = [
-    'PENDING',
+    'CANCELLED',
+    'COMPLETED',
     'CONFIRMED',
+    'PENDING',
     'PREPARING',
     'READY',
-    'COMPLETED',
-    'CANCELLED',
 ];
+$pageSize = 5;
 
 function admin_transactions_respond(bool $ok, string $message, int $status = 200): void
 {
@@ -259,6 +260,11 @@ function admin_transaction_badge(string $status): string
                 </tbody>
             </table>
         </div>
+
+        <div class="pagination-footer">
+            <p class="pagination-info" id="txnPageInfo"></p>
+            <div class="pagination-nav" id="txnPagination"></div>
+        </div>
     </div>
 </div>
 
@@ -273,6 +279,9 @@ function admin_transaction_badge(string $status): string
         const tbody = document.getElementById('txnTableBody');
         const noResultsRow = document.getElementById('txnNoResultsRow');
         const statusLine = document.getElementById('txnStatus');
+        const pagination = document.getElementById('txnPagination');
+        const pageInfo = document.getElementById('txnPageInfo');
+        const pageSize = <?= (int) $pageSize ?>;
 
         if (!searchInput || !tbody) return;
 
@@ -332,11 +341,46 @@ function admin_transaction_badge(string $status): string
             }).join('');
         }
 
-        function applyFilters() {
+        let currentPage = 1;
+
+        function pageButton(label, disabled, active, handler) {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'page-link' + (active ? ' active' : '');
+            item.textContent = label;
+            item.disabled = disabled;
+            item.addEventListener('click', handler);
+            return item;
+        }
+
+        function renderPagination(pageCount) {
+            pagination.innerHTML = '';
+
+            pagination.appendChild(pageButton('Previous', currentPage === 1, false, function () {
+                currentPage--;
+                render();
+            }));
+
+            for (let page = 1; page <= pageCount; page++) {
+                (function (target) {
+                    pagination.appendChild(pageButton(String(target), false, target === currentPage, function () {
+                        currentPage = target;
+                        render();
+                    }));
+                })(page);
+            }
+
+            pagination.appendChild(pageButton('Next', currentPage === pageCount, false, function () {
+                currentPage++;
+                render();
+            }));
+        }
+
+        function render() {
             const term = searchInput.value.trim().toLowerCase();
             const status = statusFilter.value;
 
-            rows.forEach(function (row) {
+            const filtered = rows.filter(function (row) {
                 const haystack = [
                     row.dataset.id,
                     row.dataset.customer,
@@ -347,14 +391,26 @@ function admin_transaction_badge(string $status): string
                 const matchesTerm = !term || haystack.includes(term);
                 const matchesStatus = status === 'all' || row.dataset.status === status;
 
-                row.classList.toggle('hidden', !(matchesTerm && matchesStatus));
+                return matchesTerm && matchesStatus;
             });
 
-            const visible = rows.filter(function (row) {
-                return !row.classList.contains('hidden');
-            }).length;
+            const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (currentPage > pageCount) currentPage = pageCount;
 
-            noResultsRow.classList.toggle('hidden', visible > 0);
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = filtered.slice(start, start + pageSize);
+
+            rows.forEach(function (row) { row.classList.add('hidden'); });
+            pageRows.forEach(function (row) { row.classList.remove('hidden'); });
+
+            noResultsRow.classList.toggle('hidden', filtered.length > 0);
+
+            pageInfo.textContent = filtered.length === 0
+                ? 'No results'
+                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + pageSize, filtered.length) +
+                  ' of ' + filtered.length + ' transactions';
+
+            renderPagination(pageCount);
         }
 
         function send(body) {
@@ -450,8 +506,14 @@ function admin_transaction_badge(string $status): string
             });
         }
 
-        searchInput.addEventListener('input', applyFilters);
-        statusFilter.addEventListener('change', applyFilters);
+        searchInput.addEventListener('input', function () {
+            currentPage = 1;
+            render();
+        });
+        statusFilter.addEventListener('change', function () {
+            currentPage = 1;
+            render();
+        });
 
         tbody.addEventListener('click', function (event) {
             const button = event.target.closest('button[data-action]');
@@ -465,6 +527,6 @@ function admin_transaction_badge(string $status): string
             if (button.dataset.action === 'delete') deleteTransaction(row);
         });
 
-        applyFilters();
+        render();
     })();
 </script>

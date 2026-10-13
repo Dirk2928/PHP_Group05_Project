@@ -135,6 +135,8 @@ require __DIR__ . '/../partials/header.php';
                             <img
                                 src="<?= e($image) ?>"
                                 alt="<?= e($product['product_name']) ?>"
+                                loading="lazy"
+                                onerror="this.onerror=null;this.src='<?= e(brewski_product_image_fallback()) ?>';this.classList.add('is-placeholder')"
                             >
 
                         </div>
@@ -168,6 +170,23 @@ require __DIR__ . '/../partials/header.php';
                 <i data-lucide="coffee"></i>
 
                 <p><?= $products ? 'No drinks found matching your filters.' : 'No beverages are available yet.' ?></p>
+
+            </div>
+
+            <div
+                class="menu-pagination"
+                id="menuPaginationBar"
+            >
+
+                <p
+                    class="menu-pagination__info"
+                    id="menuPageInfo"
+                ></p>
+
+                <div
+                    class="menu-pagination__nav"
+                    id="menuPagination"
+                ></div>
 
             </div>
 

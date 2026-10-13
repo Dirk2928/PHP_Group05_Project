@@ -253,21 +253,27 @@ $deliveryIcons = [
             <?php endforeach; ?>
         </div>
 
-        <?php if ($totalPages > 1): ?>
-            <nav class="orders-pagination" aria-label="Orders pages">
+        <nav class="orders-pagination" aria-label="Orders pages">
+            <span class="orders-pagination__count">
+                <?= $totalOrders === 0
+                    ? 'No orders'
+                    : 'Showing ' . (($page - 1) * $perPage + 1) . ' to ' . min($page * $perPage, $totalOrders) . ' of ' . $totalOrders . ' orders' ?>
+            </span>
+
+            <div class="orders-pagination__pages">
                 <?php if ($page > 1): ?>
                     <a href="?<?= http_build_query(['status' => $status, 'order' => $search, 'page' => $page - 1]) ?>"><i data-lucide="arrow-left" aria-hidden="true"></i> Newer</a>
-                <?php else: ?>
-                    <span></span>
                 <?php endif; ?>
-                <span>Page <?= $page ?> of <?= $totalPages ?></span>
+
+                <?php if ($totalPages > 1): ?>
+                    <span>Page <?= $page ?> of <?= $totalPages ?></span>
+                <?php endif; ?>
+
                 <?php if ($page < $totalPages): ?>
                     <a href="?<?= http_build_query(['status' => $status, 'order' => $search, 'page' => $page + 1]) ?>">Older <i data-lucide="arrow-right" aria-hidden="true"></i></a>
-                <?php else: ?>
-                    <span></span>
                 <?php endif; ?>
-            </nav>
-        <?php endif; ?>
+            </div>
+        </nav>
     <?php else: ?>
         <section class="orders-empty">
             <span class="orders-empty__icon" aria-hidden="true"><i data-lucide="<?= $search !== '' ? 'search-x' : 'coffee' ?>"></i></span>

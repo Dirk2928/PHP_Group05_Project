@@ -663,6 +663,17 @@
     text-decoration: none;
 }
 
+.orders-pagination__count {
+    color: var(--dark-mocha);
+    font-size: 0.85rem;
+}
+
+.orders-pagination__pages {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 .orders-empty {
     padding: 3rem 1.5rem;
     border: 1px dashed #d8c5a9;

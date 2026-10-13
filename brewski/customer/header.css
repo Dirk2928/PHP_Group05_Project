@@ -225,6 +225,11 @@
     background-color: var(--latte);
 }
 
+.cart-drink img.is-placeholder {
+    padding: 4px;
+    opacity: 0.7;
+}
+
 .cart-drink span {
     overflow-wrap: anywhere;
     color: #120a06 !important;

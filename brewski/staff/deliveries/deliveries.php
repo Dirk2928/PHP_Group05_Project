@@ -55,11 +55,19 @@ $deliveries = $stmt->fetchAll();
     button { font-family:inherit; font-size:0.8rem; font-weight:600; padding:0.5rem 0.75rem; border:none; border-radius:0.5rem; background:#1a0f0a; color:#faf5ee; cursor:pointer; }
     button.sec { background:#faf5ee; color:#1a0f0a; border:1px solid #e8dac4; }
     .empty { text-align:center; padding:3rem; color:#5c4033; }
+    .count { margin:0 0 1.25rem; color:#5c4033; font-size:0.9rem; }
+    .card.hidden { display:none; }
+    .pager { display:flex; flex-wrap:wrap; align-items:center; gap:0.4rem; margin-top:1.25rem; }
+    .pager button { background:#faf5ee; color:#1a0f0a; border:1px solid #e8dac4; }
+    .pager button.active { background:#1a0f0a; color:#faf5ee; border-color:#1a0f0a; }
+    .pager button:disabled { opacity:0.45; cursor:not-allowed; }
 </style>
 </head>
 <body>
 
 <h1>Deliveries</h1>
+
+<p class="count" id="deliveryCount"></p>
 
 <?php if (!$deliveries): ?>
     <div class="empty">No deliveries yet.</div>
@@ -116,9 +124,71 @@ $deliveries = $stmt->fetchAll();
             </div>
         <?php endforeach; ?>
     </div>
+
+    <div class="pager" id="deliveryPager"></div>
 <?php endif; ?>
 
 <script>
+(function () {
+    const grid = document.querySelector('.grid');
+    const pager = document.getElementById('deliveryPager');
+    const countLabel = document.getElementById('deliveryCount');
+
+    if (!grid || !pager) return;
+
+    const cards = Array.from(grid.querySelectorAll('.card'));
+    const pageSize = 6;
+    let page = 1;
+
+    function button(label, disabled, active, handler) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        if (active) item.className = 'active';
+        item.textContent = label;
+        item.disabled = disabled;
+        item.addEventListener('click', handler);
+        return item;
+    }
+
+    function render() {
+        const pageCount = Math.max(1, Math.ceil(cards.length / pageSize));
+        if (page > pageCount) page = pageCount;
+
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+
+        cards.forEach(function (card, index) {
+            card.classList.toggle('hidden', index < start || index >= end);
+        });
+
+        countLabel.textContent = 'Showing ' + (start + 1) + ' to ' +
+            Math.min(end, cards.length) + ' of ' + cards.length + ' deliveries';
+
+        pager.innerHTML = '';
+
+        pager.appendChild(button('Previous', page === 1, false, function () {
+            page--;
+            render();
+        }));
+
+        for (let target = 1; target <= pageCount; target++) {
+            (function (value) {
+                pager.appendChild(button(String(value), false, value === page, function () {
+                    page = value;
+                    render();
+                }));
+            })(target);
+        }
+
+        pager.appendChild(button('Next', page === pageCount, false, function () {
+            page++;
+            render();
+        }));
+    }
+
+    render();
+})();
+
 async function setStatus(deliveryId, status) {
     if (!confirm('Set delivery #' + deliveryId + ' to ' + status + '?')) return;
 

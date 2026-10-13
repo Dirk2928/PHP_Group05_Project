@@ -106,9 +106,9 @@ html, body {
 
 
 .main-content {
-    max-width: 1200px;
+    max-width: 1560px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.75rem 1.5rem;
 }
 
 
@@ -205,6 +205,11 @@ html, body {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+}
+
+.product-card__image img.is-placeholder {
+    max-width: 42%;
+    opacity: 0.7;
 }
 
 .product-card__info {

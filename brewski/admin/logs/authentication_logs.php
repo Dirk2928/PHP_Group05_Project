@@ -18,6 +18,8 @@ $logs = [
 ];
 
 $roles = ['ADMIN', 'STAFF', 'CUSTOMER'];
+sort($roles);
+$pageSize = 5;
 ?>
 
 <div class="page-container">
@@ -103,6 +105,7 @@ $roles = ['ADMIN', 'STAFF', 'CUSTOMER'];
 
         <div class="pagination-footer">
             <p class="pagination-info" id="logCount"></p>
+            <div class="pagination-nav" id="logPagination"></div>
         </div>
     </div>
 </div>
@@ -117,37 +120,86 @@ $roles = ['ADMIN', 'STAFF', 'CUSTOMER'];
         const tbody = document.getElementById('logTableBody');
         const noResultsRow = document.getElementById('logNoResults');
         const countLabel = document.getElementById('logCount');
+        const pagination = document.getElementById('logPagination');
+        const pageSize = <?= (int) $pageSize ?>;
 
         if (!searchInput) return;
 
         const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+        let currentPage = 1;
 
-        function applyFilters() {
+        function pageButton(label, disabled, active, handler) {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'page-link' + (active ? ' active' : '');
+            item.textContent = label;
+            item.disabled = disabled;
+            item.addEventListener('click', handler);
+            return item;
+        }
+
+        function renderPagination(count) {
+            pagination.innerHTML = '';
+
+            pagination.appendChild(pageButton('Previous', currentPage === 1, false, function () {
+                currentPage--;
+                render();
+            }));
+
+            for (let page = 1; page <= count; page++) {
+                (function (target) {
+                    pagination.appendChild(pageButton(String(target), false, target === currentPage, function () {
+                        currentPage = target;
+                        render();
+                    }));
+                })(page);
+            }
+
+            pagination.appendChild(pageButton('Next', currentPage === count, false, function () {
+                currentPage++;
+                render();
+            }));
+        }
+
+        function render() {
             const term = searchInput.value.trim().toLowerCase();
             const role = roleFilter.value;
-            let visible = 0;
 
-            rows.forEach(function (row) {
+            const filtered = rows.filter(function (row) {
                 const matchesTerm = !term || row.dataset.name.toLowerCase().includes(term);
                 const matchesRole = role === 'all' || row.dataset.role === role;
 
-                if (matchesTerm && matchesRole) {
-                    row.classList.remove('hidden');
-                    visible++;
-                } else {
-                    row.classList.add('hidden');
-                }
+                return matchesTerm && matchesRole;
             });
 
-            noResultsRow.classList.toggle('hidden', visible > 0);
-            countLabel.textContent = visible === 0
+            const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (currentPage > pageCount) currentPage = pageCount;
+
+            const start = (currentPage - 1) * pageSize;
+            const pageRows = filtered.slice(start, start + pageSize);
+
+            rows.forEach(function (row) { row.classList.add('hidden'); });
+            pageRows.forEach(function (row) { row.classList.remove('hidden'); });
+
+            noResultsRow.classList.toggle('hidden', filtered.length > 0);
+
+            countLabel.textContent = filtered.length === 0
                 ? 'No results'
-                : 'Showing ' + visible + ' of ' + rows.length + ' log entries';
+                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + pageSize, filtered.length) +
+                  ' of ' + filtered.length + ' log entries';
+
+            renderPagination(pageCount);
         }
 
-        searchInput.addEventListener('input', applyFilters);
-        roleFilter.addEventListener('change', applyFilters);
+        searchInput.addEventListener('input', function () {
+            currentPage = 1;
+            render();
+        });
+        roleFilter.addEventListener('change', function () {
+            currentPage = 1;
+            render();
+        });
 
-        applyFilters();
+        render();
     })();
 </script>

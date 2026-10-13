@@ -290,7 +290,7 @@ body {
 
 
 .main-content {
-    padding: 96px 24px 40px;
+    padding: 88px 20px 32px;
     margin-left: var(--sidebar-width);
 }
 
@@ -365,7 +365,7 @@ body {
 .page-container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     animation: fadeIn 0.2s ease-in;
 }
 
@@ -638,12 +638,12 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 12px 20px;
+    padding: 10px 16px;
     white-space: nowrap;
 }
 
 .data-table td {
-    padding: 14px 20px;
+    padding: 10px 16px;
     border-bottom: 1px solid #f3f4f6;
     color: var(--text-body);
     vertical-align: middle;
@@ -2367,6 +2367,16 @@ body {
     height: 60px;
     border: 1px solid #eee4d7;
     border-radius: 9px;
+}
+
+.product-management-page .catalog-product.hidden {
+    display: none;
+}
+
+.product-management-page .catalog-product__image.is-placeholder {
+    object-fit: contain;
+    padding: 10px;
+    background: #f1e2ca;
 }
 
 .product-management-page .catalog-product__summary {

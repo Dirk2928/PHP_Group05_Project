@@ -72,7 +72,7 @@
             html += '' +
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
                 '<div class="cart-drink">' +
-                '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '">' +
+                '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '" onerror="brewskiImageFallback(this)">' +
                 '<span>' + escapeHtml(label) + '</span>' +
                 '</div>' +
                 '<div class="cart-custom">' + escapeHtml(item.customization

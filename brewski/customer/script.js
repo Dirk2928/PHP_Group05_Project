@@ -1,3 +1,17 @@
+window.brewskiImageFallback = function (image) {
+    image.onerror = null;
+    image.src = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a2886a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M4 8h14v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"></path>' +
+        '<path d="M18 10h1a3 3 0 0 1 0 6h-1"></path>' +
+        '<path d="M2 22h20"></path>' +
+        '<path d="M10 2v3"></path>' +
+        '<path d="M14 2v3"></path>' +
+        '</svg>'
+    );
+    image.classList.add('is-placeholder');
+};
+
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
@@ -33,25 +47,92 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var productCards = document.querySelectorAll('.product-card');
     var noResults = document.getElementById('no-results');
+    var menuPageInfo = document.getElementById('menuPageInfo');
+    var menuPagination = document.getElementById('menuPagination');
     var filterState = { category: 'all' };
+    var menuPageSize = 8;
+    var menuPage = 1;
+
+    function matchingCards() {
+        return Array.prototype.filter.call(productCards, function (card) {
+            return filterState.category === 'all' ||
+                card.dataset.category === filterState.category;
+        });
+    }
+
+    function menuPageButton(label, disabled, active, handler) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'menu-page' + (active ? ' active' : '');
+        item.textContent = label;
+        item.disabled = disabled;
+        item.addEventListener('click', handler);
+        return item;
+    }
+
+    function renderMenuPagination(pageCount) {
+        if (!menuPagination) {
+            return;
+        }
+
+        menuPagination.innerHTML = '';
+
+        menuPagination.appendChild(menuPageButton('Previous', menuPage === 1, false, function () {
+            menuPage--;
+            applyFilters();
+        }));
+
+        for (var page = 1; page <= pageCount; page++) {
+            (function (target) {
+                menuPagination.appendChild(menuPageButton(String(target), false, target === menuPage, function () {
+                    menuPage = target;
+                    applyFilters();
+                }));
+            })(page);
+        }
+
+        menuPagination.appendChild(menuPageButton('Next', menuPage === pageCount, false, function () {
+            menuPage++;
+            applyFilters();
+        }));
+    }
 
     function applyFilters() {
-        var visibleCount = 0;
+        var matches = matchingCards();
+        var shown = matches;
+
+        if (menuPagination) {
+            var pageCount = Math.max(1, Math.ceil(matches.length / menuPageSize));
+
+            if (menuPage > pageCount) {
+                menuPage = pageCount;
+            }
+
+            var start = (menuPage - 1) * menuPageSize;
+            var end = start + menuPageSize;
+
+            shown = matches.slice(start, end);
+
+            if (menuPageInfo) {
+                menuPageInfo.textContent = matches.length === 0
+                    ? 'No results'
+                    : 'Showing ' + (start + 1) + ' to ' + Math.min(end, matches.length) +
+                      ' of ' + matches.length + ' drinks';
+            }
+
+            renderMenuPagination(pageCount);
+        }
 
         productCards.forEach(function (card) {
-            var matchCategory =
-                filterState.category === 'all' ||
-                card.dataset.category === filterState.category;
+            card.style.display = 'none';
+        });
 
-            card.style.display = matchCategory ? '' : 'none';
-
-            if (matchCategory) {
-                visibleCount++;
-            }
+        shown.forEach(function (card) {
+            card.style.display = '';
         });
 
         if (noResults) {
-            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+            noResults.style.display = matches.length === 0 ? 'block' : 'none';
         }
     }
 
@@ -70,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 btn.classList.add('active');
                 filterState[stateKey] = btn.dataset.filter;
+                menuPage = 1;
                 applyFilters();
             });
         });
