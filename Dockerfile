@@ -1,9 +1,13 @@
 FROM php:8.2-apache
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libcurl4-openssl-dev \
+    && apt-get install -y --no-install-recommends libcurl4-openssl-dev libonig-dev libssl-dev \
     && docker-php-ext-install -j"$(nproc)" mysqli pdo_mysql \
+    && (php -m | grep -qi '^mbstring$' || docker-php-ext-install -j"$(nproc)" mbstring) \
     && (php -m | grep -qi '^curl$' || docker-php-ext-install -j"$(nproc)" curl) \
+    && (php -m | grep -qi '^openssl$' || docker-php-ext-install -j"$(nproc)" openssl) \
+    && php -m | grep -qi '^mbstring$' \
+    && php -m | grep -qi '^openssl$' \
     && rm -rf /var/lib/apt/lists/*
 
 RUN printf '%s\n' \
