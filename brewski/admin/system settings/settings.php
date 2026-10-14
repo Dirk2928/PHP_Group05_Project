@@ -15,6 +15,7 @@ $password_bounds = brewski_password_length_bounds();
 $password_rule_bounds = brewski_password_rule_bounds();
 $password_rule_definitions = brewski_password_rule_definitions();
 $timeout_bounds = brewski_session_timeout_bounds();
+$lockout_bounds = brewski_login_lockout_bounds();
 
 $idle_min_minutes = (int) ($timeout_bounds['idle_min'] / 60);
 $idle_max_minutes = (int) ($timeout_bounds['idle_max'] / 60);
@@ -101,6 +102,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    $max_login_attempts = filter_var(
+        $_POST['max_login_attempts'] ?? '',
+        FILTER_VALIDATE_INT,
+        [
+            'options' => [
+                'min_range' => $lockout_bounds['attempts_min'],
+                'max_range' => $lockout_bounds['attempts_max']
+            ]
+        ]
+    );
+
+    $lockout_minutes = filter_var(
+        $_POST['lockout_duration_minutes'] ?? '',
+        FILTER_VALIDATE_INT,
+        [
+            'options' => [
+                'min_range' => $lockout_bounds['lockout_min'],
+                'max_range' => $lockout_bounds['lockout_max']
+            ]
+        ]
+    );
+
+    if ($max_login_attempts === false) {
+        echo 'Failed sign-in attempts must be a whole number between '
+            . $lockout_bounds['attempts_min']
+            . ' and '
+            . $lockout_bounds['attempts_max']
+            . '.';
+        exit;
+    }
+
+    if ($lockout_minutes === false) {
+        echo 'Lockout duration must be a whole number of minutes between '
+            . $lockout_bounds['lockout_min']
+            . ' and '
+            . $lockout_bounds['lockout_max']
+            . '.';
+        exit;
+    }
+
     $password_rules = [];
 
     foreach ($password_rule_definitions as $rule_key => $rule) {
@@ -152,7 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pending = [
         'min_password_length' => (string) $min_password_length,
         'session_idle_timeout' => (string) $idle_seconds,
-        'session_absolute_timeout' => (string) $absolute_seconds
+        'session_absolute_timeout' => (string) $absolute_seconds,
+        'max_login_attempts' => (string) $max_login_attempts,
+        'lockout_duration_minutes' => (string) $lockout_minutes
     ];
 
     foreach ($password_rule_definitions as $rule_key => $rule) {
@@ -184,6 +227,9 @@ $password_policy = brewski_password_policy();
 
 $idle_minutes_value = (int) round(brewski_session_idle_timeout() / 60);
 $absolute_hours_value = (int) round(brewski_session_absolute_timeout() / 3600);
+
+$max_login_attempts_value = brewski_max_login_attempts();
+$lockout_minutes_value = brewski_lockout_minutes();
 
 $record = brewski_setting_record('min_password_length');
 
@@ -333,6 +379,54 @@ unset($record);
             </p>
         </div>
 
+        <div class="form-field">
+            <label for="settingsMaxLoginAttempts">Failed sign-in attempts allowed</label>
+
+            <input
+                type="number"
+                id="settingsMaxLoginAttempts"
+                name="max_login_attempts"
+                value="<?php echo (int) $max_login_attempts_value; ?>"
+                min="<?php echo (int) $lockout_bounds['attempts_min']; ?>"
+                max="<?php echo (int) $lockout_bounds['attempts_max']; ?>"
+                step="1"
+                inputmode="numeric"
+                autocomplete="off"
+                required
+            >
+
+            <p class="form-hint">
+                How many wrong passwords a single account may enter before it locks.
+                The sign-in page counts down the remaining tries. Range:
+                <?php echo (int) $lockout_bounds['attempts_min']; ?> to
+                <?php echo (int) $lockout_bounds['attempts_max']; ?>.
+            </p>
+        </div>
+
+        <div class="form-field">
+            <label for="settingsLockoutDuration">Lockout duration (minutes)</label>
+
+            <input
+                type="number"
+                id="settingsLockoutDuration"
+                name="lockout_duration_minutes"
+                value="<?php echo (int) $lockout_minutes_value; ?>"
+                min="<?php echo (int) $lockout_bounds['lockout_min']; ?>"
+                max="<?php echo (int) $lockout_bounds['lockout_max']; ?>"
+                step="1"
+                inputmode="numeric"
+                autocomplete="off"
+                required
+            >
+
+            <p class="form-hint">
+                How long a locked account stays locked. It unlocks on its own after this
+                long, and a correct password clears it immediately once the time is up. Range:
+                <?php echo (int) $lockout_bounds['lockout_min']; ?> to
+                <?php echo (int) $lockout_bounds['lockout_max']; ?> minutes.
+            </p>
+        </div>
+
         <div class="form-field form-field-full">
             <div class="settings-actions">
                 <button type="submit" class="btn btn-primary" id="settingsSubmit">
@@ -355,13 +449,15 @@ unset($record);
     var form = document.getElementById('settingsForm');
     var password = document.getElementById('settingsMinPasswordLength');
     var idle = document.getElementById('settingsIdleTimeout');
+    var attempts = document.getElementById('settingsMaxLoginAttempts');
+    var lockout = document.getElementById('settingsLockoutDuration');
     var status = document.getElementById('settingsStatus');
     var submit = document.getElementById('settingsSubmit');
     var rules = Array.prototype.slice.call(
         document.querySelectorAll('.settings-card input[name^="password_min_"]')
     );
 
-    if (!form || !password || !idle || !status) {
+    if (!form || !password || !idle || !attempts || !lockout || !status) {
         return;
     }
 
@@ -408,9 +504,13 @@ unset($record);
                     status.textContent =
                         'Saved. New accounts must use at least ' +
                         password.value +
-                        ' characters and meet the character counts above, and idle sessions end after ' +
+                        ' characters and meet the character counts above, idle sessions end after ' +
                         idle.value +
-                        ' minutes.';
+                        ' minutes, and an account locks for ' +
+                        lockout.value +
+                        ' minutes after ' +
+                        attempts.value +
+                        ' wrong passwords.';
                     status.classList.add('is-saved');
                 } else {
                     status.textContent = message;

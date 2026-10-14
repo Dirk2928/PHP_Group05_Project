@@ -34,7 +34,24 @@ $password_policy = brewski_password_policy();
 
 $min_password_length = (int) $password_policy['min_length'];
 
-$password_hint = brewski_password_policy_hint($password_policy);
+$password_requirements = [
+    'length' => [
+        'label' => 'At least ' . $min_password_length . ' characters',
+        'required' => $min_password_length
+    ]
+];
+
+foreach (brewski_password_rule_definitions() as $rule_key => $rule) {
+
+    $required = (int) $password_policy[$rule_key];
+
+    if ($required > 0) {
+        $password_requirements[$rule_key] = [
+            'label' => 'At least ' . $required . ' ' . $rule['label'] . ($required === 1 ? '' : 's'),
+            'required' => $required
+        ];
+    }
+}
 
 $errors = [
     'first_name' => [],
@@ -674,9 +691,17 @@ $field_error_style = function (array $messages) {
                         id="password-messages"<?php echo $field_error_style($errors['password']); ?>
                     ><?php echo $render_field_errors($errors['password']); ?></div>
 
-                    <p class="password-hint">
-                        <?php echo htmlspecialchars($password_hint, ENT_QUOTES, 'UTF-8'); ?>
-                    </p>
+                    <ul
+                        class="password-requirements"
+                        id="password-requirements"
+                    >
+                        <?php foreach ($password_requirements as $requirement_key => $requirement): ?>
+                            <li
+                                data-requirement="<?php echo htmlspecialchars($requirement_key, ENT_QUOTES, 'UTF-8'); ?>"
+                                data-required="<?php echo (int) $requirement['required']; ?>"
+                            ><?php echo htmlspecialchars($requirement['label'], ENT_QUOTES, 'UTF-8'); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
 
                 </div>
 

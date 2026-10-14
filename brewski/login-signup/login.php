@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
+require_once __DIR__ . '/settings.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -117,7 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 role,
                 is_active,
                 totp_secret_encrypted,
-                totp_enabled_at
+                totp_enabled_at,
+                failed_login_attempts,
+                locked_until
              FROM users
              WHERE email = ?
              LIMIT 1"
@@ -150,12 +153,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $role,
                         $is_active,
                         $totp_secret_encrypted,
-                        $totp_enabled_at
+                        $totp_enabled_at,
+                        $failed_login_attempts,
+                        $locked_until
                     );
 
                     $stmt->fetch();
 
                     $role = normalizeRole($role);
+
+                    $max_attempts = brewski_max_login_attempts();
+                    $lock_seconds = brewski_lockout_seconds();
+                    $lock_remaining = 0;
+
+                    if (!empty($locked_until)) {
+                        $lock_stamp = strtotime((string) $locked_until);
+
+                        if ($lock_stamp !== false && $lock_stamp > time()) {
+                            $lock_remaining = $lock_stamp - time();
+                        }
+                    }
 
                     $passwordOk = password_verify($password, $stored_password);
 
@@ -180,9 +197,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
-                    if (!$passwordOk) {
+                    if ($passwordOk && $lock_remaining <= 0) {
 
-                        $error = 'Incorrect email or password.';
+                        $resetAttempts = $conn->prepare(
+                            "UPDATE users
+                             SET failed_login_attempts = 0,
+                                 locked_until = NULL
+                             WHERE user_id = ?"
+                        );
+
+                        if ($resetAttempts) {
+                            $resetAttempts->bind_param('i', $user_id);
+                            $resetAttempts->execute();
+                            $resetAttempts->close();
+                        }
+                    }
+
+                    if ($lock_remaining > 0) {
+
+                        $error = 'This account is locked after too many failed sign-in attempts. Try again in '
+                            . brewski_lockout_wait_label($lock_remaining)
+                            . '.';
+
+                    } elseif (!$passwordOk) {
+
+                        $attempts = (int) $failed_login_attempts + 1;
+
+                        if ($attempts >= $max_attempts) {
+
+                            $lock_until = date('Y-m-d H:i:s', time() + $lock_seconds);
+
+                            $lockUpdate = $conn->prepare(
+                                "UPDATE users
+                                 SET failed_login_attempts = 0,
+                                     locked_until = ?
+                                 WHERE user_id = ?"
+                            );
+
+                            if ($lockUpdate) {
+                                $lockUpdate->bind_param('si', $lock_until, $user_id);
+                                $lockUpdate->execute();
+                                $lockUpdate->close();
+                            }
+
+                            $error = 'This account is locked after too many failed sign-in attempts. Try again in '
+                                . brewski_lockout_wait_label($lock_seconds)
+                                . '.';
+
+                        } else {
+
+                            $attemptUpdate = $conn->prepare(
+                                "UPDATE users
+                                 SET failed_login_attempts = ?
+                                 WHERE user_id = ?"
+                            );
+
+                            if ($attemptUpdate) {
+                                $attemptUpdate->bind_param('ii', $attempts, $user_id);
+                                $attemptUpdate->execute();
+                                $attemptUpdate->close();
+                            }
+
+                            $remaining = $max_attempts - $attempts;
+
+                            $error = 'Incorrect email or password. '
+                                . $remaining
+                                . ($remaining === 1 ? ' attempt' : ' attempts')
+                                . ' left before this account is locked.';
+                        }
 
                     } elseif ((int) $is_active !== 1) {
 

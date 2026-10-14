@@ -236,6 +236,46 @@ if (passwordInput && passwordToggle) {
 
 
 
+    const passwordField = document.getElementById('password');
+    const passwordRequirements = document.getElementById('password-requirements');
+
+    if (passwordField && passwordRequirements) {
+
+        const requirementItems = Array.prototype.slice.call(
+            passwordRequirements.querySelectorAll('[data-requirement]')
+        );
+
+        const refreshPasswordRequirements = function () {
+
+            const value = passwordField.value;
+            const policy = passwordPolicy(passwordField);
+
+            const counts = {
+                length: value.length,
+                lowercase: countMatches(value, /[a-z]/g),
+                uppercase: countMatches(value, /[A-Z]/g),
+                digits: countMatches(value, /[0-9]/g),
+                special: countSpecialCharacters(value, policy.specialCharacters)
+            };
+
+            requirementItems.forEach(function (item) {
+
+                const required = parseInt(item.dataset.required, 10) || 0;
+                const actual = counts[item.dataset.requirement] || 0;
+                const met = actual >= required;
+
+                item.classList.toggle('is-met', met && value !== '');
+                item.classList.toggle('is-unmet', !met && value !== '');
+            });
+        };
+
+        passwordField.addEventListener('input', refreshPasswordRequirements);
+
+        refreshPasswordRequirements();
+    }
+
+
+
     function isValidEmail(email) {
 
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
