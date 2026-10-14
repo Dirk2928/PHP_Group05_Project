@@ -1,7 +1,10 @@
 <?php
+
+require_once __DIR__ . '/../Db/db_config.php';
+
 function email_service_send(string $endpoint, array $payload): bool
 {
-    $url = 'http://127.0.0.1:3000/' . ltrim($endpoint, '/');
+    $url = brewski_email_service_url($endpoint);
     $json = json_encode($payload);
 
     if ($json === false) {

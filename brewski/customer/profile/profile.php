@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../../Db/db_config.php';
+
 if (!function_exists('e')) {
     function e($value)
     {
@@ -8,22 +10,9 @@ if (!function_exists('e')) {
     }
 }
 
-$dbHost = 'localhost';
-$dbName = 'brewski_db';
-$dbUser = 'root';
-$dbPass = '';
+$pdo = brewski_db_pdo();
 
-try {
-    $pdo = new PDO(
-        "mysql:host=$dbHost;dbname=$dbName;charset=utf8mb4",
-        $dbUser,
-        $dbPass,
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]
-    );
-} catch (PDOException $e) {
+if (!$pdo) {
     http_response_code(500);
     exit('Database connection failed.');
 }

@@ -39,32 +39,6 @@ body {
     position: relative;
 }
 
-.side__nav {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 2rem;
-}
-
-.side__btn {
-    padding: 0.5rem 1.1rem;
-    font-size: 0.85rem;
-    color: var(--latte);
-    text-decoration: none;
-    border: 1px solid var(--latte);
-    border-radius: 999px;
-    transition: background-color 0.15s, color 0.15s;
-}
-
-.side__btn:hover {
-    background: var(--latte);
-    color: var(--espresso);
-}
-
-.side__btn:focus-visible {
-    outline: 3px solid var(--mocha);
-    outline-offset: 2px;
-}
-
 .side__word {
     font-family: var(--font-brand);
     font-weight: 600;

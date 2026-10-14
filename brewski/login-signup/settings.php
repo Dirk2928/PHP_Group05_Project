@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../Db/db_config.php';
+
 if (!defined('BREWSKI_PASSWORD_LENGTH_DEFAULT')) {
     define('BREWSKI_PASSWORD_LENGTH_DEFAULT', 12);
 }
@@ -99,19 +101,7 @@ function brewski_settings_connection()
 
     $resolved = true;
 
-    $previous_report_mode = mysqli_report(MYSQLI_REPORT_OFF);
-
-    $candidate = new mysqli('localhost', 'root', '', 'brewski_db');
-
-    mysqli_report($previous_report_mode);
-
-    if ($candidate->connect_error) {
-        return $connection;
-    }
-
-    $candidate->set_charset('utf8mb4');
-
-    $connection = $candidate;
+    $connection = brewski_db_connect();
 
     return $connection;
 }

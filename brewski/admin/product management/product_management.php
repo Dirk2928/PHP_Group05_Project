@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/product_images.php';
+require_once __DIR__ . '/../../Db/db_config.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -65,8 +66,7 @@ function catalog_remove_uploaded_image(?string $imagePath, string $imagesDirecto
 }
 
 try {
-    $connection = new mysqli('localhost', 'root', '', 'brewski_db');
-    $connection->set_charset('utf8mb4');
+    $connection = brewski_db_connection();
     brewski_ensure_product_image_columns($connection);
     $connection->query(
         "CREATE TABLE IF NOT EXISTS product_customization_options (

@@ -1,0 +1,9 @@
+.git
+.gitignore
+node_modules
+**/node_modules
+brewski/email-service
+**/.env
+**/.env.*
+!.env.example
+*.log

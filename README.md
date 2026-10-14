@@ -66,12 +66,13 @@ admin dashboard.
 
 - **Database name:** `brewski_db`
 - **SQL export file:** [`Db/schema.sql`](Db/schema.sql)
+- **MySQL 8 / hosted export:** [`Db/schema.aiven.sql`](Db/schema.aiven.sql)
 
 ## Installation / Setup
 
 ### Prerequisites
 - [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP), or any PHP 8+/MySQL stack
-- [Node.js](https://nodejs.org/) (for the OTP email service)
+- [Node.js](https://nodejs.org/) (for the email service)
 
 ### 1. Clone the repository
 ```bash
@@ -84,6 +85,9 @@ cd PHP_Group05_Project/brewski
 2. Open **phpMyAdmin** → **SQL** tab, or use the MySQL CLI.
 3. Run the contents of `Db/schema.sql`. This creates the `brewski_db` database and all required tables.
    For an existing installation, apply new scripts in `Db/migrations/` to upgrade its schema.
+   For a hosted MySQL 8 database, run [`Db/schema.aiven.sql`](Db/schema.aiven.sql) instead:
+   `Db/schema.sql` ends with `ALTER ... IF NOT EXISTS` statements that XAMPP's MariaDB accepts
+   but MySQL 8 rejects. See [DEPLOY.md](DEPLOY.md) for how the two files are kept in sync.
 
 ### Authenticator foundation
 The TOTP helper encrypts authenticator secrets with AES-256-GCM and requires a
@@ -103,11 +107,20 @@ and starts setup again. Login no longer uses email OTP; the email service is
 still used for account activation, order verification, and receipts.
 
 ### 3. Configure the database connection
-The app connects via `mysqli` with these defaults (matching a stock XAMPP install):
-```php
-$conn = new mysqli('localhost', 'root', '', 'brewski_db');
-```
-If your MySQL uses a different host, username, or password, update the PHP files under `login-signup/` that open a connection (e.g. `login-signup/login.php`).
+Every connection in the app comes from `Db/db_config.php`, which reads environment
+variables and falls back to the stock XAMPP defaults:
+
+| Variable | Default |
+| --- | --- |
+| `DB_HOST` | `localhost` |
+| `DB_PORT` | `3306` |
+| `DB_NAME` | `brewski_db` |
+| `DB_USER` | `root` |
+| `DB_PASS` | *(empty)* |
+
+With no variables set it connects exactly as a stock XAMPP install does, so local setup
+needs no configuration at all. Set them only when your MySQL differs from those defaults,
+or when pointing at a hosted database — see [DEPLOY.md](DEPLOY.md).
 
 ### 4. Serve the PHP app
 **Option A — XAMPP:**
@@ -128,7 +141,10 @@ Edit `.env` with a Gmail address and an [app password](https://support.google.co
 EMAIL_USER=your-gmail-address@gmail.com
 EMAIL_PASSWORD=your-16-character-app-password
 PORT=3000
+HOST=127.0.0.1
 ```
+Set `MAIL_MODE=console` in `.env` to print messages in your terminal instead of sending
+them, which is handy while testing without real credentials.
 Then install dependencies and start the service:
 ```bash
 npm install
@@ -140,3 +156,10 @@ With Apache: `http://localhost/brewski/login-signup/login.php`
 With the built-in server: `http://localhost:8000/login-signup/login.php`
 
 Make sure MySQL and the email service are running before testing account activation or placing an order. Login verification uses the authenticator app; order verification codes and receipts are emailed to the address on the customer account.
+
+## Deployment
+
+Brewski deploys to [Render](https://render.com) as two services — the PHP app built from
+`Dockerfile`, and the email service on Render's Node runtime — with the database on
+[Aiven](https://aiven.io) MySQL. Both `render.yaml` and `Dockerfile` are committed, so a
+blueprint deploy needs only the environment variables listed in [DEPLOY.md](DEPLOY.md).

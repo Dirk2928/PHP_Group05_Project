@@ -2,6 +2,7 @@
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/../Db/db_config.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
@@ -9,18 +10,7 @@ $customerHome = '../customer/customer_home/customerhome.php';
 $adminHome    = '../admin/admin%20home/admin_dashboard.php';
 $staffHome    = '../staff/orders/orders.php';
 
-$conn = new mysqli(
-    'localhost',
-    'root',
-    '',
-    'brewski_db'
-);
-
-if ($conn->connect_error) {
-    $conn = null;
-} else {
-    $conn->set_charset('utf8mb4');
-}
+$conn = brewski_db_connect();
 
 function normalizeRole($role)
 {
@@ -366,24 +356,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="side__line">
             Your favorite cup, ready when you are.
         </p>
-
-        <nav class="side__nav">
-
-            <a
-                href="about-us.html"
-                class="side__btn"
-            >
-                About us
-            </a>
-
-            <a
-                href="about-brewski.html"
-                class="side__btn"
-            >
-                About brewski
-            </a>
-
-        </nav>
 
     </aside>
 

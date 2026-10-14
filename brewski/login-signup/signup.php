@@ -2,21 +2,11 @@
 session_start();
 require_once __DIR__ . '/email-service-client.php';
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/../Db/db_config.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
-$conn = new mysqli(
-    'localhost',
-    'root',
-    '',
-    'brewski_db'
-);
-
-if ($conn->connect_error) {
-    $conn = null;
-} else {
-    $conn->set_charset('utf8mb4');
-}
+$conn = brewski_db_connect();
 
 if (isset($_SESSION['user_id'])) {
     header('Location: ../customer/customer_home/customerhome.php');
@@ -491,26 +481,7 @@ $field_error_style = function (array $messages) {
             Your favorite cup, ready when you are.
         </p>
 
-        <nav class="side__nav">
-
-            <a
-                href="about-us.html"
-                class="side__btn"
-            >
-                About us
-            </a>
-
-            <a
-                href="about-brewski.html"
-                class="side__btn"
-            >
-                About brewski
-            </a>
-
-        </nav>
-
     </aside>
-
 
     <section class="auth__panel">
 

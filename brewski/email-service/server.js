@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = Number(process.env.PORT || 3000);
-const HOST = "127.0.0.1";
+const HOST = process.env.HOST?.trim() || "127.0.0.1";
 const emailUser = process.env.EMAIL_USER?.trim();
 const emailPassword = process.env.EMAIL_PASSWORD?.trim();
 

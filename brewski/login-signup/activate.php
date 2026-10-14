@@ -1,6 +1,8 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/../Db/db_config.php';
+
 mysqli_report(MYSQLI_REPORT_OFF);
 
 $error = '';
@@ -9,12 +11,11 @@ $token = $_GET['token'] ?? '';
 if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/i', $token)) {
     $error = 'This activation link is invalid or has already been used.';
 } else {
-    $conn = new mysqli('localhost', 'root', '', 'brewski_db');
+    $conn = brewski_db_connect();
 
-    if ($conn->connect_error) {
+    if (!$conn) {
         $error = 'Unable to connect to the database. Please try again later.';
     } else {
-        $conn->set_charset('utf8mb4');
         $token_hash = hash('sha256', $token);
         $stmt = $conn->prepare(
             "SELECT user_id, is_active, email_activation_expires

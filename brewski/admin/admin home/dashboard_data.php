@@ -2,6 +2,7 @@
 
 define('SESSION_NO_TOUCH', true);
 require_once __DIR__ . '/../../login-signup/session_init.php';
+require_once __DIR__ . '/../../Db/db_config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -116,8 +117,7 @@ $yesterdayDate = $today->modify('-1 day')->format('Y-m-d');
 
 try {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-    $connection = new mysqli('localhost', 'root', '', 'brewski_db');
-    $connection->set_charset('utf8mb4');
+    $connection = brewski_db_connection();
 
     $dailySummary = dashboard_fetch_rows(
         $connection,

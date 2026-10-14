@@ -2,6 +2,8 @@
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+require_once __DIR__ . '/../Db/db_config.php';
+
 $productId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$productId || $productId < 1) {
     http_response_code(404);
@@ -9,8 +11,7 @@ if (!$productId || $productId < 1) {
 }
 
 try {
-    $connection = new mysqli('localhost', 'root', '', 'brewski_db');
-    $connection->set_charset('utf8mb4');
+    $connection = brewski_db_connection();
     $statement = $connection->prepare(
         'SELECT image_data, image_mime_type FROM products
          WHERE product_id = ? AND image_data IS NOT NULL'

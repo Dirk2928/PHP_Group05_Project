@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../login-signup/settings.php';
+require_once __DIR__ . '/../../Db/db_config.php';
 
 if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
     define('BREWSKI_CHOICE_FINGERPRINT_KEY', 'choice_catalog_fingerprint');
@@ -88,16 +89,7 @@ function brewski_preferences_connection()
         return $connection;
     }
 
-    $previous_report_mode = mysqli_report(MYSQLI_REPORT_OFF);
-    $candidate = new mysqli('localhost', 'root', '', 'brewski_db');
-    mysqli_report($previous_report_mode);
-
-    if ($candidate->connect_errno) {
-        return null;
-    }
-
-    $candidate->set_charset('utf8mb4');
-    $connection = $candidate;
+    $connection = brewski_db_connect();
 
     return $connection;
 }
