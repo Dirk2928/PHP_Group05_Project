@@ -22,22 +22,6 @@ services:
         value: "1"
       - key: DB_SSL_CA
         sync: false
-      - key: EMAIL_SERVICE_URL
-        sync: false
-      - key: BREWSKI_TOTP_ENCRYPTION_KEY
-        sync: false
-
-  - type: web
-    name: brewski-email
-    runtime: node
-    plan: free
-    region: singapore
-    rootDir: brewski/email-service
-    buildCommand: npm ci
-    startCommand: npm start
-    envVars:
-      - key: HOST
-        value: 0.0.0.0
       - key: MAILJET_API_KEY
         sync: false
       - key: MAILJET_SECRET_KEY
@@ -46,3 +30,5 @@ services:
         sync: false
       - key: MAILJET_SENDER_NAME
         value: Brewski
+      - key: BREWSKI_TOTP_ENCRYPTION_KEY
+        sync: false
