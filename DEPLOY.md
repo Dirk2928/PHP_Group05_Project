@@ -139,11 +139,15 @@ Then place a test order and confirm a receipt email actually arrives.
 
 ## 7. Check that it works
 
-1. Open `https://<your-app>.onrender.com/login-signup/signup.php` and create an account.
-2. Confirm the activation email arrives — that proves `EMAIL_SERVICE_URL` is wired.
-3. Activate, sign in, and complete authenticator enrolment — see step 8.
-4. Walk one order through the customer, staff, and admin views.
-5. Open the admin **System Settings** page and confirm it saves, which proves the `mysqli`
+1. Open `https://<your-app>.onrender.com/` and confirm it redirects to
+   `/Start-screen/start.php` and renders with its logo and stylesheet intact. A page that
+   loads but looks unstyled means the redirect was replaced with an alias, which breaks
+   the page's relative paths.
+2. Open `https://<your-app>.onrender.com/login-signup/signup.php` and create an account.
+3. Confirm the activation email arrives — that proves `EMAIL_SERVICE_URL` is wired.
+4. Activate, sign in, and complete authenticator enrolment — see step 8.
+5. Walk one order through the customer, staff, and admin views.
+6. Open the admin **System Settings** page and confirm it saves, which proves the `mysqli`
    connection and the `settings` table both work.
 
 ## 8. Confirm the authenticator works

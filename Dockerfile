@@ -13,6 +13,7 @@ RUN apt-get update \
 RUN printf '%s\n' \
         '<VirtualHost *:80>' \
         '    DocumentRoot /var/www/html/brewski' \
+        '    RedirectMatch 302 ^/$ /Start-screen/start.php' \
         '    <Directory /var/www/html/brewski>' \
         '        Options -Indexes' \
         '        AllowOverride None' \
