@@ -1,8 +1,7 @@
-
 require("dotenv").config();
 
 const express = require("express");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
 const app = express();
 
@@ -11,36 +10,21 @@ app.use(express.json({ limit: "100kb" }));
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST?.trim() || "0.0.0.0";
 
-const emailUser = process.env.EMAIL_USER?.trim();
-const emailPassword = process.env.EMAIL_PASSWORD?.trim();
+const resendApiKey = process.env.RESEND_API_KEY?.trim();
+const emailFrom = process.env.EMAIL_FROM?.trim();
 
 const consoleMode =
     process.env.MAIL_MODE?.trim().toLowerCase() === "console";
 
-if (!consoleMode && (!emailUser || !emailPassword)) {
+if (!consoleMode && (!resendApiKey || !emailFrom)) {
     console.error("Email configuration is missing.");
-    console.error("Set EMAIL_USER and EMAIL_PASSWORD in your environment.");
+    console.error("Set RESEND_API_KEY and EMAIL_FROM in your environment.");
     process.exit(1);
 }
 
-const fromAddress = emailUser || "dev@brewski.local";
+const fromAddress = emailFrom || "Brewski <dev@brewski.local>";
 
-const transporter = consoleMode
-    ? null
-    : nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        family: 4,
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 30000,
-        auth: {
-            user: emailUser,
-            pass: emailPassword
-        }
-    });
+const resend = consoleMode ? null : new Resend(resendApiKey);
 
 async function deliver(mail) {
     if (consoleMode) {
@@ -53,17 +37,29 @@ async function deliver(mail) {
         console.log("==============================================");
         console.log("");
 
-        return { messageId: "console-mode" };
+        return { message_id: "console-mode" };
     }
 
-    return transporter.sendMail(mail);
+    const { data, error } = await resend.emails.send({
+        from: mail.from,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html
+    });
+
+    if (error) {
+        throw new Error(`Resend API error: ${error.message}`);
+    }
+
+    return data;
 }
 
 app.get("/health", (_req, res) => {
     res.json({
         success: true,
         service: "Brewski Email Service",
-        mailMode: consoleMode ? "console" : "gmail"
+        mailMode: consoleMode ? "console" : "resend"
     });
 });
 
@@ -198,8 +194,8 @@ app.post("/send-order-receipt", async (req, res) => {
             ? `<p><strong>Delivery notes:</strong><br>${escapeHtml(safeDeliveryNotes).replace(/\r?\n/g, "<br>")}</p>`
             : "";
 
-        const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+        const result = await deliver({
+            from: fromAddress,
             to: email,
             subject: `Your Brewski order receipt - ${receiptNumber}`,
             text: `Hello ${customerName},
@@ -245,7 +241,7 @@ Total: PHP ${formatAmount(total)}
             `
         });
 
-        console.log("Order receipt email sent:", info.messageId);
+        console.log("Order receipt email sent:", result.message_id);
 
         return res.json({ success: true });
     } catch (error) {
@@ -279,8 +275,8 @@ app.post("/send-order-otp", async (req, res) => {
 
         const safeName = escapeHtml(firstName);
 
-        const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+        const result = await deliver({
+            from: fromAddress,
             to: email,
             subject: "Your Brewski order verification code",
             text: `Hello ${firstName},
@@ -303,7 +299,7 @@ If you did not try to place an order, you can ignore this email.`,
             `
         });
 
-        console.log("Order verification email sent:", info.messageId);
+        console.log("Order verification email sent:", result.message_id);
 
         return res.json({ success: true });
     } catch (error) {
@@ -359,8 +355,8 @@ app.post("/send-activation", async (req, res) => {
         const safeName = escapeHtml(firstName);
         const safeUrl = escapeHtml(parsedUrl.toString());
 
-        const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+        const result = await deliver({
+            from: fromAddress,
             to: email,
             subject: "Activate your Brewski account",
             text: `Hello ${firstName},
@@ -385,7 +381,7 @@ If you did not create an account, you can ignore this email.`,
             `
         });
 
-        console.log("Activation email sent:", info.messageId);
+        console.log("Activation email sent:", result.message_id);
 
         return res.json({ success: true });
     } catch (error) {
@@ -426,17 +422,7 @@ async function start() {
             return;
         }
 
-        transporter.verify()
-            .then(() => {
-                console.log("Gmail SMTP connection successful.");
-            })
-            .catch((error) => {
-                console.error("Gmail SMTP verification failed:");
-                console.error(error.message);
-                console.error(
-                    "The web service is running, but email delivery may fail until SMTP connectivity is restored."
-                );
-            });
+        console.log("Resend API key configured.");
     });
 }
 

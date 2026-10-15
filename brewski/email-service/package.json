@@ -14,6 +14,6 @@
   "dependencies": {
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
-    "nodemailer": "^10.0.13"
+    "resend": "^4.8.0"
   }
 }
