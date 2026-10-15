@@ -214,40 +214,6 @@ $navItems = [
 
                 </button>
 
-                <div
-                    class="profile-dropdown"
-                    id="profile-dropdown"
-                >
-
-                    <div class="profile-dropdown__user">
-
-                        <strong><?= e($display_first_name . ' ' . $display_last_name) ?></strong>
-
-                        <span><?= e($display_email) ?></span>
-
-                    </div>
-
-                    <div class="profile-dropdown__divider"></div>
-
-                    <a
-                        href="<?= e($navItems['profile']['href']) ?>"
-                        class="logout-button"
-                    >
-                        <i data-lucide="user-round"></i>
-                        My Profile
-                    </a>
-
-                    <a
-                        href="../../login-signup/logout.php"
-                        class="logout-button"
-                        data-cart-logout
-                    >
-                        <i data-lucide="log-out"></i>
-                        Logout
-                    </a>
-
-                </div>
-
             </div>
 
         </nav>
