@@ -33,6 +33,16 @@ function brewski_env_flag(string $key, bool $default = false): bool
 function brewski_db_settings(): array
 {
     $ssl_ca = brewski_env('DB_SSL_CA', '');
+    $ssl_requested = brewski_env_flag('DB_SSL') || $ssl_ca !== '';
+
+    if ($ssl_ca !== '' && !is_readable($ssl_ca)) {
+        error_log(
+            'Brewski: DB_SSL_CA is not a readable file. Continuing with TLS but without '
+            . 'certificate verification. Set DB_SSL_CA to the path of a CA certificate.'
+        );
+
+        $ssl_ca = '';
+    }
 
     return [
         'host'   => brewski_env('DB_HOST', 'localhost'),
@@ -40,7 +50,7 @@ function brewski_db_settings(): array
         'name'   => brewski_env('DB_NAME', 'brewski_db'),
         'user'   => brewski_env('DB_USER', 'root'),
         'pass'   => brewski_env('DB_PASS', '', false),
-        'ssl'    => brewski_env_flag('DB_SSL') || $ssl_ca !== '',
+        'ssl'    => $ssl_requested,
         'ssl_ca' => $ssl_ca,
     ];
 }

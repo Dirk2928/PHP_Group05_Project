@@ -19,7 +19,7 @@ RUN apt-get update \
 RUN printf '%s\n' \
         '<VirtualHost *:80>' \
         '    DocumentRoot /var/www/html/brewski' \
-        '    DirectoryIndex Start-screen/start.php index.php index.html' \
+        '    RedirectMatch 302 ^/$ /Start-screen/start.php' \
         '    <Directory /var/www/html/brewski>' \
         '        Options -Indexes' \
         '        AllowOverride None' \
@@ -34,6 +34,10 @@ RUN printf '%s\n' \
         'post_max_size = 12M' \
         'memory_limit = 256M' \
         'session.gc_maxlifetime = 28800' \
+        'display_errors = Off' \
+        'display_startup_errors = Off' \
+        'log_errors = On' \
+        'error_log = /dev/stderr' \
         > /usr/local/etc/php/conf.d/brewski.ini
 
 COPY brewski/ /var/www/html/brewski/

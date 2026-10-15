@@ -12,8 +12,8 @@
         rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="/customer/styles.css">
-    <link rel="stylesheet" href="/Start-screen/start.css">
+    <link rel="stylesheet" href="../customer/styles.css">
+    <link rel="stylesheet" href="start.css">
 
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -66,7 +66,7 @@
             disablepictureinpicture
             controlslist="nodownload nofullscreen noremoteplayback"
         >
-            <source src="coffee-video.mp4" type="video/mp4">
+            <source src="/Start-screen/coffee-video.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
 

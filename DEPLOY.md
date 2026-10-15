@@ -107,6 +107,23 @@ existing authenticator secret unreadable, locking all enrolled users out.
 server on the other end really is Aiven. That satisfies Aiven's requirement and is fine
 for getting started.
 
+`DB_SSL_CA` is **not** where you put `REQUIRED`. It takes the path to a CA certificate
+**file inside the container**, and nothing else. Setting it to a word instead of a path
+makes mysqli fail with:
+
+```
+Warning: failed loading cafile stream: `REQUIRED'
+Warning: mysqli::real_connect(): (HY000/2002): Cannot connect to MySQL using SSL
+```
+
+If you see that, clear `DB_SSL_CA` to blank — `DB_SSL=1` alone is enough to reach Aiven.
+The current code also detects this case, logs a line to the Render log, and continues with
+TLS but without certificate verification rather than failing the connection, so a stray
+value here no longer takes the site down.
+
+Note that `--ssl-mode=REQUIRED` in the `mysql` command in step 2 is a flag for that command
+line client. It is not a value for `DB_SSL_CA`, despite the similar wording.
+
 To also verify Aiven's certificate, put its `ca.pem` into the image and point `DB_SSL_CA`
 at the path:
 
@@ -194,7 +211,7 @@ configured.
 | `DB_USER` | `root` | Database user |
 | `DB_PASS` | empty | Database password |
 | `DB_SSL` | off | Encrypt the connection without verifying the server certificate |
-| `DB_SSL_CA` | unset | Path to a CA certificate; enables TLS **and** verifies the server |
+| `DB_SSL_CA` | unset | Path to a CA certificate **file**; enables TLS **and** verifies the server. Leave blank to encrypt without verifying |
 | `EMAIL_SERVICE_URL` | `http://127.0.0.1:3000` | Base URL of the email service |
 | `BREWSKI_TOTP_ENCRYPTION_KEY` | unset | 64 hex characters; required for authenticator login |
 | `HOST` | `127.0.0.1` | Email service bind address; set to `0.0.0.0` on Render |
