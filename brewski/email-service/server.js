@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 
 const express = require("express");
@@ -9,58 +10,20 @@ app.use(express.json({ limit: "100kb" }));
 
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST?.trim() || "0.0.0.0";
-
 const resendApiKey = process.env.RESEND_API_KEY?.trim();
 const emailFrom = process.env.EMAIL_FROM?.trim();
-
-const consoleMode =
-    process.env.MAIL_MODE?.trim().toLowerCase() === "console";
+const consoleMode = process.env.MAIL_MODE?.trim().toLowerCase() === "console";
 
 if (!consoleMode && (!resendApiKey || !emailFrom)) {
     console.error("Email configuration is missing.");
-    console.error("Set RESEND_API_KEY and EMAIL_FROM in your environment.");
+    console.error("Set RESEND_API_KEY and EMAIL_FROM.");
     process.exit(1);
 }
 
-const fromAddress = emailFrom || "Brewski <dev@brewski.local>";
-
 const resend = consoleMode ? null : new Resend(resendApiKey);
 
-async function deliver(mail) {
-    if (consoleMode) {
-        console.log("");
-        console.log("========== DEV MODE: EMAIL NOT SENT ==========");
-        console.log("To:", mail.to);
-        console.log("Subject:", mail.subject);
-        console.log("");
-        console.log(mail.text);
-        console.log("==============================================");
-        console.log("");
-
-        return { message_id: "console-mode" };
-    }
-
-    const { data, error } = await resend.emails.send({
-        from: mail.from,
-        to: mail.to,
-        subject: mail.subject,
-        text: mail.text,
-        html: mail.html
-    });
-
-    if (error) {
-        throw new Error(`Resend API error: ${error.message}`);
-    }
-
-    return data;
-}
-
-app.get("/health", (_req, res) => {
-    res.json({
-        success: true,
-        service: "Brewski Email Service",
-        mailMode: consoleMode ? "console" : "resend"
-    });
+app.use((req, res, next) => {
+    next();
 });
 
 const escapeHtml = (value) =>
@@ -94,6 +57,45 @@ const hasAmount = (value) => {
 };
 
 const formatAmount = (amount) => Number(amount).toFixed(2);
+
+async function deliver(mail) {
+    if (consoleMode) {
+        console.log("DEV MODE: Email not sent.");
+        console.log("To:", mail.to);
+        console.log("Subject:", mail.subject);
+        console.log(mail.text);
+        return { messageId: "console-mode" };
+    }
+
+    const { data, error } = await resend.emails.send({
+        from: mail.from,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html
+    });
+
+    if (error) {
+        console.error("Resend API error:", error);
+        throw new Error(error.message || "Resend email delivery failed");
+    }
+
+    if (!data?.id) {
+        throw new Error("Resend did not return an email ID.");
+    }
+
+    console.log("Resend accepted email:", data.id);
+
+    return { messageId: data.id };
+}
+
+app.get("/health", (_req, res) => {
+    res.json({
+        success: true,
+        service: "Brewski Email Service",
+        mailMode: consoleMode ? "console" : "resend"
+    });
+});
 
 app.post("/send-order-receipt", async (req, res) => {
     try {
@@ -158,18 +160,13 @@ app.post("/send-order-receipt", async (req, res) => {
             address.postalCode
         ].join(", ");
 
-        const safeDeliveryNotes =
-            typeof deliveryNotes === "string"
-                ? deliveryNotes.trim()
-                : "";
+        const notes = typeof deliveryNotes === "string"
+            ? deliveryNotes.trim()
+            : "";
 
         const itemText = items.map((item) =>
             `${item.name} (${item.size}) x ${item.quantity} - PHP ${formatAmount(item.lineTotal)}`
         ).join("\n");
-
-        const deliveryNotesText = safeDeliveryNotes
-            ? `\nDelivery notes: ${safeDeliveryNotes}\n`
-            : "";
 
         const itemRows = items.map((item) => `
             <tr>
@@ -185,49 +182,40 @@ app.post("/send-order-receipt", async (req, res) => {
             </tr>
         `).join("");
 
-        const safeCustomerName = escapeHtml(customerName);
-        const safeReceiptNumber = escapeHtml(receiptNumber);
-        const safeOrderDate = escapeHtml(orderDate);
-        const safeAddress = escapeHtml(addressText);
-
-        const deliveryNotesHtml = safeDeliveryNotes
-            ? `<p><strong>Delivery notes:</strong><br>${escapeHtml(safeDeliveryNotes).replace(/\r?\n/g, "<br>")}</p>`
-            : "";
-
         const result = await deliver({
-            from: fromAddress,
+            from: emailFrom,
             to: email,
             subject: `Your Brewski order receipt - ${receiptNumber}`,
             text: `Hello ${customerName},
 
-Thank you for your order. Here is your receipt.
+Thank you for your order.
 
 Receipt: ${receiptNumber}
 Order date: ${orderDate}
-Delivery address: ${addressText}${deliveryNotesText}
+Delivery address: ${addressText}
+${notes ? `Delivery notes: ${notes}\n` : ""}
 
 ${itemText}
 
 Subtotal: PHP ${formatAmount(subtotal)}
 Delivery fee: PHP ${formatAmount(deliveryFee)}
-Total: PHP ${formatAmount(total)}
-`,
+Total: PHP ${formatAmount(total)}`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a0f0a">
                     <h2>Brewski order receipt</h2>
-                    <p>Hello ${safeCustomerName}, thank you for your order.</p>
+                    <p>Hello ${escapeHtml(customerName)}, thank you for your order.</p>
                     <p>
-                        <strong>Receipt:</strong> ${safeReceiptNumber}<br>
-                        <strong>Order date:</strong> ${safeOrderDate}<br>
-                        <strong>Delivery address:</strong> ${safeAddress}
+                        <strong>Receipt:</strong> ${escapeHtml(receiptNumber)}<br>
+                        <strong>Order date:</strong> ${escapeHtml(orderDate)}<br>
+                        <strong>Delivery address:</strong> ${escapeHtml(addressText)}
                     </p>
-                    ${deliveryNotesHtml}
+                    ${notes ? `<p><strong>Delivery notes:</strong><br>${escapeHtml(notes).replace(/\r?\n/g, "<br>")}</p>` : ""}
                     <table style="width:100%;border-collapse:collapse">
                         <thead>
                             <tr>
-                                <th style="padding:10px;text-align:left;border-bottom:2px solid #5c4033">Item</th>
-                                <th style="padding:10px;border-bottom:2px solid #5c4033">Qty</th>
-                                <th style="padding:10px;text-align:right;border-bottom:2px solid #5c4033">Amount</th>
+                                <th style="padding:10px;text-align:left">Item</th>
+                                <th style="padding:10px">Qty</th>
+                                <th style="padding:10px;text-align:right">Amount</th>
                             </tr>
                         </thead>
                         <tbody>${itemRows}</tbody>
@@ -241,14 +229,14 @@ Total: PHP ${formatAmount(total)}
             `
         });
 
-        console.log("Order receipt email sent:", result.message_id);
+        console.log("Order receipt email sent:", result.messageId);
 
-        return res.json({ success: true });
+        return res.json({
+            success: true,
+            messageId: result.messageId
+        });
     } catch (error) {
-        console.error(
-            "Order receipt email error:",
-            error instanceof Error ? error.message : error
-        );
+        console.error("Order receipt email error:", error.message);
 
         return res.status(500).json({
             success: false,
@@ -273,40 +261,36 @@ app.post("/send-order-otp", async (req, res) => {
             });
         }
 
-        const safeName = escapeHtml(firstName);
-
         const result = await deliver({
-            from: fromAddress,
+            from: emailFrom,
             to: email,
             subject: "Your Brewski order verification code",
             text: `Hello ${firstName},
 
-Your Brewski order verification code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
+Your Brewski order verification code is ${otp}. It expires in 10 minutes. You have up to 5 attempts.
 
 If you did not try to place an order, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
                     <h2>Verify your Brewski order</h2>
-                    <p>Hello ${safeName}, enter this code in the order confirmation window to continue:</p>
+                    <p>Hello ${escapeHtml(firstName)}, enter this code to continue:</p>
                     <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;padding:14px 20px;display:inline-block">
                         ${otp}
                     </p>
                     <p>This code expires in 10 minutes. You have up to 5 attempts.</p>
-                    <p style="font-size:12px;color:#71492a">
-                        If you did not try to place an order, you can ignore this email.
-                    </p>
+                    <p>If you did not try to place an order, you can ignore this email.</p>
                 </div>
             `
         });
 
-        console.log("Order verification email sent:", result.message_id);
+        console.log("Order verification email sent:", result.messageId);
 
-        return res.json({ success: true });
+        return res.json({
+            success: true,
+            messageId: result.messageId
+        });
     } catch (error) {
-        console.error(
-            "Order verification email error:",
-            error instanceof Error ? error.message : error
-        );
+        console.error("Order verification email error:", error.message);
 
         return res.status(500).json({
             success: false,
@@ -352,25 +336,22 @@ app.post("/send-activation", async (req, res) => {
             });
         }
 
-        const safeName = escapeHtml(firstName);
-        const safeUrl = escapeHtml(parsedUrl.toString());
-
         const result = await deliver({
-            from: fromAddress,
+            from: emailFrom,
             to: email,
             subject: "Activate your Brewski account",
             text: `Hello ${firstName},
 
-Activate your account using this link (valid for 24 hours):
+Activate your account using this link. It is valid for 24 hours:
 ${parsedUrl.toString()}
 
 If you did not create an account, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
-                    <h2>Welcome to Brewski, ${safeName}!</h2>
+                    <h2>Welcome to Brewski, ${escapeHtml(firstName)}!</h2>
                     <p>Click below to activate your account. This link expires in 24 hours.</p>
                     <p>
-                        <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">
+                        <a href="${escapeHtml(parsedUrl.toString())}" style="display:inline-block;padding:12px 24px;background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">
                             Activate my account
                         </a>
                     </p>
@@ -381,14 +362,14 @@ If you did not create an account, you can ignore this email.`,
             `
         });
 
-        console.log("Activation email sent:", result.message_id);
+        console.log("Activation email sent:", result.messageId);
 
-        return res.json({ success: true });
+        return res.json({
+            success: true,
+            messageId: result.messageId
+        });
     } catch (error) {
-        console.error(
-            "Activation email error:",
-            error instanceof Error ? error.message : error
-        );
+        console.error("Activation email error:", error.message);
 
         return res.status(500).json({
             success: false,
@@ -413,16 +394,10 @@ app.use((err, _req, res, _next) => {
     });
 });
 
-async function start() {
+function start() {
     app.listen(PORT, HOST, () => {
         console.log(`Brewski email service listening on ${HOST}:${PORT}`);
-
-        if (consoleMode) {
-            console.log("DEV MODE: Emails will be printed to the terminal.");
-            return;
-        }
-
-        console.log("Resend API key configured.");
+        console.log(`Email mode: ${consoleMode ? "console" : "resend"}`);
     });
 }
 
