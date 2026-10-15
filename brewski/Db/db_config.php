@@ -34,6 +34,18 @@ function brewski_db_settings(): array
 {
     $ssl_ca = brewski_env('DB_SSL_CA', '');
     $ssl_requested = brewski_env_flag('DB_SSL') || $ssl_ca !== '';
+    $host = brewski_env('DB_HOST', '');
+
+    if ($host === '') {
+        if (brewski_env('RENDER', '') !== '' || brewski_env('RENDER_SERVICE_NAME', '') !== '') {
+            error_log(
+                'Brewski: DB_HOST is not set on this host. Set DB_HOST, DB_PORT, DB_NAME, '
+                . 'DB_USER and DB_PASS on the service, or the app will try localhost.'
+            );
+        }
+
+        $host = 'localhost';
+    }
 
     if ($ssl_ca !== '' && !is_readable($ssl_ca)) {
         error_log(
@@ -45,7 +57,7 @@ function brewski_db_settings(): array
     }
 
     return [
-        'host'   => brewski_env('DB_HOST', 'localhost'),
+        'host'   => $host,
         'port'   => (int) brewski_env('DB_PORT', '3306'),
         'name'   => brewski_env('DB_NAME', 'brewski_db'),
         'user'   => brewski_env('DB_USER', 'root'),
