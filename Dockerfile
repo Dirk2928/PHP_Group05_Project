@@ -19,7 +19,7 @@ RUN apt-get update \
 RUN printf '%s\n' \
         '<VirtualHost *:80>' \
         '    DocumentRoot /var/www/html/brewski' \
-        '    RedirectMatch 302 ^/$ /Start-screen/start.php' \
+        '    DirectoryIndex index.php' \
         '    <Directory /var/www/html/brewski>' \
         '        Options -Indexes' \
         '        AllowOverride None' \
@@ -41,6 +41,12 @@ RUN printf '%s\n' \
         > /usr/local/etc/php/conf.d/brewski.ini
 
 COPY brewski/ /var/www/html/brewski/
+
+RUN printf '%s\n' \
+        '<?php' \
+        "header('Location: /Start-screen/start.php', true, 302);" \
+        'exit;' \
+        > /var/www/html/brewski/index.php
 
 COPY docker-entrypoint.sh /usr/local/bin/brewski-entrypoint
 
