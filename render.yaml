@@ -38,7 +38,11 @@ services:
     envVars:
       - key: HOST
         value: 0.0.0.0
-      - key: EMAIL_USER
+      - key: MAILJET_API_KEY
         sync: false
-      - key: EMAIL_PASSWORD
+      - key: MAILJET_SECRET_KEY
         sync: false
+      - key: MAILJET_SENDER
+        sync: false
+      - key: MAILJET_SENDER_NAME
+        value: Brewski
