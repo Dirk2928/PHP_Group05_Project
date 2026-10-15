@@ -12,8 +12,8 @@
         rel="stylesheet"
     >
 
-    <link rel="stylesheet" href="../customer/styles.css">
-    <link rel="stylesheet" href="start.css">
+    <link rel="stylesheet" href="/customer/styles.css">
+    <link rel="stylesheet" href="/Start-screen/start.css">
 
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
