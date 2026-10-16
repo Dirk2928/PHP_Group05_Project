@@ -92,6 +92,14 @@ $consentReturn = brewski_consent_request_path();
         font-size: 0.85rem;
         line-height: 1.5;
         box-shadow: 0 -8px 28px rgba(30, 17, 10, 0.35);
+        transition: transform 0.4s ease, opacity 0.4s ease;
+        will-change: transform;
+    }
+
+    .brewski-consent--leaving {
+        transform: translateY(100%);
+        opacity: 0;
+        pointer-events: none;
     }
 
     .brewski-consent__text {
@@ -160,3 +168,42 @@ $consentReturn = brewski_consent_request_path();
         }
     }
 </style>
+
+<script>
+    (function () {
+        var banner = document.querySelector('.brewski-consent');
+
+        if (!banner) {
+            return;
+        }
+
+        var form = banner.querySelector('.brewski-consent__actions');
+
+        if (!form || typeof form.requestSubmit !== 'function') {
+            return;
+        }
+
+        var leaving = false;
+
+        form.addEventListener('submit', function (event) {
+            var button = event.submitter;
+
+            if (leaving || !button) {
+                return;
+            }
+
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return;
+            }
+
+            event.preventDefault();
+            leaving = true;
+
+            banner.classList.add('brewski-consent--leaving');
+
+            window.setTimeout(function () {
+                form.requestSubmit(button);
+            }, 420);
+        });
+    })();
+</script>
