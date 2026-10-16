@@ -6,6 +6,10 @@ require_once __DIR__ . '/../Db/db_config.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $customerHome = '../customer/customer_home/customerhome.php';
 $adminHome    = '../admin/admin%20home/admin_dashboard.php';
 $staffHome    = '../staff/orders/orders.php';
@@ -79,12 +83,23 @@ if (isset($_SESSION['user_id'])) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
+    $submittedToken = $_POST['csrf_token'] ?? '';
+
+    $tokenValid =
+        !empty($_SESSION['csrf_token'])
+        && is_string($submittedToken)
+        && hash_equals((string) $_SESSION['csrf_token'], $submittedToken);
+
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
     $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    if ($email === '' || $password === '') {
+    if (!$tokenValid) {
+
+        $error = 'This request could not be verified. Refresh the page and try again.';
+
+    } elseif ($email === '' || $password === '') {
 
         $error = 'Please fill in all fields.';
 
@@ -263,6 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $error = 'Authenticator sign-in is unavailable. Please contact support.';
                             } else {
                                 session_regenerate_id(true);
+                                unset($_SESSION['csrf_token']);
                                 if ($hasSecret) {
                                     $_SESSION['totp_login_pending'] = [
                                         'user_id' => (int) $user_id,
@@ -290,6 +306,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$csrfToken = (string) $_SESSION['csrf_token'];
 ?>
 
 <!DOCTYPE html>
@@ -428,6 +446,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 action="login.php"
             >
 
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"
+                >
+
                 <div class="field">
 
                     <label for="email">
@@ -506,11 +530,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             </p>
 
+            <p class="auth__switch">
+
+                How we handle your data:
+
+                <a
+                    href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>"
+                >
+                    Privacy Policy
+                </a>
+
+            </p>
+
         </div>
 
     </section>
 
 </main>
+
+<?php require_once __DIR__ . '/../cookie-consent/cookie-consent.php'; ?>
 
 <script src="script.js"></script>
 

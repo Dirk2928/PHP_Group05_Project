@@ -1,10 +1,14 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/email-service-client.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/../Db/db_config.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 $conn = brewski_db_connect();
 
@@ -51,6 +55,13 @@ $errors = [
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $submittedToken = $_POST['csrf_token'] ?? '';
+
+    $tokenValid =
+        !empty($_SESSION['csrf_token'])
+        && is_string($submittedToken)
+        && hash_equals((string) $_SESSION['csrf_token'], $submittedToken);
 
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name  = trim($_POST['last_name'] ?? '');
@@ -146,7 +157,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    if (!$has_field_errors && !$conn) {
+    if (!$tokenValid) {
+
+        $error =
+            'This request could not be verified. Refresh the page and try again.';
+
+    } elseif (!$has_field_errors && !$conn) {
 
         $error =
             'Unable to connect to the database. Please make sure MySQL is running.';
@@ -428,6 +444,8 @@ $field_error_style = function (array $messages) {
 
     return $messages ? '' : ' style="display:none;"';
 };
+
+$csrfToken = (string) $_SESSION['csrf_token'];
 ?>
 
 <!DOCTYPE html>
@@ -552,6 +570,12 @@ $field_error_style = function (array $messages) {
                 action="signup.php"
                 novalidate
             >
+
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"
+                >
 
                 <div class="field">
 
@@ -699,12 +723,25 @@ $field_error_style = function (array $messages) {
 
             <?php endif; ?>
 
+            <p class="auth__switch">
+
+                How we handle your data:
+
+                <a
+                    href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>"
+                >
+                    Privacy Policy
+                </a>
+
+            </p>
+
         </div>
 
     </section>
 
 </main>
 
+<?php require_once __DIR__ . '/../cookie-consent/cookie-consent.php'; ?>
 
 <script src="script.js"></script>
 
