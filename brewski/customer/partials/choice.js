@@ -33,10 +33,23 @@ document.addEventListener('DOMContentLoaded', function () {
         var answers = {};
 
         questions.forEach(function (question) {
-            var active = question.querySelector('.choice-answer.active');
+            var key = question.dataset.choiceQuestion;
+            var isMulti = question.dataset.choiceMulti === '1';
 
-            if (active) {
-                answers[question.dataset.choiceQuestion] = active.dataset.choiceAnswer;
+            if (isMulti) {
+                var activeButtons = question.querySelectorAll('.choice-answer.active');
+                var selected = [];
+                activeButtons.forEach(function (btn) {
+                    selected.push(btn.dataset.choiceAnswer);
+                });
+                if (selected.length > 0) {
+                    answers[key] = selected;
+                }
+            } else {
+                var active = question.querySelector('.choice-answer.active');
+                if (active) {
+                    answers[key] = active.dataset.choiceAnswer;
+                }
             }
         });
 
@@ -51,16 +64,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            Array.prototype.forEach.call(
-                answer.parentElement.querySelectorAll('.choice-answer'),
-                function (other) {
-                    other.classList.remove('active');
-                    other.setAttribute('aria-pressed', 'false');
-                }
-            );
+            var questionSection = answer.closest('[data-choice-question]');
+            var isMulti = questionSection && questionSection.dataset.choiceMulti === '1';
 
-            answer.classList.add('active');
-            answer.setAttribute('aria-pressed', 'true');
+            if (isMulti) {
+                var wasActive = answer.classList.contains('active');
+                answer.classList.toggle('active');
+                answer.setAttribute('aria-pressed', wasActive ? 'false' : 'true');
+
+                var noneButton = questionSection.querySelector('[data-choice-answer="None"]');
+                if (noneButton && answer !== noneButton) {
+                    noneButton.classList.remove('active');
+                    noneButton.setAttribute('aria-pressed', 'false');
+                }
+                if (noneButton && answer === noneButton && !wasActive) {
+                    questionSection.querySelectorAll('.choice-answer').forEach(function (btn) {
+                        if (btn !== noneButton) {
+                            btn.classList.remove('active');
+                            btn.setAttribute('aria-pressed', 'false');
+                        }
+                    });
+                }
+            } else {
+                Array.prototype.forEach.call(
+                    answer.parentElement.querySelectorAll('.choice-answer'),
+                    function (other) {
+                        other.classList.remove('active');
+                        other.setAttribute('aria-pressed', 'false');
+                    }
+                );
+                answer.classList.add('active');
+                answer.setAttribute('aria-pressed', 'true');
+            }
         });
     }
 
@@ -96,7 +131,14 @@ document.addEventListener('DOMContentLoaded', function () {
             payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
 
             Object.keys(answers).forEach(function (questionKey) {
-                payload.append('answers[' + questionKey + ']', answers[questionKey]);
+                var value = answers[questionKey];
+                if (Array.isArray(value)) {
+                    value.forEach(function (item) {
+                        payload.append('answers[' + questionKey + '][]', item);
+                    });
+                } else {
+                    payload.append('answers[' + questionKey + ']', value);
+                }
             });
 
             fetch('../partials/choice-save.php', {

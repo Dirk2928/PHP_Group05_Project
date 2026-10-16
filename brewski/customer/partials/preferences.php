@@ -10,12 +10,12 @@ if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
 function brewski_choice_questions(): array
 {
     return [
-        'caffeine' => [
-            'question' => 'Do you want caffeine?',
+        'base' => [
+            'question' => 'What are you in the mood for?',
             'answers' => [
-                'Yes' => ['caffeine'],
-                'A little' => ['caffeine', 'decaf'],
-                'No' => ['decaf'],
+                'Coffee' => ['coffee'],
+                'Non-coffee' => ['non-coffee'],
+                'Surprise me' => ['coffee', 'non-coffee'],
             ],
         ],
         'temperature' => [
@@ -27,27 +27,22 @@ function brewski_choice_questions(): array
             ],
         ],
         'sweetness' => [
-            'question' => 'How sweet do you like it?',
+            'question' => 'How sweet?',
             'answers' => [
                 'Sweet' => ['sugar:sweet'],
-                'A little' => ['sugar:sweet', 'sugar:light'],
+                'Mild' => ['sugar:light'],
                 'Not sweet' => ['sugar:none'],
+                'No preference' => ['sugar:sweet', 'sugar:light', 'sugar:none'],
             ],
         ],
-        'base' => [
-            'question' => 'Coffee or something else?',
+        'dietary' => [
+            'question' => 'Any dietary restrictions or allergies?',
+            'multi' => true,
             'answers' => [
-                'Coffee' => ['coffee'],
-                'Something else' => ['non-coffee'],
-                'Either' => ['coffee', 'non-coffee'],
-            ],
-        ],
-        'budget' => [
-            'question' => 'How much do you usually spend?',
-            'answers' => [
-                'Budget-friendly' => ['price:budget'],
-                'Mid-range' => ['price:mid'],
-                'Treat yourself' => ['price:treat'],
+                'Dairy-free / Vegan' => ['dietary:dairy-free'],
+                'Nut-free' => ['dietary:nut-free'],
+                'Gluten-free' => ['dietary:gluten-free'],
+                'None' => [],
             ],
         ],
     ];
@@ -56,8 +51,6 @@ function brewski_choice_questions(): array
 function brewski_preference_definitions(): array
 {
     return [
-        'caffeine' => 'Has caffeine',
-        'decaf' => 'No caffeine',
         'coffee' => 'Coffee based',
         'non-coffee' => 'Not coffee based',
         'temp:hot' => 'Served hot',
@@ -65,9 +58,9 @@ function brewski_preference_definitions(): array
         'sugar:sweet' => 'Sweet',
         'sugar:light' => 'Lightly sweet',
         'sugar:none' => 'Not sweet',
-        'price:budget' => 'Budget friendly',
-        'price:mid' => 'Mid-range price',
-        'price:treat' => 'Premium price',
+        'dietary:dairy-free' => 'Dairy-free / Vegan',
+        'dietary:nut-free' => 'Nut-free',
+        'dietary:gluten-free' => 'Gluten-free',
     ];
 }
 
@@ -78,7 +71,7 @@ function brewski_decaf_keywords(): array
 
 function brewski_non_coffee_keywords(): array
 {
-    return ['matcha', 'tea', 'choco', 'fruit', 'juice', 'smoothie', 'milk', 'non-coffee'];
+    return ['matcha', 'tea', 'choco', 'chocolate', 'fruit', 'juice', 'smoothie', 'milk', 'non-coffee', 'lemonade', 'soda'];
 }
 
 function brewski_preferences_connection()
@@ -278,23 +271,23 @@ function brewski_price_preference(float $price, array $thresholds): string
 
 function brewski_preference_links(array $catalog): array
 {
-    $decafKeywords = brewski_decaf_keywords();
     $nonCoffeeKeywords = brewski_non_coffee_keywords();
-    $thresholds = brewski_price_thresholds($catalog);
+    $dietaryKeywords = [
+        'dietary:dairy-free' => ['vegan', 'plant-based', 'dairy-free', 'no dairy', 'oat milk', 'almond milk', 'soy milk', 'coconut milk'],
+        'dietary:nut-free' => ['nut-free', 'no nuts', 'nut free'],
+        'dietary:gluten-free' => ['gluten-free', 'no gluten', 'gf'],
+    ];
     $links = [];
 
     foreach ($catalog['products'] as $product) {
         $productId = (int) $product['product_id'];
         $haystack = mb_strtolower(
-            $product['category_name'] . ' ' . $product['product_name']
+            $product['category_name'] . ' ' . $product['product_name'] . ' ' . ($product['description'] ?? '')
         );
         $keys = [];
 
-        $keys[] = brewski_matches_any([$haystack], $decafKeywords) ? 'decaf' : 'caffeine';
-        $keys[] = brewski_matches_any([$haystack], $nonCoffeeKeywords)
-            ? 'non-coffee'
-            : 'coffee';
-        $keys[] = brewski_price_preference((float) $product['price'], $thresholds);
+        $isNonCoffee = brewski_matches_any([$haystack], $nonCoffeeKeywords);
+        $keys[] = $isNonCoffee ? 'non-coffee' : 'coffee';
 
         $temperatures = [];
         $sugarLevels = [];
@@ -308,7 +301,6 @@ function brewski_preference_links(array $catalog): array
 
             if ($customization['group'] === 'sugar') {
                 $percent = brewski_sugar_percent($name);
-
                 if ($percent !== null) {
                     $sugarLevels[] = $percent;
                 }
@@ -318,14 +310,12 @@ function brewski_preference_links(array $catalog): array
         if (brewski_matches_any($temperatures, ['iced', 'cold'])) {
             $keys[] = 'temp:iced';
         }
-
         if (brewski_matches_any($temperatures, ['hot', 'warm'])) {
             $keys[] = 'temp:hot';
         }
 
         if ($sugarLevels) {
             $highest = max($sugarLevels);
-
             if ($highest >= 75) {
                 $keys[] = 'sugar:sweet';
             } elseif ($highest >= 25) {
@@ -335,7 +325,13 @@ function brewski_preference_links(array $catalog): array
             }
         }
 
-        $links[$productId] = $keys;
+        foreach ($dietaryKeywords as $prefKey => $needles) {
+            if (brewski_matches_any([$haystack], $needles)) {
+                $keys[] = $prefKey;
+            }
+        }
+
+        $links[$productId] = array_values(array_unique($keys));
     }
 
     return $links;
@@ -525,7 +521,7 @@ function brewski_user_choice_scores(int $userId, array $products): array
         return [];
     }
 
-    $scores = brewski_preferences_attempt(function () use ($userId) {
+    $result = brewski_preferences_attempt(function () use ($userId) {
         $connection = brewski_preferences_connection();
 
         if (!$connection) {
@@ -534,44 +530,107 @@ function brewski_user_choice_scores(int $userId, array $products): array
 
         brewski_preferences_ensure_tables($connection);
 
-        $statement = $connection->prepare(
-            'SELECT product_preferences.product_id, COUNT(*) AS score
+        $userPrefsStmt = $connection->prepare(
+            'SELECT preferences.preference_name
              FROM user_preferences
-             INNER JOIN product_preferences
+             INNER JOIN preferences ON preferences.preference_id = user_preferences.preference_id
+             WHERE user_preferences.user_id = ?
+               AND user_preferences.preference_value = 1'
+        );
+        $userPrefsStmt->bind_param('i', $userId);
+        $userPrefsStmt->execute();
+        $userPrefsResult = $userPrefsStmt->get_result();
+
+        $userPrefs = [];
+        $dietaryExclusions = [];
+        while ($row = $userPrefsResult->fetch_assoc()) {
+            $name = $row['preference_name'];
+            $userPrefs[] = $name;
+            if (str_starts_with($name, 'dietary:')) {
+                $dietaryExclusions[] = $name;
+            }
+        }
+        $userPrefsStmt->close();
+
+        if (empty($userPrefs)) {
+            return [];
+        }
+
+        $scoreStmt = $connection->prepare(
+            "SELECT product_preferences.product_id, COUNT(*) AS score
+             FROM product_preferences
+             INNER JOIN user_preferences
                 ON product_preferences.preference_id = user_preferences.preference_id
                AND product_preferences.preference_value = 1
              WHERE user_preferences.user_id = ?
                AND user_preferences.preference_value = 1
-             GROUP BY product_preferences.product_id'
+             GROUP BY product_preferences.product_id"
         );
+        $scoreStmt->bind_param('i', $userId);
+        $scoreStmt->execute();
+        $scoreResult = $scoreStmt->get_result();
 
-        $statement->bind_param('i', $userId);
-        $statement->execute();
-
-        $result = $statement->get_result();
         $scores = [];
-
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $scoreResult->fetch_assoc()) {
             $scores[(int) $row['product_id']] = (int) $row['score'];
         }
+        $scoreStmt->close();
 
-        $statement->close();
+        if (!empty($dietaryExclusions)) {
+            $exclusionPlaceholders = implode(',', array_fill(0, count($dietaryExclusions), '?'));
+            $exclusionTypes = str_repeat('s', count($dietaryExclusions));
+
+            $excludeStmt = $connection->prepare(
+                "SELECT DISTINCT pp.product_id
+                 FROM product_preferences pp
+                 INNER JOIN preferences p ON p.preference_id = pp.preference_id
+                 WHERE p.preference_name IN ($exclusionPlaceholders)
+                   AND pp.preference_value = 1"
+            );
+            $excludeStmt->bind_param($exclusionTypes, ...$dietaryExclusions);
+            $excludeStmt->execute();
+            $excludeResult = $excludeStmt->get_result();
+
+            $excludedProducts = [];
+            while ($row = $excludeResult->fetch_assoc()) {
+                $excludedProducts[(int) $row['product_id']] = true;
+            }
+            $excludeStmt->close();
+
+            foreach ($excludedProducts as $pid => $_) {
+                unset($scores[$pid]);
+            }
+        }
 
         return $scores;
     });
 
-    return is_array($scores) ? $scores : [];
+    return is_array($result) ? $result : [];
 }
 
 function brewski_answers_valid(array $answers): bool
 {
     foreach (brewski_choice_questions() as $questionKey => $question) {
-        if (!isset($answers[$questionKey]) || !is_string($answers[$questionKey])) {
+        if (!isset($answers[$questionKey])) {
             return false;
         }
 
-        if (!isset($question['answers'][$answers[$questionKey]])) {
-            return false;
+        $isMulti = !empty($question['multi']);
+        $value = $answers[$questionKey];
+
+        if ($isMulti) {
+            if (!is_array($value) || empty($value)) {
+                return false;
+            }
+            foreach ($value as $item) {
+                if (!is_string($item) || !isset($question['answers'][$item])) {
+                    return false;
+                }
+            }
+        } else {
+            if (!is_string($value) || !isset($question['answers'][$value])) {
+                return false;
+            }
         }
     }
 
@@ -583,18 +642,32 @@ function brewski_answers_to_preferences(array $answers): array
     $preferences = [];
 
     foreach (brewski_choice_questions() as $questionKey => $question) {
-        if (!isset($answers[$questionKey]) || !is_string($answers[$questionKey])) {
+        if (!isset($answers[$questionKey])) {
             continue;
         }
 
-        $answer = $answers[$questionKey];
+        $isMulti = !empty($question['multi']);
+        $value = $answers[$questionKey];
 
-        if (!isset($question['answers'][$answer])) {
-            continue;
-        }
-
-        foreach ($question['answers'][$answer] as $preference) {
-            $preferences[$preference] = true;
+        if ($isMulti) {
+            if (!is_array($value)) {
+                continue;
+            }
+            foreach ($value as $label) {
+                if (!isset($question['answers'][$label])) {
+                    continue;
+                }
+                foreach ($question['answers'][$label] as $preference) {
+                    $preferences[$preference] = true;
+                }
+            }
+        } else {
+            if (!is_string($value) || !isset($question['answers'][$value])) {
+                continue;
+            }
+            foreach ($question['answers'][$value] as $preference) {
+                $preferences[$preference] = true;
+            }
         }
     }
 
@@ -606,6 +679,7 @@ function brewski_answers_from_preferences(array $stored): array
     $selected = [];
 
     foreach (brewski_choice_questions() as $questionKey => $question) {
+        $isMulti = !empty($question['multi']);
         $universe = [];
 
         foreach ($question['answers'] as $preferences) {
@@ -622,13 +696,30 @@ function brewski_answers_from_preferences(array $stored): array
 
         sort($reached);
 
-        foreach ($question['answers'] as $label => $preferences) {
-            $candidate = $preferences;
-            sort($candidate);
+        if ($isMulti) {
+            $matchedLabels = [];
+            foreach ($question['answers'] as $label => $preferences) {
+                if (empty($preferences)) {
+                    continue;
+                }
+                $candidate = $preferences;
+                sort($candidate);
+                if ($candidate === $reached) {
+                    $matchedLabels[] = $label;
+                }
+            }
+            if (!empty($matchedLabels)) {
+                $selected[$questionKey] = $matchedLabels;
+            }
+        } else {
+            foreach ($question['answers'] as $label => $preferences) {
+                $candidate = $preferences;
+                sort($candidate);
 
-            if ($candidate === $reached) {
-                $selected[$questionKey] = $label;
-                break;
+                if ($candidate === $reached) {
+                    $selected[$questionKey] = $label;
+                    break;
+                }
             }
         }
     }
