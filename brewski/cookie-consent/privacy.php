@@ -7,7 +7,7 @@ $idleMinutes = max(1, (int) round(SESSION_IDLE_TIMEOUT / 60));
 $absoluteHours = max(1, (int) round(SESSION_ABSOLUTE_TIMEOUT / 3600));
 $maxLoginAttempts = brewski_max_login_attempts();
 
-$homeUrl = BREWSKI_BASE_URL . '/customer/customer_home/customerhome.php';
+$homeUrl = BREWSKI_BASE_URL . '/Start-screen/start.php';
 $accountUrl = BREWSKI_BASE_URL . '/customer/customer_profile/customer_profile.php';
 
 $currentChoice = brewski_consent_choice();
