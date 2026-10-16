@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    avatar_data LONGBLOB NULL,
+    avatar_mime_type VARCHAR(32) NULL,
     password VARCHAR(255) NOT NULL,
     role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
     job_title VARCHAR(50) NULL,
@@ -398,6 +400,14 @@ CREATE TABLE IF NOT EXISTS recommendations (
         ON UPDATE CASCADE
         ON DELETE CASCADE
 );
+
+-- ============================================================================
+-- Migration-safe ALTER statements
+-- Uses IF NOT EXISTS so re-running this file on an existing DB is safe.
+-- ============================================================================
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS avatar_data LONGBLOB NULL AFTER email,
+    ADD COLUMN IF NOT EXISTS avatar_mime_type VARCHAR(32) NULL AFTER avatar_data;
 
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) NOT NULL,

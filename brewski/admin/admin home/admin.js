@@ -1,8 +1,32 @@
 document.addEventListener('DOMContentLoaded', function () {
 
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
 
     var profileBtn = document.getElementById('profileBtn');
     var profileMenu = document.getElementById('profileMenu');
+    var sidebar = document.getElementById('sidebar');
+    var sidebarToggle = document.getElementById('sidebarToggle');
+
+    function setSidebarOpen(isOpen) {
+        document.body.classList.toggle('sidebar-open', isOpen);
+        sidebarToggle.setAttribute('aria-expanded', String(isOpen));
+        sidebarToggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+        sidebar.setAttribute('aria-hidden', String(!isOpen));
+    }
+
+    sidebarToggle.addEventListener('click', function () {
+        setSidebarOpen(!document.body.classList.contains('sidebar-open'));
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && document.body.classList.contains('sidebar-open')) {
+            setSidebarOpen(false);
+            sidebarToggle.focus();
+        }
+    });
 
 
     var navItems = document.querySelectorAll('.nav-item[data-view]');
@@ -331,6 +355,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
             loadView(viewTarget);
+            setSidebarOpen(false);
 
 
         });

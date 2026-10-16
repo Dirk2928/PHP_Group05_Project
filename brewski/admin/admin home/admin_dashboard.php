@@ -19,9 +19,13 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../admin.css?v=<?= filemtime(__DIR__ . '/../admin.css') ?>">
     <link rel="stylesheet" href="dashboard.css?v=<?= filemtime(__DIR__ . '/dashboard.css') ?>">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <header class="topbar">
+        <button type="button" id="sidebarToggle" class="icon-btn sidebar-toggle" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
         <img class="topbar-logo" src="../../images/brewskilogo.png" alt="Brewski logo">
         <div class="profile-wrapper">
             <span class="profile-label">Admin</span>
@@ -33,38 +37,38 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
         </div>
     </header>
 
-    <aside id="sidebar" class="sidebar">
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
         <div class="sidebar-brand">brewski</div>
         <nav class="sidebar-nav">
-            <button type="button" class="nav-item active" data-view="home">Home</button>
+            <button type="button" class="nav-item active" data-view="home"><i class="nav-icon" data-lucide="layout-dashboard" aria-hidden="true"></i><span>Home</span></button>
             <button type="button" class="nav-item" data-view="../product%20management/product_management.php">
-                Beverage Menu
+                <i class="nav-icon" data-lucide="coffee" aria-hidden="true"></i><span>Beverage Menu</span>
             </button>
             <button type="button" class="nav-item nav-parent" id="customerParent" aria-expanded="false" aria-controls="customerSubmenu">
-                Customer Management
+                <i class="nav-icon" data-lucide="users-round" aria-hidden="true"></i><span>Customer Management</span>
             </button>
             <div class="submenu" id="customerSubmenu">
                 <button type="button" class="nav-item nav-subitem" data-view="../customer%20information/customer_information.php">
-                    Customer Information
+                    <i class="nav-icon" data-lucide="contact-round" aria-hidden="true"></i><span>Customer Information</span>
                 </button>
                 <button type="button" class="nav-item nav-subitem" data-view="../customer%20information/transactions.php">
-                    Transactions
+                    <i class="nav-icon" data-lucide="receipt-text" aria-hidden="true"></i><span>Transactions</span>
                 </button>
             </div>
             <button type="button" class="nav-item nav-parent" id="staffParent" aria-expanded="false" aria-controls="staffSubmenu">
-                Staff Management
+                <i class="nav-icon" data-lucide="user-round-cog" aria-hidden="true"></i><span>Staff Management</span>
             </button>
             <div class="submenu" id="staffSubmenu">
                 <button type="button" class="nav-item nav-subitem" data-view="../staff%20information/staff_information.php">
-                    Staff Information
+                    <i class="nav-icon" data-lucide="badge-info" aria-hidden="true"></i><span>Staff Information</span>
                 </button>
                 <button type="button" class="nav-item nav-subitem" data-view="../staff%20information/transactions_handled.php">
-                    Transactions Handled
+                    <i class="nav-icon" data-lucide="clipboard-check" aria-hidden="true"></i><span>Transactions Handled</span>
                 </button>
             </div>
-            <button type="button" class="nav-item" data-view="../logs/authentication_logs.php">Activity Logs</button>
-            <button type="button" class="nav-item" data-view="../system settings/settings.php">System Settings</button>
-            <button type="button" class="nav-item" data-view="../profile/profile.php">Profile</button>
+            <button type="button" class="nav-item" data-view="../logs/authentication_logs.php"><i class="nav-icon" data-lucide="clipboard-list" aria-hidden="true"></i><span>Activity Logs</span></button>
+            <button type="button" class="nav-item" data-view="../system settings/settings.php"><i class="nav-icon" data-lucide="settings-2" aria-hidden="true"></i><span>System Settings</span></button>
+            <button type="button" class="nav-item" data-view="../profile/profile.php"><i class="nav-icon" data-lucide="circle-user-round" aria-hidden="true"></i><span>Profile</span></button>
         </nav>
     </aside>
 

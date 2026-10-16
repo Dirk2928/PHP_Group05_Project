@@ -531,36 +531,84 @@ try {
                     $existing->close();
                 }
 
+                // ============================================================
+                // SECURE IMAGE UPLOAD
+                // ============================================================
                 $imageData = null;
                 $imageMimeType = null;
                 $upload = $_FILES['product_image'] ?? null;
-                if ($upload && $upload['error'] !== UPLOAD_ERR_NO_FILE) {
-                    if ($upload['error'] === UPLOAD_ERR_INI_SIZE
-                        || $upload['error'] === UPLOAD_ERR_FORM_SIZE) {
-                        throw new RuntimeException('The image exceeds the server upload limit. Choose a smaller image.');
+
+                if ($upload && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+
+                    switch ($upload['error']) {
+                        case UPLOAD_ERR_OK:
+                            break;
+                        case UPLOAD_ERR_INI_SIZE:
+                        case UPLOAD_ERR_FORM_SIZE:
+                            throw new RuntimeException('The image exceeds the server upload limit. Choose a smaller image.');
+                        case UPLOAD_ERR_PARTIAL:
+                            throw new RuntimeException('The image upload was interrupted. Please try again.');
+                        case UPLOAD_ERR_NO_TMP_DIR:
+                        case UPLOAD_ERR_CANT_WRITE:
+                        case UPLOAD_ERR_EXTENSION:
+                            error_log('Product image upload failed. Error code: ' . $upload['error']);
+                            throw new RuntimeException('The image could not be uploaded. Please try again or contact support.');
+                        default:
+                            throw new RuntimeException('The image upload could not be completed.');
                     }
-                    if ($upload['error'] !== UPLOAD_ERR_OK || $upload['size'] > 5 * 1024 * 1024) {
+
+                    $maxBytes = 5 * 1024 * 1024;
+                    if (($upload['size'] ?? 0) <= 0 || $upload['size'] > $maxBytes) {
                         throw new RuntimeException('Choose an image smaller than 5 MB.');
+                    }
+
+                    if (!is_uploaded_file($upload['tmp_name'])) {
+                        throw new RuntimeException('The product image upload could not be verified.');
                     }
 
                     $fileInfo = new finfo(FILEINFO_MIME_TYPE);
                     $mimeType = $fileInfo->file($upload['tmp_name']);
                     $allowedMimeTypes = [
-                        'image/jpeg' => true,
-                        'image/png' => true,
-                        'image/webp' => true,
+                        'image/jpeg' => 'jpg',
+                        'image/png'  => 'png',
+                        'image/webp' => 'webp',
                     ];
                     if (!isset($allowedMimeTypes[$mimeType])) {
                         throw new RuntimeException('Upload a JPG, PNG, or WebP image.');
                     }
-                    if (!is_uploaded_file($upload['tmp_name'])) {
-                        throw new RuntimeException('The product image upload could not be verified.');
+
+                    $imageInfo = @getimagesize($upload['tmp_name']);
+                    if ($imageInfo === false) {
+                        throw new RuntimeException('The file is not a valid image.');
                     }
+
+                    [$width, $height] = $imageInfo;
+
+                    $maxDimension = 5000;
+                    $maxPixels    = 25000000;
+
+                    if ($width < 1 || $height < 1) {
+                        throw new RuntimeException('The image has invalid dimensions.');
+                    }
+                    if ($width > $maxDimension || $height > $maxDimension) {
+                        throw new RuntimeException('The image is too large. Maximum 5000×5000 pixels.');
+                    }
+                    if (($width * $height) > $maxPixels) {
+                        throw new RuntimeException('The image has too many pixels. Please resize and try again.');
+                    }
+
+                    $detectedFromImage = $imageInfo['mime'] ?? '';
+                    if ($detectedFromImage !== $mimeType) {
+                        throw new RuntimeException('The image appears to be corrupted or is not a valid image file.');
+                    }
+
                     $imageData = file_get_contents($upload['tmp_name']);
-                    if ($imageData === false) {
+                    if ($imageData === false || strlen($imageData) === 0) {
                         throw new RuntimeException('The product image could not be read.');
                     }
+
                     $imageMimeType = $mimeType;
+
                 } elseif ($productId === 0) {
                     throw new RuntimeException('Choose a product image.');
                 }
@@ -1526,7 +1574,6 @@ $pageSize = 10;
             if (selectAll) updateGroupSelectAll(selectAll, group.querySelectorAll('[data-customization-option]'));
         });
     }
-    refreshCatalogControls();
     refreshCatalogControls();
 
     var productList = document.querySelector('#catalog-items .catalog-product-list');

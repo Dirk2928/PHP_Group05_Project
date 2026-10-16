@@ -10,6 +10,7 @@ $active = 'profile';
 $extraStyles = ['customer_profile/customer_profile.css', 'partials/choice.css'];
 
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/user_avatars.php';
 
 if (!brewski_is_logged_in()) {
     brewski_end_session();
@@ -25,6 +26,27 @@ $addressFormValues = [
     'postal_code' => '',
 ];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
+
+// ---- Fetch avatar URL for display ----
+$avatarUrl = null;
+if ($userId > 0) {
+    try {
+        $avatarConn = brewski_db_connection();
+        $avatarStmt = $avatarConn->prepare(
+            'SELECT avatar_mime_type FROM users WHERE user_id = ? LIMIT 1'
+        );
+        $avatarStmt->bind_param('i', $userId);
+        $avatarStmt->execute();
+        $avatarStmt->bind_result($avatarMime);
+        if ($avatarStmt->fetch() && $avatarMime) {
+            $avatarUrl = '/Brewski/brewski/customer/user_avatar.php?id=' . $userId;
+        }
+        $avatarStmt->close();
+        $avatarConn->close();
+    } catch (Throwable $e) {
+        $avatarUrl = null;
+    }
+}
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -49,6 +71,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
 
         $action = (string) ($_POST['action'] ?? '');
 
+        // ---- AVATAR UPLOAD ----
+        if ($action === 'update_avatar') {
+
+            if (!isset($_FILES['avatar'])) {
+                $errors[] = 'Choose an image to upload.';
+            } else {
+                try {
+                    $conn = brewski_db_connection();
+                    $avatar = brewski_read_avatar_upload($_FILES['avatar']);
+
+                    $stmt = $conn->prepare(
+                        'UPDATE users SET avatar_data = ?, avatar_mime_type = ? WHERE user_id = ?'
+                    );
+                    $stmt->bind_param('ssi', $avatar['data'], $avatar['mime'], $userId);
+                    $stmt->execute();
+                    $stmt->close();
+                    $conn->close();
+
+                    $_SESSION['profile_flash'] = 'Your profile picture has been updated.';
+                    header('Location: customer_profile.php');
+                    exit;
+
+                } catch (RuntimeException $e) {
+                    $errors[] = $e->getMessage();
+                }
+            }
+        }
+
+        // ---- AVATAR REMOVE ----
+        if ($action === 'remove_avatar') {
+            $conn = brewski_db_connection();
+            $stmt = $conn->prepare(
+                'UPDATE users SET avatar_data = NULL, avatar_mime_type = NULL WHERE user_id = ?'
+            );
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $stmt->close();
+            $conn->close();
+
+            $_SESSION['profile_flash'] = 'Your profile picture has been removed.';
+            header('Location: customer_profile.php');
+            exit;
+        }
+
+        // ---- UPDATE PROFILE ----
         if ($action === 'update_profile') {
 
             $firstNameInput = trim((string) ($_POST['first_name'] ?? ''));
@@ -74,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
 
             if (!$errors) {
-
                 $check = $pdo->prepare(
                     'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
                 );
@@ -86,7 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
 
             if (!$errors) {
-
                 $update = $pdo->prepare(
                     'UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?'
                 );
@@ -102,6 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
+        // ---- ADD ADDRESS ----
         if ($action === 'add_address') {
 
             foreach (array_keys($addressFormValues) as $field) {
@@ -150,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
+        // ---- CHANGE PASSWORD ----
         if ($action === 'change_password') {
 
             $currentInput = (string) ($_POST['current_password'] ?? '');
@@ -167,11 +234,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
 
             if ($newInput === '') {
-
                 $errors[] = 'Enter a new password.';
-
             } else {
-
                 foreach (brewski_password_failures($newInput, $passwordPolicy) as $failure) {
                     $errors[] = $failure;
                 }
@@ -186,7 +250,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
 
             if (!$errors) {
-
                 $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
                 $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
 
@@ -378,19 +441,91 @@ require __DIR__ . '/../partials/header.php';
             text-align: center;
         }
 
+        /* ---------- Clickable avatar with camera button ---------- */
+        .avatar-form {
+            display: inline-block;
+            margin: 0 0 1.1rem;
+        }
+
+        .avatar-label {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
         .avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 96px;
             height: 96px;
             border-radius: 50%;
             background-color: var(--espresso);
             color: var(--cream);
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 2rem;
             font-weight: 700;
             letter-spacing: 0.05em;
-            margin-bottom: 1.1rem;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .avatar__image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.2s ease;
+        }
+
+        .avatar__edit {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--mocha);
+            color: var(--cream);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--foam);
+            transition: transform 0.15s ease, background-color 0.2s ease;
+            pointer-events: none;
+        }
+
+        .avatar__edit svg,
+        .avatar__edit i {
+            width: 15px;
+            height: 15px;
+            stroke: var(--cream);
+            stroke-width: 2;
+        }
+
+        .avatar-label:hover .avatar__edit {
+            transform: scale(1.1);
+            background-color: var(--espresso);
+        }
+
+        .avatar-label:hover .avatar__image {
+            transform: scale(1.05);
+        }
+
+        .avatar-remove {
+            display: inline-block;
+            font-size: 0.75rem;
+            color: var(--dark-mocha);
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 0;
+            margin: 0 0 0.75rem;
+        }
+
+        .avatar-remove:hover {
+            color: var(--danger);
         }
 
         .profile-summary h2 {
@@ -491,6 +626,7 @@ require __DIR__ . '/../partials/header.php';
             gap: 0.75rem;
             list-style: none;
             margin-bottom: 1.25rem;
+            padding: 0;
         }
 
         .address-list__item {
@@ -656,7 +792,46 @@ require __DIR__ . '/../partials/header.php';
 
             <aside class="card profile-summary">
 
-                <div class="avatar"><?= e($initials) ?></div>
+                <form
+                    method="post"
+                    action="customer_profile.php"
+                    enctype="multipart/form-data"
+                    class="avatar-form"
+                    id="avatar-form"
+                >
+                    <input type="hidden" name="csrf_token" value="<?= e($csrf_token) ?>">
+                    <input type="hidden" name="action" value="update_avatar">
+
+                    <label for="avatar-input" class="avatar-label" title="Change profile picture">
+                        <span class="avatar">
+                            <?php if ($avatarUrl): ?>
+                                <img src="<?= e($avatarUrl) ?>" alt="Profile picture" class="avatar__image">
+                            <?php else: ?>
+                                <?= e($initials) ?>
+                            <?php endif; ?>
+                        </span>
+                        <span class="avatar__edit" aria-hidden="true">
+                            <i data-lucide="camera"></i>
+                        </span>
+                    </label>
+
+                    <input
+                        type="file"
+                        id="avatar-input"
+                        name="avatar"
+                        accept="image/jpeg,image/png,image/webp"
+                        hidden
+                        onchange="document.getElementById('avatar-form').submit();"
+                    >
+                </form>
+
+                <?php if ($avatarUrl): ?>
+                    <form method="post" action="customer_profile.php" style="margin:0;">
+                        <input type="hidden" name="csrf_token" value="<?= e($csrf_token) ?>">
+                        <input type="hidden" name="action" value="remove_avatar">
+                        <button type="submit" class="avatar-remove">Remove photo</button>
+                    </form>
+                <?php endif; ?>
 
                 <h2><?= e($display_first_name . ' ' . $display_last_name) ?></h2>
 
