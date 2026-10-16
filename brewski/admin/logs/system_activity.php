@@ -8,9 +8,11 @@ brewski_require_role(['ADMIN']);
 $logs = [];
 $loadError = '';
 $databaseName = '';
+$databaseUser = '';
 
 try {
     $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
+    $databaseUser = (string) $pdo->query('SELECT CURRENT_USER()')->fetchColumn();
     $statement = $pdo->query(
         "SELECT activity_id, actor_name, actor_role, category, action, description,
                 target_type, target_id, created_at
@@ -22,8 +24,9 @@ try {
 } catch (Throwable $error) {
     error_log('Could not load system activity: ' . $error->getMessage());
     $databaseLabel = $databaseName !== '' ? ' The application is connected to database "' . $databaseName . '".' : '';
-    $loadError = 'System activity could not be read.' . $databaseLabel
-        . ' Confirm that system_activity_logs exists in this database and that the application database user can read it.';
+    $userLabel = $databaseUser !== '' ? ' Database account: ' . $databaseUser . '.' : '';
+    $loadError = 'System activity query failed (' . (string) $error->getCode() . '): '
+        . $error->getMessage() . $databaseLabel . $userLabel;
 }
 
 $escape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
