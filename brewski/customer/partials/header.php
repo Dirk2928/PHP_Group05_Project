@@ -4,13 +4,6 @@ $pageTitle   = $pageTitle   ?? 'brewski';
 $active      = $active      ?? '';
 $extraStyles = $extraStyles ?? [];
 
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$cartSessionUrl = BREWSKI_BASE_URL . '/customer/customer_cart/cart_session.php';
-$checkoutHref = BREWSKI_BASE_URL . '/customer/checkout/checkout.php';
-
 $navItems = [
     'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
     'menu'    => ['label' => 'Menu',    'icon' => 'coffee',        'href' => '../customer_menu/customermenu.php'],
@@ -18,6 +11,37 @@ $navItems = [
     'profile' => ['label' => 'Profile', 'icon' => 'user',          'href' => '../customer_profile/customer_profile.php'],
 ];
 
+$checkoutHref = '/Brewski/brewski/customer/checkout/checkout.php';
+
+// ---- Determine current user's avatar (if any) ----
+$headerAvatarUrl = null;
+if (!empty($_SESSION['user_id'])) {
+    try {
+        require_once __DIR__ . '/../../Db/db_config.php';
+        $avatarConn = brewski_db_connection();
+        $avatarStmt = $avatarConn->prepare(
+            'SELECT avatar_mime_type FROM users WHERE user_id = ? LIMIT 1'
+        );
+        $avatarStmt->bind_param('i', $_SESSION['user_id']);
+        $avatarStmt->execute();
+        $avatarStmt->bind_result($avatarMime);
+        if ($avatarStmt->fetch() && $avatarMime) {
+            $headerAvatarUrl = '/Brewski/brewski/customer/user_avatar.php?id=' . (int) $_SESSION['user_id'];
+        }
+        $avatarStmt->close();
+        $avatarConn->close();
+    } catch (Throwable $e) {
+        $headerAvatarUrl = null;
+    }
+}
+
+$headerInitials = strtoupper(
+    mb_substr((string) ($display_first_name ?? ''), 0, 1) .
+    mb_substr((string) ($display_last_name ?? ''), 0, 1)
+);
+if ($headerInitials === '') {
+    $headerInitials = '?';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,11 +54,6 @@ $navItems = [
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
-
-    <meta name="cart-session-url" content="<?= e($cartSessionUrl) ?>">
-    <meta name="checkout-url" content="<?= e($checkoutHref) ?>">
-    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token']) ?>">
-    <meta name="cart-sync-enabled" content="<?= !empty($_SESSION['user_id']) ? '1' : '0' ?>">
 
     <title><?= e($pageTitle) ?></title>
 
@@ -66,13 +85,11 @@ $navItems = [
 
     <?php endforeach; ?>
 
-    <link rel="stylesheet" href="../customer-typography.css">
-
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        /* Checkout button inside the cart dropdown */
         .cart-dropdown__footer {
-            display: none;
             padding: 0.75rem 1rem 1rem;
             border-top: 1px solid #e8dac4;
             margin-top: 0.5rem;
@@ -103,6 +120,55 @@ $navItems = [
             width: 18px;
             height: 18px;
             stroke: #faf5ee !important;
+        }
+
+        /* Avatar inside the profile dropdown */
+        .profile-dropdown__user {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .profile-dropdown__avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 2px solid #e8dac4;
+            display: block;
+        }
+
+        .profile-dropdown__avatar--initials {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a0f0a;
+            color: #faf5ee;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .profile-dropdown__user-text {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .profile-dropdown__user-text strong {
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .profile-dropdown__user-text span {
+            font-size: 0.8rem;
+            color: #5c4033;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
     </style>
 
@@ -150,7 +216,6 @@ $navItems = [
                     <span
                         class="cart-badge"
                         data-cart-count
-                        <?= (int) $cart_count > 0 ? '' : 'hidden' ?>
                     ><?= (int) $cart_count ?></span>
 
                 </button>
@@ -213,6 +278,59 @@ $navItems = [
                     ></i>
 
                 </button>
+
+                <div
+                    class="profile-dropdown"
+                    id="profile-dropdown"
+                >
+
+                    <div class="profile-dropdown__user">
+
+                        <?php if ($headerAvatarUrl): ?>
+
+                            <img
+                                src="<?= e($headerAvatarUrl) ?>"
+                                alt="Profile picture"
+                                class="profile-dropdown__avatar"
+                            >
+
+                        <?php else: ?>
+
+                            <span class="profile-dropdown__avatar profile-dropdown__avatar--initials">
+                                <?= e($headerInitials) ?>
+                            </span>
+
+                        <?php endif; ?>
+
+                        <div class="profile-dropdown__user-text">
+
+                            <strong><?= e($display_first_name . ' ' . $display_last_name) ?></strong>
+
+                            <span><?= e($display_email) ?></span>
+
+                        </div>
+
+                    </div>
+
+                    <div class="profile-dropdown__divider"></div>
+
+                    <a
+                        href="<?= e($navItems['profile']['href']) ?>"
+                        class="logout-button"
+                    >
+                        <i data-lucide="user-round"></i>
+                        My Profile
+                    </a>
+
+                    <a
+                        href="../../login-signup/logout.php"
+                        class="logout-button"
+                    >
+                        <i data-lucide="log-out"></i>
+                        Logout
+                    </a>
+
+                </div>
 
             </div>
 
