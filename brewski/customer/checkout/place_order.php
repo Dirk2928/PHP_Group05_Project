@@ -2,9 +2,12 @@
 
 ob_start();
 
+$brewskiRequestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+$brewskiRequestHost = explode(':', $brewskiRequestHost)[0];
+
 $brewskiShowErrorDetail = in_array(
-    strtolower((string) ini_get('display_errors')),
-    ['1', 'on', 'true', 'yes'],
+    $brewskiRequestHost,
+    ['localhost', '127.0.0.1', '[::1]', '::1'],
     true
 );
 

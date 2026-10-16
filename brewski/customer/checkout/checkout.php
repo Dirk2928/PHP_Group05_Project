@@ -340,7 +340,7 @@ require __DIR__ . '/../partials/header.php';
         }
 
         if (!response.ok || !result.ok) {
-            console.error('place_order.php replied with HTTP ' + response.status + ':', result);
+            console.error('place_order.php replied with HTTP ' + response.status + ': ' + body);
         }
 
         return { response: response, result: result };
