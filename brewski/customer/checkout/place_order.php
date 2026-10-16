@@ -2,15 +2,6 @@
 
 ob_start();
 
-$brewskiRequestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-$brewskiRequestHost = explode(':', $brewskiRequestHost)[0];
-
-$brewskiShowErrorDetail = in_array(
-    $brewskiRequestHost,
-    ['localhost', '127.0.0.1', '[::1]', '::1'],
-    true
-);
-
 ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../partials/bootstrap.php';
@@ -20,7 +11,7 @@ require_once __DIR__ . '/../../login-signup/email-service-client.php';
 
 header('Content-Type: application/json');
 
-register_shutdown_function(static function () use ($brewskiShowErrorDetail): void {
+register_shutdown_function(static function (): void {
     $body = (string) ob_get_clean();
 
     if (is_array(json_decode($body, true))) {
@@ -45,7 +36,7 @@ register_shutdown_function(static function () use ($brewskiShowErrorDetail): voi
     echo json_encode([
         'ok'     => false,
         'error'  => 'We could not place your order. Please try again.',
-        'detail' => $brewskiShowErrorDetail ? $reason : '',
+        'detail' => $reason,
     ]);
 });
 
@@ -428,6 +419,6 @@ try {
     echo json_encode([
         'ok'     => false,
         'error'  => 'We could not place your order. Please try again.',
-        'detail' => $brewskiShowErrorDetail ? $e->getMessage() : '',
+        'detail' => $e->getMessage(),
     ]);
 }
