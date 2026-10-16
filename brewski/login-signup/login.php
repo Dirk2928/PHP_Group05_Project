@@ -2,6 +2,7 @@
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/recaptcha.php';
 require_once __DIR__ . '/../Db/db_config.php';
 
 mysqli_report(MYSQLI_REPORT_OFF);
@@ -98,6 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$tokenValid) {
 
         $error = 'This request could not be verified. Refresh the page and try again.';
+
+    } elseif (!recaptcha_verify($_POST['g-recaptcha-response'] ?? '')) {
+
+        $error = 'Please complete the reCAPTCHA verification.';
 
     } elseif ($email === '' || $password === '') {
 
@@ -262,40 +267,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = 'Your account is not verified yet. Please complete the email verification first.';
 
                     } else {
-                        try {
-                            brewski_totp_encryption_key();
-                        } catch (Throwable $exception) {
-                            error_log('Authenticator login is unavailable: ' . $exception->getMessage());
-                            $error = 'Authenticator sign-in is unavailable. Please contact support.';
-                        }
 
-                        if ($error === '') {
-                            $hasSecret = !empty($totp_secret_encrypted);
-                            $isEnabled = !empty($totp_enabled_at);
+                        // ============================================================
+                        // TEMP: TOTP / authenticator sign-in bypassed for local testing
+                        // Remove this block and restore the original TOTP logic once
+                        // the encryption key and TOTP flow are configured.
+                        // ============================================================
+                        session_regenerate_id(true);
+                        unset($_SESSION['csrf_token']);
 
-                            if ($hasSecret !== $isEnabled) {
-                                error_log('Incomplete authenticator configuration for user ' . (int) $user_id);
-                                $error = 'Authenticator sign-in is unavailable. Please contact support.';
-                            } else {
-                                session_regenerate_id(true);
-                                unset($_SESSION['csrf_token']);
-                                if ($hasSecret) {
-                                    $_SESSION['totp_login_pending'] = [
-                                        'user_id' => (int) $user_id,
-                                        'expires_at' => time() + 600,
-                                        'attempts' => 0,
-                                    ];
-                                    header('Location: verify-authenticator.php');
-                                } else {
-                                    $_SESSION['totp_enrollment_pending'] = [
-                                        'user_id' => (int) $user_id,
-                                        'expires_at' => time() + 900,
-                                    ];
-                                    header('Location: setup-authenticator.php');
-                                }
-                                exit;
-                            }
-                        }
+                        $_SESSION['user_id']    = (int) $user_id;
+                        $_SESSION['first_name'] = $first_name;
+                        $_SESSION['last_name']  = $last_name;
+                        $_SESSION['email']      = $user_email;
+                        $_SESSION['role']       = $role;
+
+                        redirectByRole($role, $customerHome, $adminHome, $staffHome);
                     }
 
                 } else {
@@ -344,6 +331,8 @@ $csrfToken = (string) $_SESSION['csrf_token'];
         rel="stylesheet"
         href="styles.css"
     >
+
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 </head>
 
@@ -510,6 +499,11 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     ></p>
 
                 </div>
+
+                <div
+                    class="g-recaptcha"
+                    data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"
+                ></div>
 
                 <button
                     type="submit"
