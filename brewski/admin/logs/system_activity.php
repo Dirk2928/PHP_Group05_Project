@@ -8,11 +8,9 @@ brewski_require_role(['ADMIN']);
 $logs = [];
 $loadError = '';
 $databaseName = '';
-$databaseUser = '';
 
 try {
     $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
-    $databaseUser = (string) $pdo->query('SELECT CURRENT_USER()')->fetchColumn();
     $statement = $pdo->query(
         "SELECT activity_id, actor_name, actor_role, category, action, description,
                 target_type, target_id, created_at
@@ -23,10 +21,14 @@ try {
     $logs = $statement->fetchAll();
 } catch (Throwable $error) {
     error_log('Could not load system activity: ' . $error->getMessage());
-    $databaseLabel = $databaseName !== '' ? ' The application is connected to database "' . $databaseName . '".' : '';
-    $userLabel = $databaseUser !== '' ? ' Database account: ' . $databaseUser . '.' : '';
-    $loadError = 'System activity query failed (' . (string) $error->getCode() . '): '
-        . $error->getMessage() . $databaseLabel . $userLabel;
+    if ((string) $error->getCode() === '42S02') {
+        $databaseLabel = $databaseName !== '' ? ' The application database is "' . $databaseName . '".' : '';
+        $loadError = 'The system_activity_logs table is missing from the application database.'
+            . $databaseLabel . ' Run the system activity migration on the Aiven database used by this app.';
+    } else {
+        $loadError = 'System activity query failed (' . (string) $error->getCode() . '): '
+            . $error->getMessage();
+    }
 }
 
 $escape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
