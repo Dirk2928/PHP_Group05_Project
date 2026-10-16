@@ -114,7 +114,7 @@ $csrf_token = $_SESSION['csrf_token'];
             <button
                 type="button"
                 class="nav-item"
-                data-view="profile"
+                data-view="../profile/profile.php"
             >
                 Profile
             </button>

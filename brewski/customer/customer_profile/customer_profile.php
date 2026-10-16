@@ -17,6 +17,7 @@ if (!brewski_is_logged_in()) {
 
 $errors = [];
 $success = '';
+$failedAction = '';
 $addressFormValues = [
     'address_line' => '',
     'city' => '',
@@ -196,6 +197,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                 exit;
             }
         }
+
+        if ($errors) {
+            $failedAction = $action;
+        }
     }
 }
 
@@ -350,6 +355,22 @@ require __DIR__ . '/../partials/header.php';
             margin-bottom: 1.25rem;
         }
 
+        .card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card__header .card__title {
+            margin-bottom: 0;
+        }
+
+        .page [hidden] {
+            display: none !important;
+        }
+
         .profile-summary {
             display: flex;
             flex-direction: column;
@@ -403,6 +424,15 @@ require __DIR__ . '/../partials/header.php';
             gap: 1.1rem;
         }
 
+        .form__actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .form__actions .btn {
+            flex: 1;
+        }
+
         .form__group {
             display: flex;
             flex-direction: column;
@@ -430,6 +460,17 @@ require __DIR__ . '/../partials/header.php';
             outline: none;
             border-color: var(--mocha);
             box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12);
+        }
+
+        .form__group input[readonly] {
+            background-color: var(--latte);
+            color: var(--mocha);
+            cursor: default;
+        }
+
+        .form__group input[readonly]:focus {
+            border-color: var(--latte);
+            box-shadow: none;
         }
 
         .address-section {
@@ -491,6 +532,12 @@ require __DIR__ . '/../partials/header.php';
 
         .btn--block {
             width: 100%;
+        }
+
+        .btn--sm {
+            padding: 0.55rem 0.95rem;
+            font-size: 0.85rem;
+            gap: 0.4rem;
         }
 
         .btn--dark {
@@ -644,12 +691,29 @@ require __DIR__ . '/../partials/header.php';
 
                 <section class="card">
 
-                    <h3 class="card__title">Personal information</h3>
+                    <div class="card__header">
+
+                        <h3 class="card__title">Personal information</h3>
+
+                        <button
+                            type="button"
+                            class="btn btn--light btn--sm"
+                            data-profile-edit
+                        >
+
+                            <i data-lucide="pencil"></i>
+
+                            <span>Edit</span>
+
+                        </button>
+
+                    </div>
 
                     <form
                         method="post"
                         action="customer_profile.php"
                         class="form"
+                        data-profile-form<?= $failedAction === 'update_profile' ? ' data-profile-editing="true"' : '' ?>
                         novalidate
                     >
 
@@ -678,6 +742,8 @@ require __DIR__ . '/../partials/header.php';
                                     value="<?= $display_first_name ?>"
                                     required
                                     maxlength="50"
+                                    readonly
+                                    data-profile-field
                                 >
 
                             </div>
@@ -693,6 +759,8 @@ require __DIR__ . '/../partials/header.php';
                                     value="<?= $display_last_name ?>"
                                     required
                                     maxlength="50"
+                                    readonly
+                                    data-profile-field
                                 >
 
                             </div>
@@ -709,20 +777,36 @@ require __DIR__ . '/../partials/header.php';
                                 name="email"
                                 value="<?= $display_email ?>"
                                 required
+                                readonly
+                                data-profile-field
                             >
 
                         </div>
 
-                        <button
-                            type="submit"
-                            class="btn btn--dark btn--block"
-                        >
+                        <div class="form__actions" data-profile-actions hidden>
 
-                            <i data-lucide="check"></i>
+                            <button
+                                type="button"
+                                class="btn btn--light"
+                                data-profile-cancel
+                            >
 
-                            <span>Save changes</span>
+                                <span>Cancel</span>
 
-                        </button>
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="btn btn--dark"
+                            >
+
+                                <i data-lucide="check"></i>
+
+                                <span>Save changes</span>
+
+                            </button>
+
+                        </div>
 
                     </form>
 
@@ -983,6 +1067,76 @@ require __DIR__ . '/../partials/header.php';
         </div>
 
     </main>
+
+    <script>
+        (function () {
+            var form = document.querySelector('[data-profile-form]');
+
+            if (!form) {
+                return;
+            }
+
+            var editButton = document.querySelector('[data-profile-edit]');
+            var actions = form.querySelector('[data-profile-actions]');
+            var cancelButton = form.querySelector('[data-profile-cancel]');
+            var fields = Array.prototype.slice.call(
+                form.querySelectorAll('[data-profile-field]')
+            );
+            var initialValues = fields.map(function (field) {
+                return field.value;
+            });
+            var editing = false;
+
+            function setEditing(next) {
+                editing = next;
+
+                fields.forEach(function (field, index) {
+                    if (next) {
+                        field.removeAttribute('readonly');
+                    } else {
+                        field.setAttribute('readonly', 'readonly');
+                        field.value = initialValues[index];
+                    }
+                });
+
+                if (editButton) {
+                    editButton.hidden = next;
+                }
+
+                if (actions) {
+                    actions.hidden = !next;
+                }
+
+                if (next && fields.length) {
+                    fields[0].focus();
+                }
+            }
+
+            if (editButton) {
+                editButton.addEventListener('click', function () {
+                    setEditing(true);
+                });
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('click', function () {
+                    setEditing(false);
+
+                    if (editButton) {
+                        editButton.focus();
+                    }
+                });
+            }
+
+            form.addEventListener('submit', function (event) {
+                if (!editing) {
+                    event.preventDefault();
+                }
+            });
+
+            setEditing(form.getAttribute('data-profile-editing') === 'true');
+        })();
+    </script>
 
 <?php require __DIR__ . '/../partials/choice-modal.php'; ?>
 

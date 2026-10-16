@@ -126,8 +126,21 @@ $escape = static function (string $value): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset authenticator | Brewski</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap" rel="stylesheet">
+
     <style>
-        :root { color-scheme: light; font-family: Arial, sans-serif; color: #1a0f0a; background: #faf5ee; }
+        :root {
+            color-scheme: light;
+            --font-brand: "Fredoka", "Century Gothic", sans-serif;
+            --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
+            font-family: var(--font-body);
+            color: #1a0f0a;
+            background: #faf5ee;
+        }
+        h1, h2 { font-family: var(--font-brand); font-weight: 600; }
         body { margin: 0; padding: 2rem 1rem; }
         main { width: min(100%, 30rem); margin: 3rem auto; padding: 2rem; box-sizing: border-box; background: #fff; border: 1px solid #e8dac4; border-radius: 1rem; }
         h1 { margin-top: 0; }
