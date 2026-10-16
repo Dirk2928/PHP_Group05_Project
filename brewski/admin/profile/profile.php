@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -88,6 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['first_name'] = $firstNameInput;
         $_SESSION['last_name']  = $lastNameInput;
         $_SESSION['email']      = $emailInput;
+        brewski_record_activity($pdo, 'profile', 'Updated profile', 'Updated account profile details.');
 
         echo 'ok';
         exit;
@@ -130,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
         $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
+        brewski_record_activity($pdo, 'security', 'Changed password', 'Changed account password.');
 
         session_regenerate_id(true);
 

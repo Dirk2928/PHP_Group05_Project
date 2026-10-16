@@ -7,8 +7,12 @@ brewski_require_role(['ADMIN']);
 
 $logs = [];
 $loadError = '';
+$databaseName = '';
+$databaseUser = '';
 
 try {
+    $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
+    $databaseUser = (string) $pdo->query('SELECT CURRENT_USER()')->fetchColumn();
     $statement = $pdo->query(
         "SELECT activity_id, actor_name, actor_role, category, action, description,
                 target_type, target_id, created_at
@@ -19,7 +23,10 @@ try {
     $logs = $statement->fetchAll();
 } catch (Throwable $error) {
     error_log('Could not load system activity: ' . $error->getMessage());
-    $loadError = 'Activity history is not available yet. Apply the system activity database migration, then reload this page.';
+    $databaseLabel = $databaseName !== '' ? ' The application is connected to database "' . $databaseName . '".' : '';
+    $userLabel = $databaseUser !== '' ? ' Database account: ' . $databaseUser . '.' : '';
+    $loadError = 'System activity query failed (' . (string) $error->getCode() . '): '
+        . $error->getMessage() . $databaseLabel . $userLabel;
 }
 
 $escape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -71,6 +78,7 @@ $categoryLabels = [
                 <span>To</span>
                 <input type="date" id="activityTo" class="toolbar-input" aria-label="End date">
             </label>
+            <button type="button" id="activityRefresh" class="btn btn-secondary">Refresh</button>
             <button type="button" id="activityReset" class="btn btn-secondary">Reset</button>
         </div>
     </div>
@@ -115,7 +123,7 @@ $categoryLabels = [
                         <td colspan="5" class="empty-cell">
                             <div class="empty-state">
                                 <p class="empty-title"><?= $logs ? 'No activity found' : 'No activity recorded yet' ?></p>
-                                <p class="empty-hint"><?= $logs ? 'Try changing or clearing the filters.' : 'Staff and administrator actions will appear here as they happen.' ?></p>
+                                <p class="empty-hint"><?= $logs ? 'Try changing or clearing the filters.' : ($loadError !== '' ? 'Resolve the database message above, then refresh this page.' : 'Staff and administrator actions will appear here as they happen.') ?></p>
                             </div>
                         </td>
                     </tr>
@@ -140,6 +148,7 @@ $categoryLabels = [
     const from = document.getElementById('activityFrom');
     const to = document.getElementById('activityTo');
     const reset = document.getElementById('activityReset');
+    const refresh = document.getElementById('activityRefresh');
     const count = document.getElementById('activityCount');
     const pagination = document.getElementById('activityPagination');
     const noResults = document.getElementById('activityNoResults');
@@ -203,6 +212,13 @@ $categoryLabels = [
         to.value = '';
         currentPage = 1;
         render();
+    });
+    refresh.addEventListener('click', function () {
+        if (typeof window.brewskiReloadView === 'function') {
+            window.brewskiReloadView();
+        } else {
+            window.location.reload();
+        }
     });
     render();
 })();
