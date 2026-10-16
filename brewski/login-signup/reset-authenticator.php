@@ -4,8 +4,13 @@ require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/../Db/connection.php';
 
+$portalKey = brewski_auth_active_portal();
+$loginUrl = brewski_portal_login_url($portalKey);
+$setupUrl = brewski_auth_step_url($portalKey, 'setup-authenticator.php');
+$resetUrl = brewski_auth_step_url($portalKey, 'reset-authenticator.php');
+
 if (empty($_SESSION['user_id'])) {
-    header('Location: login.php');
+    header('Location: ' . $loginUrl);
     exit;
 }
 
@@ -88,7 +93,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
                 unset($_SESSION['totp_reset_attempts'], $_SESSION['totp_setup_secret']);
                 session_regenerate_id(true);
-                header('Location: setup-authenticator.php');
+                header('Location: ' . $setupUrl);
                 exit;
             } catch (PDOException $exception) {
                 if ($pdo->inTransaction()) {
@@ -161,7 +166,7 @@ $escape = static function (string $value): string {
         <p class="error" role="alert"><?= $escape($error) ?></p>
     <?php endif; ?>
 
-    <form method="post" action="reset-authenticator.php">
+    <form method="post" action="<?= $escape($resetUrl) ?>">
         <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
         <label for="current-password">Current password</label>
         <input type="password" id="current-password" name="password" autocomplete="current-password" required>
@@ -175,7 +180,7 @@ $escape = static function (string $value): string {
             required
         >
         <button type="submit">Verify and reset</button>
-        <a href="setup-authenticator.php">Cancel</a>
+        <a href="<?= $escape($setupUrl) ?>">Cancel</a>
     </form>
 </main>
 </body>

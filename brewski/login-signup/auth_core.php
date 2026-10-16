@@ -1,0 +1,309 @@
+<?php
+
+/**
+ * Shared authentication engine.
+ *
+ * Every sign-in entry point (the customer login and the staff/admin portal)
+ * delegates credential checking here. Portals differ only in the policy they
+ * pass in, so password verification, lockout counting and the authenticator
+ * handoff exist in exactly one place.
+ */
+
+require_once __DIR__ . '/session_init.php';
+require_once __DIR__ . '/totp.php';
+require_once __DIR__ . '/settings.php';
+require_once __DIR__ . '/recaptcha.php';
+require_once __DIR__ . '/../Db/db_config.php';
+
+mysqli_report(MYSQLI_REPORT_OFF);
+
+const BREWSKI_AUTH_ERROR = 'error';
+const BREWSKI_AUTH_INVALID = 'invalid';
+const BREWSKI_AUTH_LOCKED = 'locked';
+const BREWSKI_AUTH_INACTIVE = 'inactive';
+const BREWSKI_AUTH_WRONG_PORTAL = 'wrong_portal';
+const BREWSKI_AUTH_TOTP = 'totp';
+const BREWSKI_AUTH_ENROLL = 'enroll';
+
+function brewski_auth_result(
+    string $status,
+    string $message = '',
+    array $user = [],
+    string $redirect = ''
+): array {
+    return [
+        'status'   => $status,
+        'message'  => $message,
+        'user'     => $user,
+        'redirect' => $redirect,
+    ];
+}
+
+/**
+ * Form-level checks shared by every sign-in entry point.
+ *
+ * Kept separate from credential verification: the controller decides what to
+ * show the user, the engine decides whether the credentials are good.
+ *
+ * @return string[] Human-readable problems; the first is the one to display.
+ */
+function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = true): array
+{
+    $submittedToken = $post['csrf_token'] ?? '';
+
+    if (
+        empty($_SESSION['csrf_token'])
+        || !is_string($submittedToken)
+        || !hash_equals((string) $_SESSION['csrf_token'], $submittedToken)
+    ) {
+        return ['This request could not be verified. Refresh the page and try again.'];
+    }
+
+    $errors = [];
+
+    if ($requireRecaptcha && !recaptcha_verify((string) ($post['g-recaptcha-response'] ?? ''))) {
+        $errors[] = 'Please complete the reCAPTCHA verification.';
+    }
+
+    $email = trim((string) ($post['email'] ?? ''));
+    $password = (string) ($post['password'] ?? '');
+
+    if ($email === '' || $password === '') {
+        $errors[] = 'Please fill in all fields.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Please enter a valid email address.';
+    }
+
+    return $errors;
+}
+
+/**
+ * Verify a set of credentials against a portal's role policy.
+ *
+ * On success this leaves the session either fully signed in or holding a
+ * pending authenticator step, and returns the URL to send the browser to.
+ *
+ * @param mysqli $conn    Open database connection.
+ * @param string $email   Submitted email address.
+ * @param string $password Submitted plaintext password.
+ * @param string $portalKey Key from brewski_portals() defining allowed roles.
+ */
+function brewski_authenticate($conn, string $email, string $password, string $portalKey): array
+{
+    $portal = brewski_portal($portalKey);
+    $allowedRoles = $portal['roles'];
+
+    $statement = $conn->prepare(
+        "SELECT
+            user_id,
+            first_name,
+            last_name,
+            email,
+            password,
+            role,
+            is_active,
+            is_locked,
+            totp_secret_encrypted,
+            totp_enabled_at,
+            failed_login_attempts
+         FROM users
+         WHERE email = ?
+         LIMIT 1"
+    );
+
+    if (!$statement) {
+        return brewski_auth_result(
+            BREWSKI_AUTH_ERROR,
+            'Something went wrong while accessing the database.'
+        );
+    }
+
+    $statement->bind_param('s', $email);
+
+    if (!$statement->execute()) {
+        $statement->close();
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_ERROR,
+            'Something went wrong. Please try again.'
+        );
+    }
+
+    $statement->store_result();
+
+    if ($statement->num_rows !== 1) {
+        $statement->close();
+
+        return brewski_auth_result(BREWSKI_AUTH_INVALID, 'Incorrect email or password.');
+    }
+
+    $statement->bind_result(
+        $userId,
+        $firstName,
+        $lastName,
+        $userEmail,
+        $storedPassword,
+        $role,
+        $isActive,
+        $isLocked,
+        $totpSecretEncrypted,
+        $totpEnabledAt,
+        $failedLoginAttempts
+    );
+
+    $statement->fetch();
+    $statement->close();
+
+    $role = strtoupper(trim((string) $role));
+
+    $maxAttempts = brewski_max_login_attempts();
+    $accountLocked = (int) $isLocked === 1;
+    $lockedMessage = 'This account is locked after too many failed sign-in attempts. '
+        . 'Contact an administrator to unlock it.';
+
+    $passwordOk = password_verify($password, $storedPassword);
+
+    // Legacy rows still holding a plaintext password are upgraded in place.
+    if (!$passwordOk && hash_equals((string) $storedPassword, $password)) {
+        $passwordOk = true;
+
+        $upgrade = $conn->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+
+        if ($upgrade) {
+            $newHash = password_hash($password, PASSWORD_DEFAULT);
+            $upgrade->bind_param('si', $newHash, $userId);
+            $upgrade->execute();
+            $upgrade->close();
+        }
+    }
+
+    if ($passwordOk && !$accountLocked) {
+        $resetAttempts = $conn->prepare(
+            'UPDATE users SET failed_login_attempts = 0 WHERE user_id = ?'
+        );
+
+        if ($resetAttempts) {
+            $resetAttempts->bind_param('i', $userId);
+            $resetAttempts->execute();
+            $resetAttempts->close();
+        }
+    }
+
+    if ($accountLocked) {
+        return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+    }
+
+    if (!$passwordOk) {
+        $attempts = (int) $failedLoginAttempts + 1;
+
+        if ($attempts >= $maxAttempts) {
+            $lockUpdate = $conn->prepare(
+                'UPDATE users SET is_locked = 1, failed_login_attempts = 0 WHERE user_id = ?'
+            );
+
+            if ($lockUpdate) {
+                $lockUpdate->bind_param('i', $userId);
+                $lockUpdate->execute();
+                $lockUpdate->close();
+            }
+
+            return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+        }
+
+        $attemptUpdate = $conn->prepare(
+            'UPDATE users SET failed_login_attempts = ? WHERE user_id = ?'
+        );
+
+        if ($attemptUpdate) {
+            $attemptUpdate->bind_param('ii', $attempts, $userId);
+            $attemptUpdate->execute();
+            $attemptUpdate->close();
+        }
+
+        $remaining = $maxAttempts - $attempts;
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_INVALID,
+            'Incorrect email or password. '
+                . $remaining
+                . ($remaining === 1 ? ' attempt' : ' attempts')
+                . ' left before this account is locked.'
+        );
+    }
+
+    // Portal gate. This runs only after the password has verified, so an
+    // attacker without valid credentials learns nothing from it and a real
+    // staff member who reached the wrong sign-in page gets a useful pointer.
+    if ($allowedRoles && !in_array($role, $allowedRoles, true)) {
+        $targetPortal = brewski_portal(brewski_portal_key_for_role($role));
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_WRONG_PORTAL,
+            'This account signs in through the ' . $targetPortal['label'] . '.',
+            [],
+            brewski_portal_login_url($targetPortal['key'])
+        );
+    }
+
+    if ((int) $isActive !== 1) {
+        return brewski_auth_result(
+            BREWSKI_AUTH_INACTIVE,
+            'Your account is not verified yet. Please complete the email verification first.'
+        );
+    }
+
+    try {
+        brewski_totp_encryption_key();
+    } catch (Throwable $exception) {
+        error_log('Authenticator login is unavailable: ' . $exception->getMessage());
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_ERROR,
+            'Authenticator sign-in is unavailable. Please contact support.'
+        );
+    }
+
+    $hasSecret = !empty($totpSecretEncrypted);
+    $isEnabled = !empty($totpEnabledAt);
+
+    if ($hasSecret !== $isEnabled) {
+        error_log('Incomplete authenticator configuration for user ' . (int) $userId);
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_ERROR,
+            'Authenticator sign-in is unavailable. Please contact support.'
+        );
+    }
+
+    session_regenerate_id(true);
+    unset($_SESSION['csrf_token']);
+
+    if ($hasSecret) {
+        $_SESSION['totp_login_pending'] = [
+            'user_id'    => (int) $userId,
+            'expires_at' => time() + 600,
+            'attempts'   => 0,
+            'portal'     => $portal['key'],
+        ];
+
+        return brewski_auth_result(
+            BREWSKI_AUTH_TOTP,
+            '',
+            [],
+            brewski_auth_step_url($portal['key'], 'verify-authenticator.php')
+        );
+    }
+
+    $_SESSION['totp_enrollment_pending'] = [
+        'user_id'    => (int) $userId,
+        'expires_at' => time() + 900,
+        'portal'     => $portal['key'],
+    ];
+
+    return brewski_auth_result(
+        BREWSKI_AUTH_ENROLL,
+        '',
+        [],
+        brewski_auth_step_url($portal['key'], 'setup-authenticator.php')
+    );
+}

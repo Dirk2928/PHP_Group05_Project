@@ -5,6 +5,10 @@ require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/../Db/connection.php';
 require_once __DIR__ . '/../Db/activity_log.php';
 
+$portalKey = brewski_auth_active_portal();
+$loginUrl = brewski_portal_login_url($portalKey, '?msg=otp_cancelled');
+$verifyUrl = brewski_auth_step_url($portalKey, 'verify-authenticator.php');
+
 $pending = $_SESSION['totp_login_pending'] ?? null;
 if (
     !is_array($pending)
@@ -12,7 +16,7 @@ if (
     || (int) ($pending['expires_at'] ?? 0) <= time()
 ) {
     unset($_SESSION['totp_login_pending']);
-    header('Location: login.php?msg=otp_cancelled');
+    header('Location: ' . $loginUrl);
     exit;
 }
 
@@ -29,7 +33,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $error = 'This request could not be verified. Refresh the page and try again.';
     } elseif ((int) ($pending['attempts'] ?? 0) >= 5) {
         unset($_SESSION['totp_login_pending']);
-        header('Location: login.php?msg=otp_cancelled');
+        header('Location: ' . $loginUrl);
         exit;
     } else {
         $code = $_POST['code'] ?? '';
@@ -54,7 +58,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     || empty($user['totp_enabled_at'])
                 ) {
                     unset($_SESSION['totp_login_pending']);
-                    header('Location: login.php?msg=otp_cancelled');
+                    header('Location: ' . $loginUrl);
                     exit;
                 }
 
@@ -164,7 +168,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
         <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
 
-    <form method="post" action="verify-authenticator.php">
+    <form method="post" action="<?= htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
         <label for="totp-code">Authenticator or recovery code</label>
         <input
@@ -180,7 +184,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
         >
         <small id="totp-code-help">Authenticator codes have 6 digits. Recovery codes have four groups of 6 letters or numbers.</small>
         <button type="submit">Verify and sign in</button>
-        <a href="login.php?msg=otp_cancelled">Cancel</a>
+        <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>">Cancel</a>
     </form>
 </main>
 </body>

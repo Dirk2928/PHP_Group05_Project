@@ -1,44 +1,17 @@
 <?php
-require_once __DIR__ . '/session_init.php';
-require_once __DIR__ . '/totp.php';
-require_once __DIR__ . '/settings.php';
-require_once __DIR__ . '/recaptcha.php';
-require_once __DIR__ . '/../Db/db_config.php';
-
-mysqli_report(MYSQLI_REPORT_OFF);
+require_once __DIR__ . '/auth_core.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-$customerHome = '../customer/customer_home/customerhome.php';
-$adminHome    = '../admin/admin%20home/admin_dashboard.php';
-$staffHome    = '../staff/orders/orders.php';
+$portal = brewski_portal('customer');
 
 $conn = brewski_db_connect();
 
-function normalizeRole($role)
-{
-    return strtoupper(trim((string) $role));
-}
-
-function redirectByRole($role, $customerHome, $adminHome, $staffHome)
-{
-    $role = normalizeRole($role);
-
-    if ($role === 'ADMIN') {
-        header('Location: ' . $adminHome);
-    } elseif ($role === 'STAFF') {
-        header('Location: ' . $staffHome);
-    } else {
-        header('Location: ' . $customerHome);
-    }
-
-    exit;
-}
-
 $error = '';
 $email_value = '';
+$portalRedirect = '';
 
 if (isset($_SESSION['signup_success'])) {
     $success = $_SESSION['signup_success'];
@@ -73,44 +46,25 @@ if (isset($_GET['timeout'])) {
     $error = 'Your session expired. Please log in again.';
 }
 
-if (isset($_SESSION['user_id'])) {
-    redirectByRole(
-        $_SESSION['role'] ?? '',
-        $customerHome,
-        $adminHome,
-        $staffHome
-    );
+// Staff and administrators belong on the portal; send them straight to their
+// own landing page rather than bouncing them through the customer flow.
+if (brewski_is_logged_in()) {
+    header('Location: ' . brewski_home_for_role(brewski_current_role()));
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $submittedToken = $_POST['csrf_token'] ?? '';
-
-    $tokenValid =
-        !empty($_SESSION['csrf_token'])
-        && is_string($submittedToken)
-        && hash_equals((string) $_SESSION['csrf_token'], $submittedToken);
-
     $email = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $password = (string) ($_POST['password'] ?? '');
 
     $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    if (!$tokenValid) {
+    $submissionErrors = brewski_auth_submission_errors($_POST, (bool) $portal['recaptcha']);
 
-        $error = 'This request could not be verified. Refresh the page and try again.';
+    if ($submissionErrors) {
 
-    } elseif (!recaptcha_verify($_POST['g-recaptcha-response'] ?? '')) {
-
-        $error = 'Please complete the reCAPTCHA verification.';
-
-    } elseif ($email === '' || $password === '') {
-
-        $error = 'Please fill in all fields.';
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-        $error = 'Please enter a valid email address.';
+        $error = $submissionErrors[0];
 
     } elseif (!$conn) {
 
@@ -118,198 +72,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } else {
 
-        $stmt = $conn->prepare(
-            "SELECT
-                user_id,
-                first_name,
-                last_name,
-                email,
-                password,
-                role,
-                is_active,
-                is_locked,
-                totp_secret_encrypted,
-                totp_enabled_at,
-                failed_login_attempts
-             FROM users
-             WHERE email = ?
-             LIMIT 1"
-        );
+        $result = brewski_authenticate($conn, $email, $password, $portal['key']);
 
-        if (!$stmt) {
-
-            $error = 'Something went wrong while accessing the database.';
-
-        } else {
-
-            $stmt->bind_param('s', $email);
-
-            if (!$stmt->execute()) {
-
-                $error = 'Something went wrong. Please try again.';
-
-            } else {
-
-                $stmt->store_result();
-
-                if ($stmt->num_rows === 1) {
-
-                    $stmt->bind_result(
-                        $user_id,
-                        $first_name,
-                        $last_name,
-                        $user_email,
-                        $stored_password,
-                        $role,
-                        $is_active,
-                        $is_locked,
-                        $totp_secret_encrypted,
-                        $totp_enabled_at,
-                        $failed_login_attempts
-                    );
-
-                    $stmt->fetch();
-
-                    $role = normalizeRole($role);
-
-                    $max_attempts = brewski_max_login_attempts();
-                    $isLocked = (int) $is_locked === 1;
-                    $lockedMessage = 'This account is locked after too many failed sign-in attempts. '
-                        . 'Contact an administrator to unlock it.';
-
-                    $passwordOk = password_verify($password, $stored_password);
-
-                    if (
-                        !$passwordOk &&
-                        hash_equals((string) $stored_password, $password)
-                    ) {
-                        $passwordOk = true;
-
-                        $newHash = password_hash($password, PASSWORD_DEFAULT);
-
-                        $upd = $conn->prepare(
-                            "UPDATE users
-                             SET password = ?
-                             WHERE user_id = ?"
-                        );
-
-                        if ($upd) {
-                            $upd->bind_param('si', $newHash, $user_id);
-                            $upd->execute();
-                            $upd->close();
-                        }
-                    }
-
-                    if ($passwordOk && !$isLocked) {
-
-                        $resetAttempts = $conn->prepare(
-                            "UPDATE users
-                             SET failed_login_attempts = 0
-                             WHERE user_id = ?"
-                        );
-
-                        if ($resetAttempts) {
-                            $resetAttempts->bind_param('i', $user_id);
-                            $resetAttempts->execute();
-                            $resetAttempts->close();
-                        }
-                    }
-
-                    if ($isLocked) {
-
-                        $error = $lockedMessage;
-
-                    } elseif (!$passwordOk) {
-
-                        $attempts = (int) $failed_login_attempts + 1;
-
-                        if ($attempts >= $max_attempts) {
-
-                            $lockUpdate = $conn->prepare(
-                                "UPDATE users
-                                 SET is_locked = 1,
-                                     failed_login_attempts = 0
-                                 WHERE user_id = ?"
-                            );
-
-                            if ($lockUpdate) {
-                                $lockUpdate->bind_param('i', $user_id);
-                                $lockUpdate->execute();
-                                $lockUpdate->close();
-                            }
-
-                            $error = $lockedMessage;
-
-                        } else {
-
-                            $attemptUpdate = $conn->prepare(
-                                "UPDATE users
-                                 SET failed_login_attempts = ?
-                                 WHERE user_id = ?"
-                            );
-
-                            if ($attemptUpdate) {
-                                $attemptUpdate->bind_param('ii', $attempts, $user_id);
-                                $attemptUpdate->execute();
-                                $attemptUpdate->close();
-                            }
-
-                            $remaining = $max_attempts - $attempts;
-
-                            $error = 'Incorrect email or password. '
-                                . $remaining
-                                . ($remaining === 1 ? ' attempt' : ' attempts')
-                                . ' left before this account is locked.';
-                        }
-
-                    } elseif ((int) $is_active !== 1) {
-
-                        $error = 'Your account is not verified yet. Please complete the email verification first.';
-
-                    } else {
-                        try {
-                            brewski_totp_encryption_key();
-                        } catch (Throwable $exception) {
-                            error_log('Authenticator login is unavailable: ' . $exception->getMessage());
-                            $error = 'Authenticator sign-in is unavailable. Please contact support.';
-                        }
-
-                        if ($error === '') {
-                            $hasSecret = !empty($totp_secret_encrypted);
-                            $isEnabled = !empty($totp_enabled_at);
-
-                            if ($hasSecret !== $isEnabled) {
-                                error_log('Incomplete authenticator configuration for user ' . (int) $user_id);
-                                $error = 'Authenticator sign-in is unavailable. Please contact support.';
-                            } else {
-                                session_regenerate_id(true);
-                                unset($_SESSION['csrf_token']);
-                                
-                                if ($hasSecret) {
-                                    $_SESSION['totp_login_pending'] = [
-                                        'user_id' => (int) $user_id,
-                                        'expires_at' => time() + 600,
-                                        'attempts' => 0,
-                                    ];
-                                    header('Location: verify-authenticator.php');
-                                } else {
-                                    $_SESSION['totp_enrollment_pending'] = [
-                                        'user_id' => (int) $user_id,
-                                        'expires_at' => time() + 900,
-                                    ];
-                                    header('Location: setup-authenticator.php');
-                                }
-                                exit;
-                            }
-                        }
-                    }
-
-                } else {
-                    $error = 'Incorrect email or password.';
-                }
-            }
-            $stmt->close();
+        if ($result['status'] === BREWSKI_AUTH_TOTP || $result['status'] === BREWSKI_AUTH_ENROLL) {
+            header('Location: ' . $result['redirect']);
+            exit;
         }
+
+        if ($result['status'] === BREWSKI_AUTH_WRONG_PORTAL) {
+            $portalRedirect = $result['redirect'];
+        }
+
+        $error = $result['message'];
     }
 }
 
@@ -432,6 +206,21 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     ?>
 
                 </p>
+
+                <?php if ($portalRedirect !== ''): ?>
+
+                    <p
+                        class="auth__switch"
+                        style="margin-top: -0.5rem;"
+                    >
+
+                        <a href="<?php echo htmlspecialchars($portalRedirect, ENT_QUOTES, 'UTF-8'); ?>">
+                            Go to the staff &amp; admin portal
+                        </a>
+
+                    </p>
+
+                <?php endif; ?>
 
             <?php else: ?>
 

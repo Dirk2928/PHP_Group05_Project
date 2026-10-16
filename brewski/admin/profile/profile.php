@@ -223,7 +223,7 @@ $escape = static function (string $value): string {
 
                 <a
                     class="btn btn-secondary"
-                    href="<?= $escape(BREWSKI_BASE_URL . '/login-signup/setup-authenticator.php') ?>"
+                    href="<?= $escape(brewski_auth_step_url('portal', 'setup-authenticator.php')) ?>"
                 ><?= $hasAuthenticator ? 'Reset authenticator' : 'Set up authenticator' ?></a>
 
                 <a

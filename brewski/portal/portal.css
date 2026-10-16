@@ -1,0 +1,60 @@
+/*
+ * Presentation overrides for the staff & administrator portal.
+ *
+ * The layout, form and controls are shared with the customer sign-in
+ * (login-signup/styles.css). Only the internal-access styling lives here, so
+ * the two entry points stay visually distinct without a second stylesheet.
+ */
+
+.side--portal {
+    background:
+        linear-gradient(
+            160deg,
+            #2b1a10 0%,
+            #1e110a 55%,
+            #120a05 100%
+        );
+}
+
+.portal__badge {
+    display: inline-block;
+    margin: 0 0 1.25rem;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--latte);
+    background: rgb(241 226 202 / 12%);
+    border: 1px solid rgb(241 226 202 / 30%);
+    border-radius: 999px;
+}
+
+.portal__notice {
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: left;
+    color: var(--espresso);
+    background: var(--latte);
+    border: 1px solid #e8dac4;
+    border-radius: 0.65rem;
+}
+
+.auth--portal .g-recaptcha {
+    margin-bottom: 0.9rem;
+    transform: scale(0.92);
+    transform-origin: left center;
+}
+
+@media (max-width: 800px) {
+    .side--portal {
+        justify-content: flex-start;
+        padding-top: 2.5rem;
+    }
+
+    .auth--portal .g-recaptcha {
+        transform: scale(0.85);
+    }
+}

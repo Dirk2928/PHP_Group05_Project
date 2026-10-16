@@ -152,8 +152,13 @@ npm start
 ```
 
 ### 6. Open the app
-With Apache: `http://localhost/brewski/login-signup/login.php`
-With the built-in server: `http://localhost:8000/login-signup/login.php`
+With Apache:
+- Customer sign-in: `http://localhost/brewski/login-signup/login.php`
+- Staff and administrator sign-in: `http://localhost/brewski/portal/login.php`
+
+With the built-in server:
+- Customer sign-in: `http://localhost:8000/login-signup/login.php`
+- Staff and administrator sign-in: `http://localhost:8000/portal/login.php`
 
 Make sure MySQL and the email service are running before testing account activation or placing an order. Login verification uses the authenticator app; order verification codes and receipts are emailed to the address on the customer account.
 

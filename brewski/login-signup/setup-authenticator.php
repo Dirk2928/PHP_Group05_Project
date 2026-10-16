@@ -5,6 +5,11 @@ require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/../Db/connection.php';
 require_once __DIR__ . '/../Db/activity_log.php';
 
+$portalKey = brewski_auth_active_portal();
+$loginUrl = brewski_portal_login_url($portalKey);
+$setupUrl = brewski_auth_step_url($portalKey, 'setup-authenticator.php');
+$resetUrl = brewski_auth_step_url($portalKey, 'reset-authenticator.php');
+
 $enrollmentPending = $_SESSION['totp_enrollment_pending'] ?? null;
 $isPendingEnrollment = is_array($enrollmentPending)
     && (int) ($enrollmentPending['user_id'] ?? 0) > 0
@@ -15,7 +20,7 @@ if (isset($_SESSION['totp_enrollment_pending']) && !$isPendingEnrollment) {
 }
 
 if (empty($_SESSION['user_id']) && !$isPendingEnrollment) {
-    header('Location: login.php');
+    header('Location: ' . $loginUrl);
     exit;
 }
 
@@ -67,7 +72,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $user !== null) {
             unset($_SESSION['totp_setup_secret']);
             if ($isPendingEnrollment) {
                 unset($_SESSION['totp_enrollment_pending']);
-                header('Location: login.php');
+                header('Location: ' . $loginUrl);
             } else {
                 header('Location: ' . brewski_home_for_role(brewski_current_role()));
             }
@@ -132,7 +137,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $user !== null) {
                     } elseif (in_array(brewski_current_role(), ['ADMIN', 'STAFF'], true)) {
                         brewski_record_activity($pdo, 'security', 'Enabled authenticator', 'Enabled authenticator-based sign-in.');
                     }
-                    header('Location: setup-authenticator.php?enrolled=1');
+                    header('Location: ' . $setupUrl . '?enrolled=1');
                     exit;
                 } catch (Throwable $exception) {
                     if ($pdo->inTransaction()) {
@@ -250,7 +255,7 @@ $escape = static function (string $value): string {
         <?php else: ?>
             <p>This account already has an authenticator configured.</p>
         <?php endif; ?>
-        <p><a class="button secondary" href="reset-authenticator.php">Reset authenticator</a></p>
+        <p><a class="button secondary" href="<?= $escape($resetUrl) ?>">Reset authenticator</a></p>
         <a class="button secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>
     <?php elseif ($secret !== ''): ?>
         <?php if ($isPendingEnrollment): ?>
@@ -265,7 +270,7 @@ $escape = static function (string $value): string {
             <summary>Advanced: provisioning URI</summary>
             <p class="uri"><?= $escape($provisioningUri) ?></p>
         </details>
-        <form method="post" action="setup-authenticator.php">
+        <form method="post" action="<?= $escape($setupUrl) ?>">
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
             <input type="hidden" name="action" value="confirm_setup">
             <label for="totp-code">Enter the current six-digit code to confirm</label>
@@ -283,7 +288,7 @@ $escape = static function (string $value): string {
                 <button type="submit">Confirm setup</button>
             </div>
         </form>
-        <form method="post" action="setup-authenticator.php" class="actions">
+        <form method="post" action="<?= $escape($setupUrl) ?>" class="actions">
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
             <input type="hidden" name="action" value="cancel_setup">
             <button class="secondary" type="submit">Cancel</button>
