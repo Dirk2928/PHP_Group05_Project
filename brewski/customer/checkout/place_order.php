@@ -1,11 +1,44 @@
 <?php
 
+ob_start();
+
+ini_set('display_errors', '0');
+
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../partials/order_support.php';
 require_once __DIR__ . '/../../login-signup/email-service-client.php';
 
 header('Content-Type: application/json');
+
+register_shutdown_function(static function (): void {
+    $body = (string) ob_get_clean();
+
+    if (is_array(json_decode($body, true))) {
+        echo $body;
+        return;
+    }
+
+    $fatal = error_get_last();
+    $reason = trim($body);
+
+    if ($reason === '') {
+        $reason = (string) ($fatal['message'] ?? 'The script stopped before it could reply.');
+    }
+
+    error_log('place_order.php returned a non-JSON response: ' . $reason);
+
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+    }
+
+    echo json_encode([
+        'ok'     => false,
+        'error'  => 'We could not place your order. Please try again.',
+        'detail' => brewski_env('RENDER', '') === '' ? $reason : '',
+    ]);
+});
 
 if (empty($_SESSION['user_id'])) {
     http_response_code(401);

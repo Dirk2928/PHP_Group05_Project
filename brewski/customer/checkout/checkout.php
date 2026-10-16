@@ -307,32 +307,60 @@ require __DIR__ . '/../partials/header.php';
         return data;
     }
 
+    function describe(result, fallback) {
+        var message = result.error || fallback;
+
+        if (result.detail) {
+            message += ' [' + result.detail + ']';
+        }
+
+        return message;
+    }
+
+    async function postPlaceOrder(action, extra) {
+        var data = formData(action);
+
+        if (extra) {
+            Object.keys(extra).forEach(function (key) {
+                data.set(key, extra[key]);
+            });
+        }
+
+        var response = await fetch('place_order.php', { method: 'POST', body: data });
+        var body = await response.text();
+
+        try {
+            return { response: response, result: JSON.parse(body) };
+        } catch (parseError) {
+            throw new Error(
+                'the server sent an unexpected reply (HTTP ' + response.status + '): '
+                + body.replace(/\s+/g, ' ').slice(0, 160)
+            );
+        }
+    }
+
     async function sendCode() {
         resendButton.disabled = true;
         otpMessage.textContent = 'Sending verification code…';
         otpMessage.style.color = '#5c4033';
 
         try {
-            var response = await fetch('place_order.php', {
-                method: 'POST',
-                body: formData('request_otp')
-            });
-            var result = await response.json();
+            var call = await postPlaceOrder('request_otp');
 
-            if (!response.ok || !result.ok) {
-                showError(result.error || 'Could not send a verification code.', otpMessage);
+            if (!call.response.ok || !call.result.ok) {
+                showError(describe(call.result, 'Could not send a verification code.'), otpMessage);
                 resendButton.disabled = false;
                 return false;
             }
 
-            otpMessage.textContent = result.message;
+            otpMessage.textContent = call.result.message;
             otpMessage.style.color = '#2f6b3a';
             resendButton.disabled = false;
             otpInput.value = '';
             otpInput.focus();
             return true;
         } catch (error) {
-            showError('Network error. Please try again.', otpMessage);
+            showError('Could not send the code: ' + error.message, otpMessage);
             resendButton.disabled = false;
             return false;
         }
@@ -371,12 +399,9 @@ require __DIR__ . '/../partials/header.php';
         otpMessage.textContent = 'Verifying code and placing your order…';
         otpMessage.style.color = '#5c4033';
 
-        var data = formData('verify_otp');
-        data.set('otp', otpInput.value);
-
         try {
-            var response = await fetch('place_order.php', { method: 'POST', body: data });
-            var result = await response.json();
+            var call = await postPlaceOrder('verify_otp', { otp: otpInput.value });
+            var result = call.result;
 
             if (result.ok) {
                 try {
@@ -388,9 +413,9 @@ require __DIR__ . '/../partials/header.php';
                 return;
             }
 
-            showError(result.error || 'Could not verify your code.', otpMessage);
+            showError(describe(result, 'Could not verify your code.'), otpMessage);
         } catch (error) {
-            showError('Network error. Please try again.', otpMessage);
+            showError('Could not place the order: ' + error.message, otpMessage);
         }
 
         verifyButton.disabled = false;
