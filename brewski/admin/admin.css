@@ -294,6 +294,229 @@ body {
     margin-left: var(--sidebar-width);
 }
 
+/* Shared admin shell */
+:root {
+    --sidebar-width: 264px;
+    --shell-shadow: 0 8px 24px rgba(30, 17, 10, 0.08);
+}
+
+.topbar {
+    height: 72px;
+    padding: 0 28px;
+    background: rgba(250, 246, 238, 0.96);
+    border-bottom-color: var(--line);
+    box-shadow: 0 2px 12px rgba(30, 17, 10, 0.04);
+    backdrop-filter: blur(12px);
+}
+
+.topbar-logo {
+    width: 46px;
+    height: 46px;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+}
+
+.profile-wrapper {
+    gap: 10px;
+    padding: 5px 6px 5px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+}
+
+.profile-label {
+    color: var(--text-body);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+}
+
+.profile-btn {
+    width: 36px;
+    height: 36px;
+    background-color: var(--surface-muted);
+    border-color: var(--line-strong);
+    transition: background-color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+
+.profile-btn:hover {
+    background-color: var(--latte);
+    transform: translateY(-1px);
+}
+
+.profile-menu {
+    margin-top: 12px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shell-shadow);
+}
+
+.profile-menu-item {
+    padding: 11px 16px;
+    text-decoration: none;
+}
+
+.sidebar {
+    top: 72px;
+    height: calc(100vh - 72px);
+    padding: 20px 12px 24px;
+    background: linear-gradient(180deg, #26170f 0%, var(--espresso) 55%, #190e09 100%);
+    border-right-color: rgba(241, 226, 202, 0.1);
+    box-shadow: 8px 0 24px rgba(30, 17, 10, 0.08);
+    scrollbar-color: rgba(241, 226, 202, 0.24) transparent;
+    scrollbar-width: thin;
+}
+
+.sidebar-brand {
+    margin: 2px 8px 22px;
+    padding: 15px 12px 17px;
+    color: var(--latte);
+    font-family: var(--font-brand);
+    font-size: 1.65rem;
+    letter-spacing: 0.035em;
+    text-align: left;
+    border-bottom: 1px solid rgba(241, 226, 202, 0.14);
+}
+
+.sidebar-nav {
+    gap: 4px;
+}
+
+.nav-item {
+    position: relative;
+    min-height: 44px;
+    padding: 11px 14px;
+    margin: 0 4px;
+    border-radius: 10px;
+    color: rgba(241, 226, 202, 0.82);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease, transform var(--transition-speed) ease;
+}
+
+.nav-item:hover {
+    background: rgba(241, 226, 202, 0.1);
+    color: var(--cream);
+    transform: translateX(2px);
+}
+
+.nav-item.active {
+    margin: 0 4px;
+    color: var(--espresso);
+    background: var(--latte);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+    font-weight: 700;
+}
+
+.nav-item.active:hover {
+    background: #f6e9d4;
+}
+
+.nav-parent {
+    margin-top: 3px;
+}
+
+.nav-parent::after {
+    color: rgba(241, 226, 202, 0.65);
+    font-size: 12px;
+}
+
+.nav-parent[aria-expanded="true"] {
+    color: var(--cream);
+    background: rgba(241, 226, 202, 0.08);
+}
+
+.submenu {
+    margin: 1px 4px 5px 12px;
+    padding: 5px 0 5px 8px;
+    border-left: 1px solid rgba(241, 226, 202, 0.22);
+    border-radius: 0;
+    background: transparent;
+}
+
+.nav-subitem {
+    min-height: 38px;
+    padding: 9px 11px;
+    margin: 1px 0;
+    border-radius: 8px;
+    color: rgba(241, 226, 202, 0.72);
+    font-size: 12px;
+}
+
+.nav-subitem:hover,
+.nav-subitem.active {
+    color: var(--cream);
+    background: rgba(241, 226, 202, 0.1);
+    border-color: transparent;
+    transform: none;
+}
+
+.nav-subitem.active {
+    box-shadow: inset 2px 0 var(--latte);
+}
+
+.main-content {
+    padding-top: 96px;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 216px;
+    }
+
+    .topbar {
+        height: 64px;
+        padding: 0 16px;
+    }
+
+    .topbar-logo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .sidebar {
+        top: 64px;
+        height: calc(100vh - 64px);
+        padding: 12px 8px 20px;
+    }
+
+    .sidebar-brand {
+        margin-bottom: 14px;
+        padding: 11px 10px 14px;
+        font-size: 1.4rem;
+    }
+
+    .main-content {
+        padding: 84px 16px 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --sidebar-width: 188px;
+    }
+
+    .topbar {
+        padding: 0 12px;
+    }
+
+    .profile-wrapper {
+        gap: 7px;
+        padding-left: 9px;
+    }
+
+    .profile-label {
+        font-size: 12px;
+    }
+
+    .nav-item {
+        padding-right: 10px;
+        padding-left: 11px;
+        font-size: 12px;
+    }
+}
+
 .main-content h1 {
     margin: 0;
     font-size: 24px;
