@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/../Db/connection.php';
+require_once __DIR__ . '/../Db/activity_log.php';
 
 $enrollmentPending = $_SESSION['totp_enrollment_pending'] ?? null;
 $isPendingEnrollment = is_array($enrollmentPending)
@@ -127,6 +128,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $user !== null) {
                         $_SESSION['created_at'] = time();
                         $_SESSION['last_activity'] = time();
                         unset($_SESSION['totp_enrollment_pending']);
+                        brewski_record_activity($pdo, 'authentication', 'Signed in', 'Signed in after authenticator enrollment.');
+                    } elseif (in_array(brewski_current_role(), ['ADMIN', 'STAFF'], true)) {
+                        brewski_record_activity($pdo, 'security', 'Enabled authenticator', 'Enabled authenticator-based sign-in.');
                     }
                     header('Location: setup-authenticator.php?enrolled=1');
                     exit;

@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../../Db/staff_columns.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -139,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         $newId = (int) $pdo->lastInsertId();
+        brewski_record_activity($pdo, 'team', 'Created staff account', 'Created staff account for ' . $firstName . ' ' . $lastName . '.', 'staff', $newId);
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
@@ -228,6 +230,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
         }
 
+        brewski_record_activity(
+            $pdo,
+            'team',
+            'Updated staff account',
+            'Updated staff account #' . (int) $staffId . ' (' . $firstName . ' ' . $lastName . ').',
+            'staff',
+            (int) $staffId
+        );
+
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
             'message' => 'Staff account #' . (int) $staffId . ' was updated.',
@@ -276,6 +287,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $deleted = $delete->rowCount();
+        if ($deleted > 0) {
+            brewski_record_activity($pdo, 'team', 'Deleted staff accounts', 'Deleted ' . $deleted . ' staff account(s).');
+        }
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',

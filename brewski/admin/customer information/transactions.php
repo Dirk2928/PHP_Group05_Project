@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -77,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE orders SET order_status = ? WHERE order_id = ?');
         $update->execute([$statusInput, (int) $orderId]);
+        brewski_record_activity($pdo, 'orders', 'Updated order status', 'Changed order #' . (int) $orderId . ' to ' . $statusInput . '.', 'order', (int) $orderId);
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
@@ -90,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $delete = $pdo->prepare('DELETE FROM orders WHERE order_id = ?');
         $delete->execute([(int) $orderId]);
+        brewski_record_activity($pdo, 'orders', 'Deleted order', 'Deleted order #' . (int) $orderId . '.', 'order', (int) $orderId);
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',

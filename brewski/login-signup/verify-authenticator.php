@@ -3,6 +3,7 @@
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/../Db/connection.php';
+require_once __DIR__ . '/../Db/activity_log.php';
 
 $pending = $_SESSION['totp_login_pending'] ?? null;
 if (
@@ -102,6 +103,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $_SESSION['created_at'] = time();
                     $_SESSION['last_activity'] = time();
                     unset($_SESSION['totp_login_pending']);
+                    brewski_record_activity($pdo, 'authentication', 'Signed in', 'Signed in successfully.');
                     session_write_close();
 
                     header('Location: ' . brewski_home_for_role((string) $user['role']));

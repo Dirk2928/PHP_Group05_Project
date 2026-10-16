@@ -67,6 +67,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 </button>
             </div>
             <button type="button" class="nav-item" data-view="../logs/authentication_logs.php"><i class="nav-icon" data-lucide="clipboard-list" aria-hidden="true"></i><span>Activity Logs</span></button>
+            <button type="button" class="nav-item" data-view="../logs/system_activity.php"><i class="nav-icon" data-lucide="activity" aria-hidden="true"></i><span>System Activity</span></button>
             <button type="button" class="nav-item" data-view="../system settings/settings.php"><i class="nav-icon" data-lucide="settings-2" aria-hidden="true"></i><span>System Settings</span></button>
             <button type="button" class="nav-item" data-view="../profile/profile.php"><i class="nav-icon" data-lucide="circle-user-round" aria-hidden="true"></i><span>Profile</span></button>
         </nav>
