@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $firstName  = trim((string) ($_POST['first_name'] ?? ''));
         $lastName   = trim((string) ($_POST['last_name'] ?? ''));
         $email      = trim((string) ($_POST['email'] ?? ''));
-        $activeRaw  = (string) ($_POST['is_active'] ?? '');
+        $statusRaw  = (string) ($_POST['is_active'] ?? '');
 
         if ($customerId === false || $customerId <= 0) {
             customer_information_respond(false, 'Please choose a customer to update.');
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             customer_information_respond(false, 'Please enter a valid email address.');
         }
 
-        if ($activeRaw !== '0' && $activeRaw !== '1') {
+        if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
             customer_information_respond(false, 'Please choose a valid status.');
         }
 
@@ -120,18 +120,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             customer_information_respond(false, 'That email address is already used by another account.');
         }
 
+        $sets   = ['first_name = ?', 'last_name = ?', 'email = ?'];
+        $params = [$firstName, $lastName, $email];
+
+        if ($statusRaw === 'locked') {
+
+            $sets[] = 'is_locked = 1';
+
+        } else {
+
+            $sets[] = 'is_active = ?';
+            $sets[] = 'is_locked = 0';
+            $params[] = $statusRaw === '1' ? 1 : 0;
+
+            if ($statusRaw === '1') {
+                $sets[] = 'failed_login_attempts = 0';
+            }
+        }
+
+        $params[] = (int) $customerId;
+
         $update = $pdo->prepare(
-            'UPDATE users
-             SET first_name = ?, last_name = ?, email = ?, is_active = ?
-             WHERE user_id = ?'
+            'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = ?'
         );
-        $update->execute([
-            $firstName,
-            $lastName,
-            $email,
-            (int) $activeRaw,
-            (int) $customerId,
-        ]);
+        $update->execute($params);
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
@@ -194,7 +206,7 @@ $flash = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
 $customers = $pdo->query(
-    "SELECT user_id, first_name, last_name, email, is_active, created_at
+    "SELECT user_id, first_name, last_name, email, is_active, is_locked, created_at
      FROM users
      WHERE role = 'CUSTOMER'
      ORDER BY user_id DESC"
@@ -230,6 +242,7 @@ $pageSize = 5;
                 <option value="all">All Statuses</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
+                <option value="Locked">Locked</option>
             </select>
         </div>
 
@@ -261,7 +274,13 @@ $pageSize = 5;
                         $customerId = (int) $customer['user_id'];
                         $customerName = trim($customer['first_name'] . ' ' . $customer['last_name']);
                         $customerEmail = (string) $customer['email'];
-                        $customerStatus = ((int) $customer['is_active']) === 1 ? 'Active' : 'Inactive';
+                        $customerLocked = (int) $customer['is_locked'] === 1;
+                        $customerStatus = $customerLocked
+                            ? 'Locked'
+                            : (((int) $customer['is_active']) === 1 ? 'Active' : 'Inactive');
+                        $customerBadge = $customerLocked
+                            ? 'badge-locked'
+                            : ($customerStatus === 'Active' ? 'badge-active' : 'badge-inactive');
                         $customerCreated = $customer['created_at'] !== null
                             ? date('Y-m-d', strtotime((string) $customer['created_at']))
                             : '';
@@ -287,7 +306,7 @@ $pageSize = 5;
 
                             <td>
                                 <span class="js-status">
-                                    <span class="badge <?= $customerStatus === 'Active' ? 'badge-active' : 'badge-inactive' ?>">
+                                    <span class="badge <?= $customerBadge ?>">
                                         <?= $customerStatus ?>
                                     </span>
                                 </span>
@@ -346,7 +365,8 @@ $pageSize = 5;
 
         const STATUS_CLASS = {
             Active: 'badge-active',
-            Inactive: 'badge-inactive'
+            Inactive: 'badge-inactive',
+            Locked: 'badge-locked'
         };
 
         let allRows = Array.from(tbody.querySelectorAll('tr[data-id]'));
@@ -537,6 +557,7 @@ $pageSize = 5;
                             '<select id="customerEditStatus" name="is_active">' +
                                 '<option value="1"' + (data.status === 'Active' ? ' selected' : '') + '>Active</option>' +
                                 '<option value="0"' + (data.status === 'Inactive' ? ' selected' : '') + '>Inactive</option>' +
+                                '<option value="locked"' + (data.status === 'Locked' ? ' selected' : '') + '>Locked</option>' +
                             '</select>' +
                         '</div>' +
                       '</form>',

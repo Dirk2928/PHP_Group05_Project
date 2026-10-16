@@ -78,18 +78,6 @@ if (!defined('BREWSKI_MAX_LOGIN_ATTEMPTS_MAX')) {
     define('BREWSKI_MAX_LOGIN_ATTEMPTS_MAX', 10);
 }
 
-if (!defined('BREWSKI_LOCKOUT_MINUTES_DEFAULT')) {
-    define('BREWSKI_LOCKOUT_MINUTES_DEFAULT', 15);
-}
-
-if (!defined('BREWSKI_LOCKOUT_MINUTES_MIN')) {
-    define('BREWSKI_LOCKOUT_MINUTES_MIN', 1);
-}
-
-if (!defined('BREWSKI_LOCKOUT_MINUTES_MAX')) {
-    define('BREWSKI_LOCKOUT_MINUTES_MAX', 1440);
-}
-
 function brewski_settings_connection()
 {
     static $connection = null;
@@ -452,10 +440,7 @@ function brewski_login_lockout_bounds()
     return [
         'attempts_min' => BREWSKI_MAX_LOGIN_ATTEMPTS_MIN,
         'attempts_max' => BREWSKI_MAX_LOGIN_ATTEMPTS_MAX,
-        'attempts_default' => BREWSKI_MAX_LOGIN_ATTEMPTS_DEFAULT,
-        'lockout_min' => BREWSKI_LOCKOUT_MINUTES_MIN,
-        'lockout_max' => BREWSKI_LOCKOUT_MINUTES_MAX,
-        'lockout_default' => BREWSKI_LOCKOUT_MINUTES_DEFAULT
+        'attempts_default' => BREWSKI_MAX_LOGIN_ATTEMPTS_DEFAULT
     ];
 }
 
@@ -467,38 +452,4 @@ function brewski_max_login_attempts()
         BREWSKI_MAX_LOGIN_ATTEMPTS_MIN,
         BREWSKI_MAX_LOGIN_ATTEMPTS_MAX
     );
-}
-
-function brewski_lockout_minutes()
-{
-    return brewski_bounded_int(
-        'lockout_duration_minutes',
-        BREWSKI_LOCKOUT_MINUTES_DEFAULT,
-        BREWSKI_LOCKOUT_MINUTES_MIN,
-        BREWSKI_LOCKOUT_MINUTES_MAX
-    );
-}
-
-function brewski_lockout_seconds()
-{
-    return brewski_lockout_minutes() * 60;
-}
-
-function brewski_lockout_wait_label($seconds)
-{
-    $seconds = (int) $seconds;
-
-    if ($seconds <= 0) {
-        return '';
-    }
-
-    $minutes = (int) ceil($seconds / 60);
-
-    if ($minutes < 60) {
-        return $minutes . ' minute' . ($minutes === 1 ? '' : 's');
-    }
-
-    $hours = (int) ceil($minutes / 60);
-
-    return $hours . ' hour' . ($hours === 1 ? '' : 's');
 }

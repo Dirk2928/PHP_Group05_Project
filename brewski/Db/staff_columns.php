@@ -7,8 +7,9 @@ function brewski_ensure_staff_columns(PDO $pdo): void
     ];
 
     foreach ($columns as $column => $definition) {
-        $statement = $pdo->prepare('SHOW COLUMNS FROM users LIKE ?');
-        $statement->execute([$column]);
+        $statement = $pdo->query(
+            'SHOW COLUMNS FROM users LIKE ' . $pdo->quote($column)
+        );
 
         if (!$statement->fetch()) {
             $pdo->exec('ALTER TABLE users ADD COLUMN ' . $column . ' ' . $definition);

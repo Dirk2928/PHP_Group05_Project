@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
     job_title VARCHAR(50) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
+    is_locked TINYINT(1) NOT NULL DEFAULT 0,
     activation_token VARCHAR(255) NULL,
     activation_expires DATETIME NULL,
     email_activation_token CHAR(64) NULL,
@@ -18,7 +19,6 @@ CREATE TABLE IF NOT EXISTS users (
     totp_secret_encrypted TEXT NULL,
     totp_enabled_at DATETIME NULL,
     failed_login_attempts TINYINT NOT NULL DEFAULT 0,
-    locked_until DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
@@ -74,8 +74,7 @@ VALUES
     ('delivery_fee', '50'),
     ('free_delivery_threshold', '500'),
     ('delivery_enabled', '1'),
-    ('max_login_attempts', '3'),
-    ('lockout_duration_minutes', '15');
+    ('max_login_attempts', '3');
 
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -407,6 +406,7 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS password VARCHAR(255) NOT NULL,
     ADD COLUMN IF NOT EXISTS role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
     ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS is_locked TINYINT(1) NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS activation_token VARCHAR(255) NULL,
     ADD COLUMN IF NOT EXISTS activation_expires DATETIME NULL,
     ADD COLUMN IF NOT EXISTS email_activation_token CHAR(64) NULL,
@@ -414,7 +414,6 @@ ALTER TABLE users
     ADD COLUMN IF NOT EXISTS totp_secret_encrypted TEXT NULL,
     ADD COLUMN IF NOT EXISTS totp_enabled_at DATETIME NULL,
     ADD COLUMN IF NOT EXISTS failed_login_attempts TINYINT NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS locked_until DATETIME NULL,
     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP;
@@ -566,5 +565,4 @@ VALUES
     ('password_min_uppercase', '1'),
     ('password_min_digits', '1'),
     ('password_min_special', '1'),
-    ('max_login_attempts', '3'),
-    ('lockout_duration_minutes', '15');
+    ('max_login_attempts', '3');

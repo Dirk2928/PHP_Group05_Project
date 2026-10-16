@@ -189,14 +189,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $lastName  = trim((string) $_POST['last_name']);
         $email     = trim((string) $_POST['email']);
         $jobTitle  = trim((string) $_POST['job_title']);
-        $isActive  = (string) ($_POST['is_active'] ?? '0') === '1' ? 1 : 0;
+        $statusRaw = (string) ($_POST['is_active'] ?? '');
+
+        if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
+            admin_staff_respond(false, 'Please choose a valid status.');
+        }
+
+        $sets   = ['first_name = ?', 'last_name = ?', 'email = ?', 'job_title = ?'];
+        $params = [$firstName, $lastName, $email, $jobTitle];
+
+        if ($statusRaw === 'locked') {
+
+            $sets[] = 'is_locked = 1';
+
+        } else {
+
+            $sets[] = 'is_active = ?';
+            $sets[] = 'is_locked = 0';
+            $params[] = $statusRaw === '1' ? 1 : 0;
+
+            if ($statusRaw === '1') {
+                $sets[] = 'failed_login_attempts = 0';
+            }
+        }
+
+        $params[] = (int) $staffId;
 
         $update = $pdo->prepare(
-            'UPDATE users
-                SET first_name = ?, last_name = ?, email = ?, job_title = ?, is_active = ?
-              WHERE user_id = ? AND role = "STAFF"'
+            'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = ? AND role = "STAFF"'
         );
-        $update->execute([$firstName, $lastName, $email, $jobTitle, $isActive, (int) $staffId]);
+        $update->execute($params);
 
         if ($newPassword !== '') {
             $passwordUpdate = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
@@ -272,7 +294,7 @@ $flash = $_SESSION['admin_flash'] ?? null;
 unset($_SESSION['admin_flash']);
 
 $staffMembers = $pdo->query(
-    "SELECT user_id, first_name, last_name, email, job_title, is_active, created_at
+    "SELECT user_id, first_name, last_name, email, job_title, is_active, is_locked, created_at
        FROM users
       WHERE role = 'STAFF'
       ORDER BY user_id DESC"
@@ -306,6 +328,7 @@ $staffMembers = $pdo->query(
                 <option value="all">All statuses</option>
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
+                <option value="Locked">Locked</option>
             </select>
         </div>
 
@@ -339,8 +362,13 @@ $staffMembers = $pdo->query(
                         $staffName = trim((string) $staff['first_name'] . ' ' . (string) $staff['last_name']);
                         $staffEmail = (string) $staff['email'];
                         $staffJob = trim((string) ($staff['job_title'] ?? ''));
-                        $staffActive = (int) $staff['is_active'] === 1;
-                        $staffStatusLabel = $staffActive ? 'Active' : 'Inactive';
+                        $staffLocked = (int) $staff['is_locked'] === 1;
+                        $staffStatusLabel = $staffLocked
+                            ? 'Locked'
+                            : (((int) $staff['is_active']) === 1 ? 'Active' : 'Inactive');
+                        $staffBadge = $staffLocked
+                            ? 'badge-locked'
+                            : ($staffStatusLabel === 'Active' ? 'badge-active' : 'badge-inactive');
                         $staffCreated = (string) $staff['created_at'];
                         $staffCreatedStamp = strtotime($staffCreated);
 
@@ -355,7 +383,6 @@ $staffMembers = $pdo->query(
                             data-first="<?= htmlspecialchars((string) $staff['first_name'], ENT_QUOTES, 'UTF-8') ?>"
                             data-last="<?= htmlspecialchars((string) $staff['last_name'], ENT_QUOTES, 'UTF-8') ?>"
                             data-job="<?= htmlspecialchars($staffJob, ENT_QUOTES, 'UTF-8') ?>"
-                            data-active="<?= $staffActive ? '1' : '0' ?>"
                             data-status="<?= htmlspecialchars($staffStatusLabel, ENT_QUOTES, 'UTF-8') ?>"
                             data-created="<?= htmlspecialchars($staffCreatedStamp !== false ? date('M j, Y', $staffCreatedStamp) : '—', ENT_QUOTES, 'UTF-8') ?>"
                         >
@@ -373,7 +400,7 @@ $staffMembers = $pdo->query(
 
                             <td>
                                 <span class="js-staff-status">
-                                    <span class="badge <?= $staffActive ? 'badge-active' : 'badge-inactive' ?>"><?= htmlspecialchars($staffStatusLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="badge <?= $staffBadge ?>"><?= htmlspecialchars($staffStatusLabel, ENT_QUOTES, 'UTF-8') ?></span>
                                 </span>
                             </td>
 
@@ -550,6 +577,12 @@ $staffMembers = $pdo->query(
                 '<option value="0"' + (selected ? '' : ' selected') + '>Inactive</option>';
         }
 
+        function statusOptions(current) {
+            return '<option value="1"' + (current === 'Active' ? ' selected' : '') + '>Active</option>' +
+                '<option value="0"' + (current === 'Inactive' ? ' selected' : '') + '>Inactive</option>' +
+                '<option value="locked"' + (current === 'Locked' ? ' selected' : '') + '>Locked</option>';
+        }
+
         function createStaff() {
             window.openAdminModal({
                 title: 'Add staff',
@@ -655,7 +688,7 @@ $staffMembers = $pdo->query(
                         '</div>' +
                         '<div class="form-field">' +
                             '<label for="staffEditStatus">Status</label>' +
-                            '<select id="staffEditStatus" name="is_active">' + activeOptions(data.active === '1') + '</select>' +
+                            '<select id="staffEditStatus" name="is_active">' + statusOptions(data.status) + '</select>' +
                         '</div>' +
                         '<div class="form-field form-field-full">' +
                             '<label for="staffEditPassword">New password</label>' +
