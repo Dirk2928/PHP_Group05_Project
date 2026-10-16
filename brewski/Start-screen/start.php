@@ -1,3 +1,8 @@
+<?php
+
+require_once __DIR__ . '/../login-signup/session_init.php';
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -286,5 +291,7 @@
 
         go(0);
     </script>
+
+    <?php require_once __DIR__ . '/../cookie-consent/cookie-consent.php'; ?>
 </body>
 </html>
