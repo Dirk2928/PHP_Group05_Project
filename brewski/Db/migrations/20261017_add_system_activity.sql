@@ -1,5 +1,3 @@
-USE brewski_db;
-
 CREATE TABLE IF NOT EXISTS system_activity_logs (
     activity_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     actor_user_id INT NULL,
