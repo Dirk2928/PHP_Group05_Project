@@ -12,7 +12,7 @@ if (empty($_SESSION['csrf_token'])) {
 $staffId = (int) $_SESSION['user_id'];
 
 $stmt = $pdo->prepare(
-    'SELECT d.delivery_id, d.order_id, d.delivery_status, d.delivery_fee, d.notes,
+    "SELECT d.delivery_id, d.order_id, d.delivery_status, d.delivery_fee, d.notes,
             d.created_at, d.assigned_at, d.picked_up_at, d.delivered_at,
             o.total_amount,
             a.address_line, a.city, a.province, a.postal_code,
@@ -25,8 +25,8 @@ $stmt = $pdo->prepare(
      LEFT JOIN addresses a ON a.address_id = o.address_id
      LEFT JOIN users     u ON u.user_id    = d.staff_id
      ORDER BY
-        FIELD(d.delivery_status, "UNASSIGNED","ASSIGNED","PICKED_UP","IN_TRANSIT","DELIVERED","FAILED","CANCELLED"),
-        d.created_at DESC'
+        FIELD(d.delivery_status, 'UNASSIGNED','ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'),
+        d.created_at DESC"
 );
 $stmt->execute();
 $deliveries = $stmt->fetchAll();

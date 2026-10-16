@@ -138,7 +138,7 @@ if ($action === 'request_otp') {
     }
 
     $userStatement = $pdo->prepare(
-        'SELECT email, first_name FROM users WHERE user_id = ? AND role = "CUSTOMER" LIMIT 1'
+        "SELECT email, first_name FROM users WHERE user_id = ? AND role = 'CUSTOMER' LIMIT 1"
     );
     $userStatement->execute([$userId]);
     $customer = $userStatement->fetch();
@@ -279,8 +279,8 @@ try {
     $total       = $subtotal + $deliveryFee;
 
     $stmt = $pdo->prepare(
-        'INSERT INTO orders (user_id, address_id, total_amount, order_status)
-         VALUES (?, ?, ?, "PENDING")'
+        "INSERT INTO orders (user_id, address_id, total_amount, order_status)
+         VALUES (?, ?, ?, 'PENDING')"
     );
     $stmt->execute([$userId, $addressId, $total]);
     $orderId = (int) $pdo->lastInsertId();
@@ -305,8 +305,8 @@ try {
 
     if ($hasDeliveries) {
         $stmt = $pdo->prepare(
-            'INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
-             VALUES (?, "UNASSIGNED", ?, ?)'
+            "INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
+             VALUES (?, 'UNASSIGNED', ?, ?)"
         );
         $stmt->execute([$orderId, $deliveryFee, $notes !== '' ? $notes : null]);
     }

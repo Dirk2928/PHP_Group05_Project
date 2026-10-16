@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $isActive  = (string) ($_POST['is_active'] ?? '0') === '1' ? 1 : 0;
 
         $insert = $pdo->prepare(
-            'INSERT INTO users (first_name, last_name, email, password, role, job_title, is_active)
-             VALUES (?, ?, ?, ?, "STAFF", ?, ?)'
+            "INSERT INTO users (first_name, last_name, email, password, role, job_title, is_active)
+             VALUES (?, ?, ?, ?, 'STAFF', ?, ?)"
         );
         $insert->execute([
             $firstName,
@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $params[] = (int) $staffId;
 
         $update = $pdo->prepare(
-            'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = ? AND role = "STAFF"'
+            "UPDATE users SET " . implode(', ', $sets) . " WHERE user_id = ? AND role = 'STAFF'"
         );
         $update->execute($params);
 
