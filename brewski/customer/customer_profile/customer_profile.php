@@ -27,19 +27,20 @@ $addressFormValues = [
 ];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
-// ---- Fetch avatar URL for display ----
+// ---- Fetch avatar URL with cache-buster ----
 $avatarUrl = null;
 if ($userId > 0) {
     try {
         $avatarConn = brewski_db_connection();
         $avatarStmt = $avatarConn->prepare(
-            'SELECT avatar_mime_type FROM users WHERE user_id = ? LIMIT 1'
+            'SELECT avatar_mime_type, updated_at FROM users WHERE user_id = ? LIMIT 1'
         );
         $avatarStmt->bind_param('i', $userId);
         $avatarStmt->execute();
-        $avatarStmt->bind_result($avatarMime);
+        $avatarStmt->bind_result($avatarMime, $avatarUpdatedAt);
         if ($avatarStmt->fetch() && $avatarMime) {
-            $avatarUrl = '/Brewski/brewski/customer/user_avatar.php?id=' . $userId;
+            $cacheBuster = $avatarUpdatedAt ? strtotime($avatarUpdatedAt) : time();
+            $avatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId . '&v=' . $cacheBuster;
         }
         $avatarStmt->close();
         $avatarConn->close();
@@ -81,8 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $conn = brewski_db_connection();
                     $avatar = brewski_read_avatar_upload($_FILES['avatar']);
 
+                    // updated_at = NOW() ensures cache-buster URL changes
                     $stmt = $conn->prepare(
-                        'UPDATE users SET avatar_data = ?, avatar_mime_type = ? WHERE user_id = ?'
+                        'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
                     );
                     $stmt->bind_param('ssi', $avatar['data'], $avatar['mime'], $userId);
                     $stmt->execute();
@@ -103,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
         if ($action === 'remove_avatar') {
             $conn = brewski_db_connection();
             $stmt = $conn->prepare(
-                'UPDATE users SET avatar_data = NULL, avatar_mime_type = NULL WHERE user_id = ?'
+                'UPDATE users SET avatar_data = NULL, avatar_mime_type = NULL, updated_at = NOW() WHERE user_id = ?'
             );
             $stmt->bind_param('i', $userId);
             $stmt->execute();
@@ -441,7 +443,6 @@ require __DIR__ . '/../partials/header.php';
             text-align: center;
         }
 
-        /* ---------- Clickable avatar with camera button ---------- */
         .avatar-form {
             display: inline-block;
             margin: 0 0 1.1rem;
