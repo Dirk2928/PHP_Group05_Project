@@ -39,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var products = [];
     var ordersPage = 1;
     var ordersPageSize = 5;
+    var autoRefreshInterval = null;
+    var isRefreshing = false;
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, function (character) {
@@ -75,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!date) {
             return value || '';
-
         }
 
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
@@ -102,6 +103,9 @@ document.addEventListener('DOMContentLoaded', function () {
             credentials: 'same-origin',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
             return response.json();
         });
     }
@@ -119,17 +123,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateOrderSummary() {
-        document.getElementById('activeOrderCount').textContent = orders.filter(function (order) {
-            return order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
-        }).length;
+        var activeElement = document.getElementById('activeOrderCount');
+        var readyElement = document.getElementById('readyOrderCount');
+        var completedElement = document.getElementById('completedOrderCount');
 
-        document.getElementById('readyOrderCount').textContent = orders.filter(function (order) {
-            return order.status === 'READY';
-        }).length;
+        if (activeElement) {
+            activeElement.textContent = orders.filter(function (order) {
+                return order.status !== 'COMPLETED' && order.status !== 'CANCELLED';
+            }).length;
+        }
 
-        document.getElementById('completedOrderCount').textContent = orders.filter(function (order) {
-            return order.status === 'COMPLETED' && isToday(order.created_at);
-        }).length;
+        if (readyElement) {
+            readyElement.textContent = orders.filter(function (order) {
+                return order.status === 'READY';
+            }).length;
+        }
+
+        if (completedElement) {
+            completedElement.textContent = orders.filter(function (order) {
+                return order.status === 'COMPLETED' && isToday(order.created_at);
+            }).length;
+        }
     }
 
     function actionCell(order) {
@@ -181,8 +195,10 @@ document.addEventListener('DOMContentLoaded', function () {
         ordersPagination.innerHTML = '';
 
         ordersPagination.appendChild(pageButton('Previous', ordersPage === 1, false, function () {
-            ordersPage--;
-            renderOrders();
+            if (ordersPage > 1) {
+                ordersPage--;
+                renderOrders();
+            }
         }));
 
         for (var page = 1; page <= pageCount; page++) {
@@ -195,8 +211,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         ordersPagination.appendChild(pageButton('Next', ordersPage === pageCount, false, function () {
-            ordersPage++;
-            renderOrders();
+            if (ordersPage < pageCount) {
+                ordersPage++;
+                renderOrders();
+            }
         }));
     }
 
@@ -267,10 +285,15 @@ document.addEventListener('DOMContentLoaded', function () {
             return selectedCategory === 'ALL' || product.category === selectedCategory;
         });
 
-        document.getElementById('availableProductCount').textContent = availableCount;
-        document.getElementById('totalProductCount').textContent = products.length;
-        document.getElementById('productListCount').textContent =
-            visibleProducts.length + (visibleProducts.length === 1 ? ' item' : ' items');
+        var availableElement = document.getElementById('availableProductCount');
+        var totalElement = document.getElementById('totalProductCount');
+        var listCountElement = document.getElementById('productListCount');
+
+        if (availableElement) availableElement.textContent = availableCount;
+        if (totalElement) totalElement.textContent = products.length;
+        if (listCountElement) {
+            listCountElement.textContent = visibleProducts.length + (visibleProducts.length === 1 ? ' item' : ' items');
+        }
 
         productList.innerHTML = visibleProducts.map(function (product) {
             var state = product.available ? 'Available' : 'Unavailable';
@@ -318,11 +341,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function load() {
+        if (isRefreshing) {
+            return;
+        }
+
+        isRefreshing = true;
+
         fetch(endpoint, {
             credentials: 'same-origin',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
             .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
                 return response.json();
             })
             .then(function (payload) {
@@ -337,10 +369,46 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderCategoryOptions();
                 renderOrders();
                 renderProducts();
+                
+                // Clear any previous error messages on successful load
+                if (feedback.textContent && feedback.textContent.indexOf('could not') !== -1) {
+                    feedback.textContent = '';
+                }
             })
-            .catch(function () {
+            .catch(function (error) {
+                console.error('Error loading orders:', error);
                 feedback.textContent = 'We could not reach the server. Please reload the page.';
+            })
+            .finally(function () {
+                isRefreshing = false;
             });
+    }
+
+    function startAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+        }
+
+        autoRefreshInterval = setInterval(function () {
+            if (document.hidden) {
+                return;
+            }
+
+            var busy = ordersBody.querySelector('button[disabled]') || 
+                       productList.querySelector('button[disabled]');
+            if (busy) {
+                return;
+            }
+
+            load();
+        }, 10000);
+    }
+
+    function stopAutoRefresh() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
     }
 
     ordersBody.addEventListener('click', function (event) {
@@ -363,8 +431,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             feedback.textContent = payload.message || 'Order updated.';
+
+            setTimeout(function () {
+                if (feedback.textContent === payload.message) {
+                    feedback.textContent = '';
+                }
+            }, 3000);
+            
             load();
-        }).catch(function () {
+        }).catch(function (error) {
+            console.error('Error updating order:', error);
             feedback.textContent = 'We could not reach the server. Please try again.';
             button.disabled = false;
         });
@@ -397,8 +473,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             productFeedback.textContent = 'Product availability updated.';
+
+            setTimeout(function () {
+                if (productFeedback.textContent === 'Product availability updated.') {
+                    productFeedback.textContent = '';
+                }
+            }, 3000);
+            
             renderProducts();
-        }).catch(function () {
+        }).catch(function (error) {
+            console.error('Error toggling product:', error);
             productFeedback.textContent = 'We could not reach the server. Please try again.';
             button.disabled = false;
         });
@@ -408,11 +492,24 @@ document.addEventListener('DOMContentLoaded', function () {
         ordersPage = 1;
         renderOrders();
     });
+    
     statusFilter.addEventListener('change', function () {
         ordersPage = 1;
         renderOrders();
     });
+    
     productCategoryFilter.addEventListener('change', renderProducts);
 
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            stopAutoRefresh();
+        } else {
+            load();
+            startAutoRefresh();
+        }
+    });
+
     load();
+    
+    startAutoRefresh();
 });
