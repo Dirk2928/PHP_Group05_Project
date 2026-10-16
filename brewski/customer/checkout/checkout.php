@@ -328,15 +328,22 @@ require __DIR__ . '/../partials/header.php';
 
         var response = await fetch('place_order.php', { method: 'POST', body: data });
         var body = await response.text();
+        var result;
 
         try {
-            return { response: response, result: JSON.parse(body) };
+            result = JSON.parse(body);
         } catch (parseError) {
             throw new Error(
                 'the server sent an unexpected reply (HTTP ' + response.status + '): '
                 + body.replace(/\s+/g, ' ').slice(0, 160)
             );
         }
+
+        if (!response.ok || !result.ok) {
+            console.error('place_order.php replied with HTTP ' + response.status + ':', result);
+        }
+
+        return { response: response, result: result };
     }
 
     async function sendCode() {
