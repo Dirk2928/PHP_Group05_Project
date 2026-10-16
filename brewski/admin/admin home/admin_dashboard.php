@@ -101,7 +101,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 </label>
                 <div class="export-actions">
                     <button type="button" class="dashboard-button dashboard-button-secondary" id="exportCsv">Export CSV</button>
-                    <button type="button" class="dashboard-button dashboard-button-primary" id="exportPdf">Export PDF</button>
+                    <button type="button" class="dashboard-button dashboard-button-primary" id="printReport" title="Print this report or save it as a PDF">Print</button>
                 </div>
             </div>
 
@@ -230,11 +230,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
         </section>
 
         <section id="dynamicView" class="hidden"></section>
-
-        <section id="placeholderView" class="hidden">
-            <h1 id="placeholderTitle">Page Not Found</h1>
-            <p class="subtitle">This section has not been implemented yet.</p>
-        </section>
     </main>
 
     <script src="admin.js?v=<?= filemtime(__DIR__ . '/admin.js') ?>" defer></script>

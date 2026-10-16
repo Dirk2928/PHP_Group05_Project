@@ -10,8 +10,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var homeView = document.getElementById('homeView');
     var dynamicView = document.getElementById('dynamicView');
-    var placeholderView = document.getElementById('placeholderView');
-    var placeholderTitle = document.getElementById('placeholderTitle');
 
 
     var customerParent = document.getElementById('customerParent');
@@ -234,7 +232,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (viewIdentifier === 'home') {
             homeView.classList.remove('hidden');
             dynamicView.classList.add('hidden');
-            placeholderView.classList.add('hidden');
 
 
             dynamicView.innerHTML = '';
@@ -250,7 +247,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
             homeView.classList.add('hidden');
-            placeholderView.classList.add('hidden');
             dynamicView.classList.remove('hidden');
 
 
@@ -285,12 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         else {
-            homeView.classList.add('hidden');
-            dynamicView.classList.add('hidden');
-            placeholderView.classList.remove('hidden');
-
-
-            placeholderTitle.textContent = viewIdentifier.charAt(0).toUpperCase() + viewIdentifier.slice(1);
+            console.warn('Unknown admin view: "' + viewIdentifier + '"');
         }
     }
 

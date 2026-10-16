@@ -627,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     comparePeriod.addEventListener('change', loadDashboard);
     document.getElementById('exportCsv').addEventListener('click', exportCsv);
-    document.getElementById('exportPdf').addEventListener('click', function () {
+    document.getElementById('printReport').addEventListener('click', function () {
         window.print();
     });
 
