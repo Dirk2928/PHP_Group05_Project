@@ -12,8 +12,8 @@ if (empty($_SESSION['csrf_token'])) {
 
 $consentBase = defined('BREWSKI_BASE_URL') ? BREWSKI_BASE_URL : '';
 $consentToken = (string) $_SESSION['csrf_token'];
-$consentAction = $consentBase . '/legal/consent.php';
-$consentPolicy = $consentBase . '/legal/privacy.php';
+$consentAction = $consentBase . '/cookie-consent/consent.php';
+$consentPolicy = $consentBase . '/cookie-consent/privacy.php';
 $consentReturn = brewski_consent_request_path();
 ?>
 <div class="brewski-consent" role="region" aria-label="Cookie notice">
@@ -85,12 +85,13 @@ $consentReturn = brewski_consent_request_path();
         justify-content: space-between;
         gap: 1rem;
         padding: 1rem 1.5rem;
-        background: var(--espresso, #1e110a);
-        color: var(--latte, #f1e2ca);
+        background: #c8763a;
+        background: linear-gradient(180deg, #dd9247 0%, #c8763a 100%);
+        color: var(--espresso, #1e110a);
         font-family: var(--font-body, "Century Gothic", "Questrial", "Segoe UI", sans-serif);
         font-size: 0.85rem;
         line-height: 1.5;
-        box-shadow: 0 -6px 24px rgba(30, 17, 10, 0.28);
+        box-shadow: 0 -8px 28px rgba(30, 17, 10, 0.35);
     }
 
     .brewski-consent__text {
@@ -99,8 +100,9 @@ $consentReturn = brewski_consent_request_path();
     }
 
     .brewski-consent__link {
-        color: var(--cream, #faf6ee);
+        color: var(--espresso, #1e110a);
         text-decoration: underline;
+        text-underline-offset: 2px;
     }
 
     .brewski-consent__actions {
@@ -116,26 +118,26 @@ $consentReturn = brewski_consent_request_path();
         font: inherit;
         font-weight: 600;
         cursor: pointer;
-        background: var(--latte, #f1e2ca);
-        color: var(--espresso, #1e110a);
+        background: var(--espresso, #1e110a);
+        color: var(--latte, #f1e2ca);
     }
 
     .brewski-consent__button:hover {
-        background: var(--cream, #faf6ee);
+        background: var(--dark-mocha, #3c3027);
     }
 
     .brewski-consent__button--quiet {
         background: transparent;
-        border-color: var(--latte, #f1e2ca);
-        color: var(--latte, #f1e2ca);
+        border-color: rgba(30, 17, 10, 0.55);
+        color: var(--espresso, #1e110a);
     }
 
     .brewski-consent__button--quiet:hover {
-        background: rgba(241, 226, 202, 0.16);
+        background: rgba(30, 17, 10, 0.12);
     }
 
     .brewski-consent__button:focus-visible {
-        outline: 2px solid var(--latte, #f1e2ca);
+        outline: 2px solid var(--espresso, #1e110a);
         outline-offset: 2px;
     }
 

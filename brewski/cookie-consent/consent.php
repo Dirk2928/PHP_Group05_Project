@@ -4,7 +4,7 @@ require_once __DIR__ . '/../login-signup/session_init.php';
 require_once __DIR__ . '/consent-state.php';
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    header('Location: ' . BREWSKI_BASE_URL . '/legal/privacy.php');
+    header('Location: ' . BREWSKI_BASE_URL . '/cookie-consent/privacy.php');
     exit;
 }
 

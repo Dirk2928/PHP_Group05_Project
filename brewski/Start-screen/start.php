@@ -292,6 +292,6 @@ require_once __DIR__ . '/../login-signup/session_init.php';
         go(0);
     </script>
 
-    <?php require_once __DIR__ . '/../legal/cookie-consent.php'; ?>
+    <?php require_once __DIR__ . '/../cookie-consent/cookie-consent.php'; ?>
 </body>
 </html>
