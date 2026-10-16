@@ -33,10 +33,10 @@ require_once __DIR__ . '/../login-signup/session_init.php';
             brewski
         </div>
 
-        <nav class="topbar__nav" aria-label="Main navigation">
+        <nav class="topbar__nav">
             <a
                 href="../customer/customer_home/customerhome.php"
-                class="topbar__link topbar__link--active"
+                class="topbar__link"
             >
                 <i data-lucide="home"></i>
                 Home
@@ -52,7 +52,7 @@ require_once __DIR__ . '/../login-signup/session_init.php';
 
             <a
                 href="../login-signup/signup.php"
-                class="topbar__link topbar__link--order"
+                class="topbar__link"
             >
                 <i data-lucide="shopping-bag"></i>
                 Order Now
@@ -76,21 +76,12 @@ require_once __DIR__ . '/../login-signup/session_init.php';
         </video>
 
         <div class="video-overlay">
-            <div class="video-overlay__content">
-                <p class="video-overlay__eyebrow">Your daily coffee ritual</p>
-                <h1 class="video-overlay__tagline">
-                    Brewed to Perfection. Fueling Your Inner Brew.
-                </h1>
-                <p class="video-overlay__supporting">Thoughtfully made coffee, ready for wherever the day takes you.</p>
+            <h1 class="video-overlay__tagline">
+                Brewed to Perfection. Fueling Your Inner Brew.
+            </h1>
 
-                <a href="../customer/customer_home/customerhome.php" class="start-button">
-                    Get Started
-                    <i data-lucide="arrow-up-right" aria-hidden="true"></i>
-                </a>
-            </div>
-            <a class="video-overlay__scroll" href="#topPicks" aria-label="Explore this month's top brews">
-                <span>Explore our top brews</span>
-                <i data-lucide="arrow-down" aria-hidden="true"></i>
+            <a href="../customer/customer_home/customerhome.php" class="start-button">
+                Get Started
             </a>
         </div>
     </div>
@@ -98,7 +89,6 @@ require_once __DIR__ . '/../login-signup/session_init.php';
     <section class="picks" id="topPicks">
         <div class="picks__inner">
             <div class="picks__intro">
-                <p class="picks__eyebrow">Customer favorites</p>
                 <h2 class="picks__title">Top Brews for this Month</h2>
 
                 <p class="picks__text">
