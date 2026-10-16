@@ -46,11 +46,16 @@ $choiceAutoOpen = $choiceAutoOpen ?? false;
 
             <?php foreach ($choiceQuestions as $questionKey => $question): ?>
 
-                <?php $chosen = $choiceValues[$questionKey] ?? null; ?>
+                <?php
+                    $isMulti = !empty($question['multi']);
+                    $chosen = $choiceValues[$questionKey] ?? null;
+                    $chosenList = is_array($chosen) ? $chosen : ($chosen !== null ? [$chosen] : []);
+                ?>
 
                 <section
                     class="choice-question"
                     data-choice-question="<?= e($questionKey) ?>"
+                    data-choice-multi="<?= $isMulti ? '1' : '0' ?>"
                 >
 
                     <h3><?= e($question['question']) ?></h3>
@@ -59,11 +64,13 @@ $choiceAutoOpen = $choiceAutoOpen ?? false;
 
                         <?php foreach ($question['answers'] as $label => $preferences): ?>
 
+                            <?php $isActive = in_array($label, $chosenList, true); ?>
+
                             <button
                                 type="button"
-                                class="choice-answer<?= $chosen === $label ? ' active' : '' ?>"
+                                class="choice-answer<?= $isActive ? ' active' : '' ?>"
                                 data-choice-answer="<?= e($label) ?>"
-                                aria-pressed="<?= $chosen === $label ? 'true' : 'false' ?>"
+                                aria-pressed="<?= $isActive ? 'true' : 'false' ?>"
                             >
                                 <?= e($label) ?>
                             </button>
