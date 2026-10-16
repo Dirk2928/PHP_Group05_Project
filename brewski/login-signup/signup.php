@@ -347,7 +347,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     } else {
 
-                        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                        $scheme = brewski_is_https() ? 'https' : 'http';
                         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
                         $directory = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
                         $activation_url = $scheme . '://' . $host . $directory

@@ -2,6 +2,26 @@
 
 require_once __DIR__ . '/settings.php';
 
+function brewski_is_https(): bool
+{
+    $flag = strtolower(trim((string) ($_SERVER['HTTPS'] ?? '')));
+
+    if ($flag !== '' && $flag !== 'off' && $flag !== '0') {
+        return true;
+    }
+
+    $forwarded = (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '');
+
+    if ($forwarded === '') {
+        return false;
+    }
+
+    $first = explode(',', $forwarded);
+    $proto = strtolower(trim($first[0]));
+
+    return $proto === 'https';
+}
+
 if (!defined('SESSION_IDLE_TIMEOUT')) {
     define('SESSION_IDLE_TIMEOUT', brewski_session_idle_timeout());
 }
@@ -31,7 +51,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
-        'secure'   => !empty($_SERVER['HTTPS']),
+        'secure'   => brewski_is_https(),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);

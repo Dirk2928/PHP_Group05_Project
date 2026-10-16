@@ -1,13 +1,12 @@
 <?php
 
-const SESSION_IDLE_TIMEOUT     = 1800; 
-const SESSION_ABSOLUTE_TIMEOUT = 28800; 
+require_once __DIR__ . '/session_init.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 0,
         'path'     => '/',
-        'secure'   => !empty($_SERVER['HTTPS']),
+        'secure'   => brewski_is_https(),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -34,7 +33,7 @@ if (isset($_SESSION['user_id'])) {
 
         session_destroy();
 
-        header('Location: /brewski/login/login.php?timeout=1');
+        header('Location: ' . brewski_login_url('?timeout=1'));
         exit;
     }
 

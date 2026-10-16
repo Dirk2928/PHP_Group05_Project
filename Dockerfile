@@ -14,6 +14,7 @@ RUN apt-get update \
     && php -m | grep -qi '^mbstring$' \
     && php -m | grep -qi '^curl$' \
     && php -m | grep -qi '^openssl$' \
+    && a2enmod headers rewrite \
     && rm -rf /var/lib/apt/lists/*
 
 RUN printf '%s\n' \
@@ -25,6 +26,10 @@ RUN printf '%s\n' \
         '        AllowOverride None' \
         '        Require all granted' \
         '    </Directory>' \
+        '    RewriteEngine On' \
+        '    RewriteCond %{HTTP:X-Forwarded-Proto} ^http$ [NC]' \
+        '    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]' \
+        '    Header always set Strict-Transport-Security "max-age=31536000"' \
         '    ErrorLog /dev/stderr' \
         '    CustomLog /dev/stdout combined' \
         '</VirtualHost>' \

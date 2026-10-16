@@ -33,7 +33,7 @@ if (is_string($choice) && in_array($choice, ['accept', 'reject'], true)) {
     setcookie(BREWSKI_CONSENT_COOKIE, brewski_consent_cookie_value($choice), [
         'expires'  => time() + BREWSKI_CONSENT_LIFETIME,
         'path'     => '/',
-        'secure'   => !empty($_SERVER['HTTPS']),
+        'secure'   => brewski_is_https(),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
