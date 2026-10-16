@@ -42,7 +42,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
         <nav class="sidebar-nav">
             <button type="button" class="nav-item active" data-view="home"><i class="nav-icon" data-lucide="layout-dashboard" aria-hidden="true"></i><span>Home</span></button>
             <button type="button" class="nav-item" data-view="../product%20management/product_management.php">
-                <i class="nav-icon" data-lucide="coffee" aria-hidden="true"></i><span>Beverage Menu</span>
+                <i class="nav-icon" data-lucide="coffee" aria-hidden="true"></i><span>Products</span>
             </button>
             <button type="button" class="nav-item nav-parent" id="customerParent" aria-expanded="false" aria-controls="customerSubmenu">
                 <i class="nav-icon" data-lucide="users-round" aria-hidden="true"></i><span>Customer Management</span>

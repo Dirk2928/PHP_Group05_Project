@@ -284,16 +284,16 @@ try {
 
                 $assignedProducts = $_POST['product_ids'] ?? [];
                 if (!is_array($assignedProducts)) {
-                    throw new RuntimeException('Choose valid drinks for this add-on.');
+                    throw new RuntimeException('Choose valid products for this add-on.');
                 }
                 $validProductIds = [];
                 foreach ($assignedProducts as $assignedProductId) {
                     if (!is_string($assignedProductId) && !is_int($assignedProductId)) {
-                        throw new RuntimeException('Choose only listed drinks.');
+                        throw new RuntimeException('Choose only listed products.');
                     }
                     $validatedProductId = filter_var($assignedProductId, FILTER_VALIDATE_INT);
                     if (!$validatedProductId || $validatedProductId < 1) {
-                        throw new RuntimeException('Choose only listed drinks.');
+                        throw new RuntimeException('Choose only listed products.');
                     }
                     $validProductIds[] = $validatedProductId;
                 }
@@ -307,7 +307,7 @@ try {
                     $foundProducts = (int) $productCheck->fetch_assoc()['product_count'];
                     $productCheck->free();
                     if ($foundProducts !== count($validProductIds)) {
-                        throw new RuntimeException('One or more selected drinks no longer exist.');
+                        throw new RuntimeException('One or more selected products no longer exist.');
                     }
                 }
 
@@ -466,7 +466,7 @@ try {
                     }
                     $normalizedSizeName = strtolower($customSizeName);
                     if (isset($sizeNames[$normalizedSizeName])) {
-                        throw new RuntimeException('Size names must be unique for each beverage.');
+                        throw new RuntimeException('Size names must be unique for each product.');
                     }
                     if (!is_numeric($customSizePrice)
                         || (float) $customSizePrice < 0
@@ -738,7 +738,7 @@ try {
             brewski_record_activity(
                 $connection,
                 'inventory',
-                'Updated beverage catalog',
+                'Updated product catalog',
                 $message . ($activityTargetId ? ' Reference #' . $activityTargetId . '.' : ''),
                 $activityTargetType,
                 $activityTargetId > 0 ? $activityTargetId : null
@@ -903,13 +903,13 @@ $pageSize = 10;
         <div>
             <span class="catalog-eyebrow">CATALOG OPERATIONS</span>
             <h1>Menu Management</h1>
-            <p class="subtitle">Create categories and manage customer-facing beverages.</p>
+            <p class="subtitle">Create categories and manage customer-facing products.</p>
         </div>
         <nav class="catalog-shortcuts" aria-label="Menu management sections">
             <a href="#catalog-categories"><?= $catalogIcon('layers') ?>Categories</a>
-            <a href="#catalog-create"><?= $catalogIcon('plus') ?>Add beverage</a>
+            <a href="#catalog-create"><?= $catalogIcon('plus') ?>Add product</a>
             <a href="#catalog-addons"><?= $catalogIcon('sparkles') ?>Add-ons</a>
-            <a href="#catalog-items"><?= $catalogIcon('coffee') ?>Menu items</a>
+            <a href="#catalog-items"><?= $catalogIcon('coffee') ?>Products</a>
         </nav>
     </header>
 
@@ -924,7 +924,7 @@ $pageSize = 10;
         <article class="catalog-overview-card">
             <span class="catalog-overview-icon"><?= $catalogIcon('coffee') ?></span>
             <span class="catalog-overview-copy">
-                <span class="catalog-overview-label">Menu items</span>
+                <span class="catalog-overview-label">Products</span>
                 <strong><?= count($products) ?></strong>
             </span>
         </article>
@@ -996,7 +996,7 @@ $pageSize = 10;
     </section>
 
     <section class="catalog-panel" id="catalog-create">
-        <h2><?= $catalogIcon('coffee') ?>Add a beverage</h2>
+        <h2><?= $catalogIcon('coffee') ?>Add a product</h2>
         <?php if (!$categories): ?>
             <p class="catalog-empty">Create a category first to enable product creation.</p>
         <?php else: ?>
@@ -1061,16 +1061,16 @@ $pageSize = 10;
                         </div>
                     <?php endforeach; ?>
                 </fieldset>
-                <button type="submit" class="catalog-button"><?= $catalogIcon('plus') ?>Create beverage</button>
+                <button type="submit" class="catalog-button"><?= $catalogIcon('plus') ?>Create product</button>
             </form>
         <?php endif; ?>
     </section>
 
     <section class="catalog-panel" id="catalog-addons">
         <h2><?= $catalogIcon('sparkles') ?>Add-on management</h2>
-        <p class="catalog-option-hint">Create and edit add-ons, then choose which drinks can use each one. Select all drinks to make an add-on available across the whole menu.</p>
+        <p class="catalog-option-hint">Create and edit add-ons, then choose which products can use each one. Select all products to make an add-on available across the whole menu.</p>
         <?php if (!$products): ?>
-            <p class="catalog-empty">Add a beverage before assigning add-ons.</p>
+            <p class="catalog-empty">Add a product before assigning add-ons.</p>
         <?php else: ?>
             <form class="catalog-form catalog-addon-form" method="post" action="<?= $formAction ?>">
                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
@@ -1086,15 +1086,15 @@ $pageSize = 10;
                         <input type="number" name="addon_price" min="0" max="99999999.99" step="0.01" value="0.00" required>
                     </label>
                     <label>
-                        Maximum quantity per drink
+                        Maximum quantity per product
                         <input type="number" name="addon_max_quantity" min="1" max="99" step="1" value="99" required>
                     </label>
                 </div>
                 <fieldset class="catalog-options">
-                    <legend>Available for drinks</legend>
+                    <legend>Available for products</legend>
                     <label class="catalog-select-all catalog-select-all--all">
                         <input type="checkbox" data-select-all-drinks>
-                        Select all drinks
+                        Select all products
                     </label>
                     <div class="catalog-addon-categories">
                         <?php foreach ($categories as $category): ?>
@@ -1139,8 +1139,8 @@ $pageSize = 10;
                             <h3><?= $escape($addOn['addon_name']) ?></h3>
                             <p class="catalog-addon-summary">
                                 <span>₱<?= number_format((float) $addOn['additional_price'], 2) ?></span>
-                                <span>Max <?= (int) $addOn['max_quantity'] ?> per drink</span>
-                                <span>Assigned to <?= count($addOn['products']) ?> drink(s)</span>
+                                <span>Max <?= (int) $addOn['max_quantity'] ?> per product</span>
+                                <span>Assigned to <?= count($addOn['products']) ?> product(s)</span>
                             </p>
                         </div>
                         <details class="catalog-product__edit">
@@ -1159,15 +1159,15 @@ $pageSize = 10;
                                         <input type="number" name="addon_price" min="0" max="99999999.99" step="0.01" value="<?= number_format((float) $addOn['additional_price'], 2, '.', '') ?>" required>
                                     </label>
                                     <label>
-                                        Maximum quantity per drink
+                                        Maximum quantity per product
                                         <input type="number" name="addon_max_quantity" min="1" max="99" step="1" value="<?= (int) $addOn['max_quantity'] ?>" required>
                                     </label>
                                 </div>
                                 <fieldset class="catalog-options">
-                                    <legend>Available for drinks</legend>
+                                    <legend>Available for products</legend>
                                     <label class="catalog-select-all catalog-select-all--all">
                                         <input type="checkbox" data-select-all-drinks<?= count($addOn['products']) === count($products) ? ' checked' : '' ?>>
-                                        Select all drinks
+                                        Select all products
                                     </label>
                                     <div class="catalog-addon-categories">
                                         <?php foreach ($categories as $category): ?>
@@ -1207,7 +1207,7 @@ $pageSize = 10;
                                 </fieldset>
                                 <button type="submit" class="catalog-button"><?= $catalogIcon('check') ?>Save add-on</button>
                             </form>
-                            <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this add-on? It will be removed from all assigned drinks.">
+                            <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this add-on? It will be removed from all assigned products.">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="addon_delete">
                                 <input type="hidden" name="addon_id" value="<?= (int) $addOn['addon_id'] ?>">
@@ -1225,9 +1225,9 @@ $pageSize = 10;
     </section>
 
     <section class="catalog-panel" id="catalog-items">
-        <h2><?= $catalogIcon('coffee') ?>Menu items</h2>
+        <h2><?= $catalogIcon('coffee') ?>Products</h2>
         <?php if (!$products): ?>
-            <p class="catalog-empty">No beverages have been added yet.</p>
+            <p class="catalog-empty">No products have been added yet.</p>
         <?php else: ?>
             <div class="catalog-product-list">
                 <?php foreach ($products as $product): ?>
@@ -1365,11 +1365,11 @@ $pageSize = 10;
                                 </fieldset>
                                 <button type="submit" class="catalog-button"><?= $catalogIcon('check') ?>Save changes</button>
                             </form>
-                            <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this beverage? Orders that already contain it will prevent deletion.">
+                            <form class="catalog-form catalog-product-delete" method="post" action="<?= $formAction ?>" data-confirm="Delete this product? Orders that already contain it will prevent deletion.">
                                 <input type="hidden" name="csrf_token" value="<?= $escape($_SESSION['catalog_csrf']) ?>">
                                 <input type="hidden" name="operation" value="product_delete">
                                 <input type="hidden" name="product_id" value="<?= (int) $product['product_id'] ?>">
-                                <button type="submit" class="catalog-button catalog-button--danger catalog-icon-button" aria-label="Delete beverage <?= $escape($product['product_name']) ?>" title="Delete beverage">
+                                <button type="submit" class="catalog-button catalog-button--danger catalog-icon-button" aria-label="Delete product <?= $escape($product['product_name']) ?>" title="Delete product">
                                     <?= $catalogIcon('trash-2') ?>
                                 </button>
                             </form>
