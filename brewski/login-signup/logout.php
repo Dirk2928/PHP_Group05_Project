@@ -4,6 +4,9 @@ require_once __DIR__ . '/session_init.php';
 
 if (!empty($_SESSION['user_id'])) {
     require_once __DIR__ . '/../Db/connection.php';
+    require_once __DIR__ . '/../Db/activity_log.php';
+
+    brewski_record_activity($pdo, 'authentication', 'Signed out', 'Signed out of the system.');
 
     try {
         $pdo->beginTransaction();

@@ -1,0 +1,209 @@
+<?php
+
+require_once __DIR__ . '/../../login-signup/session_init.php';
+require_once __DIR__ . '/../../Db/connection.php';
+
+brewski_require_role(['ADMIN']);
+
+$logs = [];
+$loadError = '';
+
+try {
+    $statement = $pdo->query(
+        "SELECT activity_id, actor_name, actor_role, category, action, description,
+                target_type, target_id, created_at
+           FROM system_activity_logs
+          WHERE actor_role IN ('ADMIN', 'STAFF')
+          ORDER BY created_at DESC, activity_id DESC"
+    );
+    $logs = $statement->fetchAll();
+} catch (Throwable $error) {
+    error_log('Could not load system activity: ' . $error->getMessage());
+    $loadError = 'Activity history is not available yet. Apply the system activity database migration, then reload this page.';
+}
+
+$escape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$categoryLabels = [
+    'authentication' => 'Authentication',
+    'orders' => 'Orders',
+    'inventory' => 'Inventory',
+    'team' => 'Team management',
+    'profile' => 'Profile',
+    'security' => 'Security',
+    'system' => 'System',
+];
+?>
+
+<div class="page-container system-activity-page">
+    <div class="page-header">
+        <h1 class="page-title">System Activity</h1>
+        <p class="subtitle">A shared audit trail of staff and administrator sign-ins and operational changes.</p>
+    </div>
+
+    <?php if ($loadError !== ''): ?>
+        <div class="activity-migration-notice" role="status"><?= $escape($loadError) ?></div>
+    <?php endif; ?>
+
+    <div class="toolbar system-activity-filters" aria-label="Filter system activity">
+        <div class="toolbar-filters">
+            <div class="search-field">
+                <svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="search" id="activitySearch" class="toolbar-input" placeholder="Search people or activity..." aria-label="Search people or activity">
+            </div>
+            <select id="activityRole" class="toolbar-select" aria-label="Filter by role">
+                <option value="all">All roles</option>
+                <option value="ADMIN">Admins</option>
+                <option value="STAFF">Staff</option>
+            </select>
+            <select id="activityCategory" class="toolbar-select" aria-label="Filter by activity type">
+                <option value="all">All activity</option>
+                <?php foreach ($categoryLabels as $category => $label): ?>
+                    <option value="<?= $escape($category) ?>"><?= $escape($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <label class="activity-date-filter">
+                <span>From</span>
+                <input type="date" id="activityFrom" class="toolbar-input" aria-label="Start date">
+            </label>
+            <label class="activity-date-filter">
+                <span>To</span>
+                <input type="date" id="activityTo" class="toolbar-input" aria-label="End date">
+            </label>
+            <button type="button" id="activityReset" class="btn btn-secondary">Reset</button>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-scroll">
+            <table class="data-table system-activity-table">
+                <thead>
+                    <tr>
+                        <th>Date / time</th>
+                        <th>Person</th>
+                        <th>Role</th>
+                        <th>Activity</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="activityTableBody">
+                    <?php foreach ($logs as $log): ?>
+                        <?php
+                        $role = strtoupper((string) $log['actor_role']);
+                        $roleClass = $role === 'ADMIN' ? 'badge-role-admin' : 'badge-role-staff';
+                        $createdAt = strtotime((string) $log['created_at']);
+                        $category = strtolower((string) $log['category']);
+                        ?>
+                        <tr data-id="<?= (int) $log['activity_id'] ?>"
+                            data-name="<?= $escape($log['actor_name']) ?>"
+                            data-role="<?= $escape($role) ?>"
+                            data-category="<?= $escape($category) ?>"
+                            data-search="<?= $escape($log['action'] . ' ' . $log['description'] . ' ' . ($log['target_type'] ?? '') . ' ' . ($log['target_id'] ?? '')) ?>"
+                            data-date="<?= $escape(date('Y-m-d', $createdAt ?: time())) ?>">
+                            <td><span class="cell-muted"><?= $escape($createdAt ? date('M j, Y · h:i A', $createdAt) : $log['created_at']) ?></span></td>
+                            <td><span class="cell-strong"><?= $escape($log['actor_name']) ?></span></td>
+                            <td><span class="badge <?= $roleClass ?>"><?= $role === 'ADMIN' ? 'Admin' : 'Staff' ?></span></td>
+                            <td>
+                                <span class="activity-action"><?= $escape($log['action']) ?></span>
+                                <span class="activity-category"><?= $escape($categoryLabels[$category] ?? ucfirst($category)) ?></span>
+                            </td>
+                            <td><span class="cell-muted"><?= $escape($log['description']) ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <tr id="activityNoResults" class="<?= $logs ? 'hidden' : '' ?>">
+                        <td colspan="5" class="empty-cell">
+                            <div class="empty-state">
+                                <p class="empty-title"><?= $logs ? 'No activity found' : 'No activity recorded yet' ?></p>
+                                <p class="empty-hint"><?= $logs ? 'Try changing or clearing the filters.' : 'Staff and administrator actions will appear here as they happen.' ?></p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pagination-footer">
+            <p class="pagination-info" id="activityCount"></p>
+            <div class="pagination-nav" id="activityPagination"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const body = document.getElementById('activityTableBody');
+    if (!body) return;
+
+    const search = document.getElementById('activitySearch');
+    const role = document.getElementById('activityRole');
+    const category = document.getElementById('activityCategory');
+    const from = document.getElementById('activityFrom');
+    const to = document.getElementById('activityTo');
+    const reset = document.getElementById('activityReset');
+    const count = document.getElementById('activityCount');
+    const pagination = document.getElementById('activityPagination');
+    const noResults = document.getElementById('activityNoResults');
+    const rows = Array.from(body.querySelectorAll('tr[data-id]'));
+    const pageSize = 10;
+    let currentPage = 1;
+
+    function addPageButton(label, disabled, active, handler) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'page-link' + (active ? ' active' : '');
+        button.textContent = label;
+        button.disabled = disabled;
+        button.addEventListener('click', handler);
+        pagination.appendChild(button);
+    }
+
+    function render() {
+        const term = search.value.trim().toLowerCase();
+        const filtered = rows.filter(function (row) {
+            const rowDate = row.dataset.date;
+            const haystack = (row.dataset.name + ' ' + row.dataset.search).toLowerCase();
+            return (!term || haystack.includes(term))
+                && (role.value === 'all' || row.dataset.role === role.value)
+                && (category.value === 'all' || row.dataset.category === category.value)
+                && (!from.value || rowDate >= from.value)
+                && (!to.value || rowDate <= to.value);
+        });
+
+        const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+        currentPage = Math.min(currentPage, pageCount);
+        const start = (currentPage - 1) * pageSize;
+        rows.forEach(function (row) { row.classList.add('hidden'); });
+        filtered.slice(start, start + pageSize).forEach(function (row) { row.classList.remove('hidden'); });
+        noResults.classList.toggle('hidden', filtered.length > 0);
+        count.textContent = filtered.length
+            ? 'Showing ' + (start + 1) + ' to ' + Math.min(start + pageSize, filtered.length) + ' of ' + filtered.length + ' activities'
+            : 'No results';
+
+        pagination.innerHTML = '';
+        addPageButton('Previous', currentPage === 1 || filtered.length === 0, false, function () { currentPage--; render(); });
+        for (let page = 1; page <= pageCount; page++) {
+            (function (target) {
+                addPageButton(String(target), false, target === currentPage, function () { currentPage = target; render(); });
+            })(page);
+        }
+        addPageButton('Next', currentPage === pageCount || filtered.length === 0, false, function () { currentPage++; render(); });
+    }
+
+    [search, role, category, from, to].forEach(function (control) {
+        control.addEventListener(control === search ? 'input' : 'change', function () {
+            currentPage = 1;
+            render();
+        });
+    });
+    reset.addEventListener('click', function () {
+        search.value = '';
+        role.value = 'all';
+        category.value = 'all';
+        from.value = '';
+        to.value = '';
+        currentPage = 1;
+        render();
+    });
+    render();
+})();
+</script>

@@ -4,6 +4,12 @@ $pageTitle   = $pageTitle   ?? 'brewski';
 $active      = $active      ?? '';
 $extraStyles = $extraStyles ?? [];
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$cartSessionUrl = BREWSKI_BASE_URL . '/customer/customer_cart/cart_session.php';
+
 $navItems = [
     'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
     'menu'    => ['label' => 'Menu',    'icon' => 'coffee',        'href' => '../customer_menu/customermenu.php'],
@@ -11,7 +17,7 @@ $navItems = [
     'profile' => ['label' => 'Profile', 'icon' => 'user',          'href' => '../customer_profile/customer_profile.php'],
 ];
 
-$checkoutHref = '/Brewski/brewski/customer/checkout/checkout.php';
+$checkoutHref = BREWSKI_BASE_URL . '/customer/checkout/checkout.php';
 
 // ---- Determine current user's avatar (if any) ----
 $headerAvatarUrl = null;
@@ -54,6 +60,11 @@ if ($headerInitials === '') {
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
+
+    <meta name="cart-session-url" content="<?= e($cartSessionUrl) ?>">
+    <meta name="checkout-url" content="<?= e($checkoutHref) ?>">
+    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token']) ?>">
+    <meta name="cart-sync-enabled" content="<?= !empty($_SESSION['user_id']) ? '1' : '0' ?>">
 
     <title><?= e($pageTitle) ?></title>
 

@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -81,6 +82,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE orders SET order_status = ? WHERE order_id = ?');
         $update->execute([$newStatus, (int) $orderId]);
+        brewski_record_activity(
+            $pdo,
+            'orders',
+            'Updated order status',
+            'Changed order #' . (int) $orderId . ' from ' . $currentStatus . ' to ' . $newStatus . '.',
+            'order',
+            (int) $orderId
+        );
 
         echo json_encode([
             'ok'      => true,
@@ -113,6 +122,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE products SET availability = ? WHERE product_id = ?');
         $update->execute([$newAvailability, (int) $productId]);
+        brewski_record_activity(
+            $pdo,
+            'inventory',
+            $newAvailability === 1 ? 'Made product available' : 'Paused product',
+            'Changed availability for product #' . (int) $productId . '.',
+            'product',
+            (int) $productId
+        );
 
         echo json_encode([
             'ok'         => true,

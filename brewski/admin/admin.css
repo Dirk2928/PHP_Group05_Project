@@ -2967,3 +2967,61 @@ body.sidebar-open::after {
     height: 15px;
     flex-basis: 15px;
 }
+
+.system-activity-filters .toolbar-filters {
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+}
+
+.activity-migration-notice {
+    padding: 14px 16px;
+    border: 1px solid var(--accent-line);
+    border-radius: var(--radius-md);
+    color: var(--text-body);
+    background: var(--surface-muted);
+    font-size: 13px;
+}
+
+.activity-date-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.activity-date-filter .toolbar-input {
+    min-width: 145px;
+}
+
+.system-activity-table {
+    min-width: 760px;
+}
+
+.activity-action,
+.activity-category {
+    display: block;
+}
+
+.activity-action {
+    color: var(--text-body);
+    font-weight: 600;
+}
+
+.activity-category {
+    margin-top: 3px;
+    color: var(--text-faint);
+    font-size: 11px;
+}
+
+@media (max-width: 900px) {
+    .system-activity-filters .toolbar-filters {
+        align-items: stretch;
+    }
+
+    .activity-date-filter {
+        justify-content: space-between;
+    }
+}

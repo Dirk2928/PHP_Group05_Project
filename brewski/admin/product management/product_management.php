@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/product_images.php';
 require_once __DIR__ . '/../../Db/db_config.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -719,6 +720,29 @@ try {
             } else {
                 throw new RuntimeException('Choose a valid catalog action.');
             }
+
+            $activityTargetType = null;
+            $activityTargetId = null;
+            if (strpos($operation, 'category_') === 0) {
+                $activityTargetType = 'category';
+                $activityTargetId = isset($categoryId) ? (int) $categoryId : (int) ($_POST['category_id'] ?? 0);
+            } elseif (strpos($operation, 'addon_') === 0) {
+                $activityTargetType = 'add-on';
+                $activityTargetId = isset($addOnId) ? (int) $addOnId : (int) ($_POST['addon_id'] ?? 0);
+            } elseif (strpos($operation, 'product_') === 0) {
+                $activityTargetType = 'product';
+                $activityTargetId = isset($savedProductId)
+                    ? (int) $savedProductId
+                    : (int) ($_POST['product_id'] ?? 0);
+            }
+            brewski_record_activity(
+                $connection,
+                'inventory',
+                'Updated beverage catalog',
+                $message . ($activityTargetId ? ' Reference #' . $activityTargetId . '.' : ''),
+                $activityTargetType,
+                $activityTargetId > 0 ? $activityTargetId : null
+            );
 
             $_SESSION['catalog_flash'] = ['type' => 'success', 'message' => $message];
         } catch (RuntimeException $error) {
