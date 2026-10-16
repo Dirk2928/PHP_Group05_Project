@@ -21,9 +21,14 @@ try {
     $logs = $statement->fetchAll();
 } catch (Throwable $error) {
     error_log('Could not load system activity: ' . $error->getMessage());
-    $databaseLabel = $databaseName !== '' ? ' The application is connected to database "' . $databaseName . '".' : '';
-    $loadError = 'System activity could not be read.' . $databaseLabel
-        . ' Confirm that system_activity_logs exists in this database and that the application database user can read it.';
+    if ((string) $error->getCode() === '42S02') {
+        $databaseLabel = $databaseName !== '' ? ' The application database is "' . $databaseName . '".' : '';
+        $loadError = 'The system_activity_logs table is missing from the application database.'
+            . $databaseLabel . ' Run the system activity migration on the Aiven database used by this app.';
+    } else {
+        $loadError = 'System activity query failed (' . (string) $error->getCode() . '): '
+            . $error->getMessage();
+    }
 }
 
 $escape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
