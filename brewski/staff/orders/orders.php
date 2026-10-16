@@ -51,12 +51,16 @@ $csrf_token = $_SESSION['csrf_token'];
         rel="stylesheet"
         href="../staff.css?v=<?= filemtime(__DIR__ . '/../staff.css') ?>"
     >
+    <script src="https://unpkg.com/lucide@latest"></script>
 
 </head>
 
 <body>
 
     <header class="topbar">
+        <button type="button" id="sidebarToggle" class="icon-btn sidebar-toggle" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
         <img class="topbar-logo" src="../../images/brewskilogo.png" alt="Brewski logo">
         <div class="profile-wrapper">
             <span class="profile-label">Staff</span>
@@ -82,7 +86,7 @@ $csrf_token = $_SESSION['csrf_token'];
         </div>
     </header>
 
-    <aside id="sidebar" class="sidebar">
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
         <div class="sidebar-brand">brewski</div>
 
         <nav class="sidebar-nav">
@@ -92,7 +96,7 @@ $csrf_token = $_SESSION['csrf_token'];
                 class="nav-item active"
                 data-view="orders"
             >
-                Orders
+                <i class="nav-icon" data-lucide="clipboard-list" aria-hidden="true"></i><span>Orders</span>
             </button>
 
             <button
@@ -100,7 +104,7 @@ $csrf_token = $_SESSION['csrf_token'];
                 class="nav-item"
                 data-view="products"
             >
-                Products
+                <i class="nav-icon" data-lucide="coffee" aria-hidden="true"></i><span>Products</span>
             </button>
 
             <button
@@ -108,7 +112,7 @@ $csrf_token = $_SESSION['csrf_token'];
                 class="nav-item"
                 data-view="../order_history/order_history.php"
             >
-                Order History
+                <i class="nav-icon" data-lucide="history" aria-hidden="true"></i><span>Order History</span>
             </button>
 
             <button
@@ -116,7 +120,7 @@ $csrf_token = $_SESSION['csrf_token'];
                 class="nav-item"
                 data-view="../profile/profile.php"
             >
-                Profile
+                <i class="nav-icon" data-lucide="circle-user-round" aria-hidden="true"></i><span>Profile</span>
             </button>
 
         </nav>
