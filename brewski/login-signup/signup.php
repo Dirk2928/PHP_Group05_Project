@@ -15,6 +15,29 @@ $first_name_value = '';
 $last_name_value = '';
 $email_value = '';
 
+$password_policy = brewski_password_policy();
+$password_requirements = [
+    'length' => [
+        'label' => 'At least ' . (int) $password_policy['min_length'] . ' characters',
+        'required' => (int) $password_policy['min_length'],
+    ],
+];
+
+foreach (brewski_password_rule_definitions() as $rule_key => $rule) {
+    $required = (int) $password_policy[$rule_key];
+
+    if ($required > 0) {
+        $password_requirements[$rule_key] = [
+            'label' => 'At least '
+                . $required
+                . ' '
+                . $rule['label']
+                . ($required === 1 ? '' : 's'),
+            'required' => $required,
+        ];
+    }
+}
+
 $conn = brewski_db_connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -61,9 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error = 'The passwords do not match.';
 
-    } elseif (($policyError = brewski_validate_password_policy($password)) !== '') {
+    } elseif ($passwordFailures = brewski_password_failures($password, $password_policy)) {
 
-        $error = $policyError;
+        $error = implode(' ', $passwordFailures);
 
     } elseif (!$conn) {
 
@@ -345,6 +368,13 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                             id="password"
                             name="password"
                             autocomplete="new-password"
+                            minlength="<?php echo (int) $password_policy['min_length']; ?>"
+                            data-min-length="<?php echo (int) $password_policy['min_length']; ?>"
+                            data-min-lowercase="<?php echo (int) $password_policy['lowercase']; ?>"
+                            data-min-uppercase="<?php echo (int) $password_policy['uppercase']; ?>"
+                            data-min-digits="<?php echo (int) $password_policy['digits']; ?>"
+                            data-min-special="<?php echo (int) $password_policy['special']; ?>"
+                            data-special-characters="<?php echo htmlspecialchars(brewski_password_special_characters(), ENT_QUOTES, 'UTF-8'); ?>"
                             required
                         >
 
@@ -361,6 +391,25 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     </div>
 
                 </div>
+
+                <div
+                    class="field__messages"
+                    id="password-messages"
+                    aria-live="polite"
+                ></div>
+
+                <ul
+                    class="password-requirements"
+                    id="password-requirements"
+                    aria-label="Password requirements"
+                >
+                    <?php foreach ($password_requirements as $requirement_key => $requirement): ?>
+                        <li
+                            data-requirement="<?php echo htmlspecialchars($requirement_key, ENT_QUOTES, 'UTF-8'); ?>"
+                            data-required="<?php echo (int) $requirement['required']; ?>"
+                        ><?php echo htmlspecialchars($requirement['label'], ENT_QUOTES, 'UTF-8'); ?></li>
+                    <?php endforeach; ?>
+                </ul>
 
                 <div class="field">
 
@@ -379,6 +428,12 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                         >
 
                     </div>
+
+                    <div
+                        class="field__messages"
+                        id="confirm_password-messages"
+                        aria-live="polite"
+                    ></div>
 
                 </div>
 

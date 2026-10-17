@@ -115,6 +115,7 @@ if (passwordInput && passwordToggle) {
             const lastName = document.getElementById('last_name');
             const email = document.getElementById('email');
             const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirm_password');
 
             let hasError = false;
 
@@ -210,6 +211,26 @@ if (passwordInput && passwordToggle) {
                 }
 
                 setFieldErrors('password', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
+            }
+
+            if (confirmPassword) {
+
+                const messages = [];
+
+                if (confirmPassword.value === '') {
+
+                    messages.push('Confirm your password.');
+
+                } else if (password && confirmPassword.value !== password.value) {
+
+                    messages.push('The passwords do not match.');
+                }
+
+                setFieldErrors('confirm_password', messages);
 
                 if (messages.length > 0) {
                     hasError = true;
