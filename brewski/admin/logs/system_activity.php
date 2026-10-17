@@ -155,7 +155,7 @@ $categoryLabels = [
     const pagination = document.getElementById('activityPagination');
     const noResults = document.getElementById('activityNoResults');
     const rows = Array.from(body.querySelectorAll('tr[data-id]'));
-    const pageSize = 10;
+    const pageSize = 5;
     let currentPage = 1;
 
     function addPageButton(label, disabled, active, handler) {

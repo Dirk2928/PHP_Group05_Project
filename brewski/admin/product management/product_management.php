@@ -895,7 +895,7 @@ $catalogIcon = static function (string $name): string {
 };
 
 $imageFallback = brewski_product_image_fallback();
-$pageSize = 10;
+$pageSize = 5;
 ?>
 
 <section class="product-management-page">

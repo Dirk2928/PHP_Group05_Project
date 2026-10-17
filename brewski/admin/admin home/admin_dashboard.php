@@ -222,6 +222,10 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                             <tbody id="ordersTable"></tbody>
                         </table>
                     </div>
+                    <div class="pagination-footer dashboard-pagination">
+                        <p class="pagination-info" id="ordersPageInfo"></p>
+                        <div class="pagination-nav" id="ordersPagination"></div>
+                    </div>
                 </section>
                 <section class="dashboard-section stock-section" aria-labelledby="stockHeading">
                     <div class="section-heading">

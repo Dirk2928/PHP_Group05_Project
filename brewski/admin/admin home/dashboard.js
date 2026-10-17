@@ -396,8 +396,69 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    var openOrdersPage = 1;
+    var openOrdersPageSize = 5;
+
+    function renderOrdersPagination(orders, pageCount) {
+        var pageInfo = document.getElementById('ordersPageInfo');
+        var pagination = document.getElementById('ordersPagination');
+
+        if (!pageInfo || !pagination) {
+            return;
+        }
+
+        var start = (openOrdersPage - 1) * openOrdersPageSize;
+        pageInfo.textContent = orders.length === 0
+            ? 'No open orders'
+            : 'Showing ' + (start + 1) + ' to ' + Math.min(start + openOrdersPageSize, orders.length) +
+              ' of ' + orders.length + ' orders';
+
+        pagination.replaceChildren();
+
+        function addButton(label, disabled, active, onClick) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'page-link' + (active ? ' active' : '');
+            button.textContent = label;
+            button.disabled = disabled;
+            if (active) {
+                button.setAttribute('aria-current', 'page');
+            }
+            button.addEventListener('click', onClick);
+            pagination.appendChild(button);
+        }
+
+        addButton('Previous', openOrdersPage === 1 || orders.length === 0, false, function () {
+            openOrdersPage--;
+            renderOrders(orders);
+        });
+
+        for (var page = 1; page <= pageCount; page++) {
+            (function (target) {
+                addButton(String(target), false, target === openOrdersPage, function () {
+                    openOrdersPage = target;
+                    renderOrders(orders);
+                });
+            })(page);
+        }
+
+        addButton('Next', openOrdersPage === pageCount || orders.length === 0, false, function () {
+            openOrdersPage++;
+            renderOrders(orders);
+        });
+    }
+
     function renderOrders(orders) {
         var tableBody = document.getElementById('ordersTable');
+        var pageCount = Math.max(1, Math.ceil(orders.length / openOrdersPageSize));
+
+        if (openOrdersPage > pageCount) {
+            openOrdersPage = pageCount;
+        }
+
+        var start = (openOrdersPage - 1) * openOrdersPageSize;
+        var visibleOrders = orders.slice(start, start + openOrdersPageSize);
+
         tableBody.replaceChildren();
         if (orders.length === 0) {
             var emptyRow = document.createElement('tr');
@@ -407,10 +468,11 @@ document.addEventListener('DOMContentLoaded', function () {
             emptyCell.className = 'dashboard-empty';
             emptyRow.appendChild(emptyCell);
             tableBody.appendChild(emptyRow);
+            renderOrdersPagination(orders, pageCount);
             return;
         }
 
-        orders.forEach(function (order) {
+        visibleOrders.forEach(function (order) {
             var row = document.createElement('tr');
             var number = document.createElement('td');
             number.className = 'order-number';
@@ -441,6 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
             row.append(number, time, items, notes, total, statusCell);
             tableBody.appendChild(row);
         });
+
+        renderOrdersPagination(orders, pageCount);
     }
 
     function renderStock(items, count) {
