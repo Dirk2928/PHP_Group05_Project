@@ -266,14 +266,6 @@ if ($headerInitials === '') {
 
             <div class="profile-menu">
 
-                <a
-                    href="<?= e($navItems['profile']['href']) ?>"
-                    class="topbar__link profile-link<?= $active === 'profile' ? ' active' : '' ?>"
-                >
-                    <i data-lucide="<?= e($navItems['profile']['icon']) ?>"></i>
-                    <?= e($navItems['profile']['label']) ?>
-                </a>
-
                 <button
                     type="button"
                     class="profile-button"
@@ -283,10 +275,21 @@ if ($headerInitials === '') {
                     aria-expanded="false"
                 >
 
-                    <i
-                        data-lucide="chevron-down"
-                        class="profile-chevron"
-                    ></i>
+                    <?php if ($headerAvatarUrl): ?>
+
+                        <img
+                            src="<?= e($headerAvatarUrl) ?>"
+                            alt=""
+                            class="profile-button__avatar"
+                        >
+
+                    <?php else: ?>
+
+                        <span class="profile-button__avatar profile-button__avatar--initials" aria-hidden="true">
+                            <?= e($headerInitials) ?>
+                        </span>
+
+                    <?php endif; ?>
 
                 </button>
 
