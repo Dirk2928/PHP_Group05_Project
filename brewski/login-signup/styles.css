@@ -273,6 +273,10 @@ body {
     line-height: 1.4;
 }
 
+.password-requirements + .field {
+    margin-top: 0.75rem;
+}
+
 
 .password-requirements li {
     position: relative;
