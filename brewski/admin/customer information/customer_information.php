@@ -499,9 +499,26 @@ $pageSize = 5;
             return fetch(ENDPOINT, {
                 method: 'POST',
                 body: body,
-                credentials: 'same-origin'
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
             }).then(function (response) {
-                return response.json().then(function (json) {
+                return response.text().then(function (payload) {
+                    var json;
+
+                    try {
+                        json = JSON.parse(payload);
+                    } catch (error) {
+                        if (response.redirected || response.url.indexOf('/login') !== -1) {
+                            throw new Error('Your Admin session has expired. Please sign in again.');
+                        }
+
+                        throw new Error('The server returned an unexpected response. Please reload and try again.');
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(json.error || json.message || 'The request could not be completed.');
+                    }
+
                     return json;
                 });
             });
@@ -599,8 +616,8 @@ $pageSize = 5;
                 } else {
                     setStatus(json.error || 'Could not delete the selected customers.', 'error');
                 }
-            }).catch(function () {
-                setStatus('Network error. Please try again.', 'error');
+            }).catch(function (error) {
+                setStatus(error.message || 'The request could not be completed. Please try again.', 'error');
             });
         }
 
