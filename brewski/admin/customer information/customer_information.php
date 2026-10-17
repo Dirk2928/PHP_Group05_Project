@@ -596,8 +596,8 @@ $pageSize = 5;
                                 } else {
                                     setStatus(json.error || 'Could not save the customer.', 'error');
                                 }
-                            }).catch(function () {
-                                setStatus('Network error. Please try again.', 'error');
+                            }).catch(function (error) {
+                                setStatus(error.message || 'The request could not be completed. Please try again.', 'error');
                             });
 
                             return true;

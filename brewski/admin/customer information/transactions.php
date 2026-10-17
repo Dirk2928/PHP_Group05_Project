@@ -496,8 +496,8 @@ function admin_transaction_badge(string $status): string
                                 } else {
                                     setStatus(json.error || 'Could not save the transaction.', 'error');
                                 }
-                            }).catch(function () {
-                                setStatus('Network error. Please try again.', 'error');
+                            }).catch(function (error) {
+                                setStatus(error.message || 'The request could not be completed. Please try again.', 'error');
                             });
 
                             return false;
