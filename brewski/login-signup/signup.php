@@ -4,6 +4,7 @@ require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/recaptcha.php';
 require_once __DIR__ . '/../Db/db_config.php';
+require_once __DIR__ . '/email-service-client.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -151,47 +152,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     } else {
 
-                        $newUserId = (int) $conn->insert_id;
+                        $activationUrl = brewski_app_public_url(
+                            '/login-signup/activate.php?token=' . urlencode($activationToken)
+                        );
 
-                        // Build activation URL
-                        $baseUrl = defined('BREWSKI_BASE_URL')
-                            ? rtrim(BREWSKI_BASE_URL, '/')
-                            : 'http://localhost/Brewski/brewski';
+                        $activationEmailSent = $activationUrl !== null && email_service_send(
+                            'send-activation',
+                            [
+                                'email'         => $email,
+                                'firstName'     => $first_name,
+                                'activationUrl' => $activationUrl,
+                            ]
+                        );
 
-                        $activationUrl = $baseUrl
-                            . '/login-signup/activate.php?token=' . urlencode($activationToken);
-
-                        // Send activation email via email-service
-                        $payload = json_encode([
-                            'email'         => $email,
-                            'firstName'     => $first_name,
-                            'activationUrl' => $activationUrl,
-                        ]);
-
-                        $endpoint = brewski_email_service_url('send-activation');
-
-                        $ch = curl_init($endpoint);
-                        curl_setopt_array($ch, [
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_POST           => true,
-                            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-                            CURLOPT_POSTFIELDS     => $payload,
-                            CURLOPT_TIMEOUT        => 15,
-                        ]);
-
-                        $response = curl_exec($ch);
-                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-
-                        if ($httpCode !== 200) {
-                            error_log('Activation email failed. HTTP ' . $httpCode . ' — ' . $response);
+                        if ($activationEmailSent) {
+                            $_SESSION['signup_success'] = 'Account created! Check your email to activate it.';
+                            header('Location: login.php');
+                            exit;
                         }
 
-                        // Redirect to login with success message
-                        $_SESSION['signup_success'] = 'Account created! Check your email to activate it.';
-
-                        header('Location: login.php');
-                        exit;
+                        $error = 'Your account was created, but we could not send the activation email. Please contact support.';
                     }
                     $insert->close();
                 }
