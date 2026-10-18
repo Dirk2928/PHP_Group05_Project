@@ -11,7 +11,7 @@ if (empty($_SESSION['csrf_token'])) {
 $cartSessionUrl = BREWSKI_BASE_URL . '/customer/customer_cart/cart_session.php';
 
 $navItems = [
-    'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
+    'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../Start-screen/start.php'],
     'menu'    => ['label' => 'Menu',    'icon' => 'coffee',        'href' => '../customer_menu/customermenu.php'],
     'orders'  => ['label' => 'Orders',  'icon' => 'receipt',       'href' => '../customer_orders/orders.php'],
     'profile' => ['label' => 'Profile', 'icon' => 'user',          'href' => '../customer_profile/customer_profile.php'],
@@ -19,7 +19,6 @@ $navItems = [
 
 $checkoutHref = BREWSKI_BASE_URL . '/customer/checkout/checkout.php';
 
-// ---- Determine current user's avatar (if any) ----
 $headerAvatarUrl = null;
 if (!empty($_SESSION['user_id'])) {
     try {
@@ -101,7 +100,6 @@ if ($headerInitials === '') {
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Checkout button inside the cart dropdown */
         .cart-dropdown__footer {
             padding: 0.75rem 1rem 1rem;
             border-top: 1px solid #e8dac4;
@@ -135,7 +133,6 @@ if ($headerInitials === '') {
             stroke: #faf5ee !important;
         }
 
-        /* Avatar inside the profile dropdown */
         .profile-dropdown__user {
             display: flex;
             align-items: center;

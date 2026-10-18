@@ -32,15 +32,28 @@ $choiceAssessmentCompleted = null;
 if ($choiceUserId > 0) {
     $choicePreferences = brewski_user_preferences($choiceUserId);
     $statusConnection = brewski_db_connect();
-    $statusStatement = $statusConnection->prepare(
-        'SELECT is_first_timer, assessment_completed_at FROM users WHERE user_id = ?'
-    );
-    $statusStatement->bind_param('i', $choiceUserId);
-    $statusStatement->execute();
-    $statusStatement->bind_result($choiceFirstTimer, $choiceAssessmentCompleted);
-    $statusStatement->fetch();
-    $statusStatement->close();
-    $statusConnection->close();
+    if ($statusConnection) {
+        try {
+            $statusStatement = $statusConnection->prepare(
+                'SELECT is_first_timer, assessment_completed_at FROM users WHERE user_id = ?'
+            );
+            if ($statusStatement) {
+                $statusStatement->bind_param('i', $choiceUserId);
+                $statusStatement->execute();
+                $statusStatement->bind_result($choiceFirstTimer, $choiceAssessmentCompleted);
+                $statusStatement->fetch();
+                $statusStatement->close();
+            } else {
+                error_log('Customer home status query could not be prepared: ' . $statusConnection->error);
+            }
+        } catch (Throwable $error) {
+            error_log('Customer home status lookup error: ' . $error->getMessage());
+        } finally {
+            $statusConnection->close();
+        }
+    } else {
+        error_log('Customer home status lookup skipped: database connection unavailable.');
+    }
     if (is_array($choicePreferences) && $choicePreferences) {
         $choiceRanking = brewski_rank_products(
             $choicePreferences,
