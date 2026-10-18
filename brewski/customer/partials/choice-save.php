@@ -156,42 +156,8 @@ if (!brewski_save_user_preferences($userId, $preferenceNames)) {
 
 unset($_SESSION['choice_skipped']);
 
-$preferences = brewski_user_preferences($userId) ?? [];
-$ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
-$rankedProducts = array_values(array_filter(
-    $ranking,
-    static fn (array $entry): bool => $entry['status'] !== 'excluded'
-));
-usort(
-    $rankedProducts,
-    static function (array $left, array $right): int {
-        return ($right['percent'] <=> $left['percent'])
-            ?: (count($right['matched']) <=> count($left['matched']));
-    }
-);
-
-$rankingOutput = [];
-foreach ($rankedProducts as $position => $entry) {
-    if (!isset($productIndex[(int) $entry['product_id']])) {
-        continue;
-    }
-    $product = $productIndex[(int) $entry['product_id']];
-    $rankingOutput[] = [
-        'rank' => $position + 1,
-        'product_id' => (int) $product['product_id'],
-        'name' => $product['product_name'],
-        'price' => (float) $product['price'],
-        'image' => $productImage($product),
-        'percent' => (int) $entry['percent'],
-        'matched' => array_slice($entry['matched'], 0, 3),
-    ];
-}
-
 echo json_encode([
     'ok' => true,
     'mode' => $mode,
-    'ranking' => $rankingOutput,
-    'message' => $rankingOutput
-        ? 'Your menu is now sorted from greatest to least match.'
-        : 'No safe match was found in the current menu.',
+    'message' => 'Your preferences were saved.',
 ]);
