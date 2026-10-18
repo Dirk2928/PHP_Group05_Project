@@ -27,6 +27,16 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_users_email_activation_token (email_activation_token)
 );
 
+CREATE TABLE IF NOT EXISTS account_lockouts (
+    account_lockout_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    locked_at DATETIME NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_account_lockouts_locked_at (locked_at)
+);
+
 CREATE TABLE IF NOT EXISTS system_activity_logs (
     activity_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     actor_user_id INT NULL,
