@@ -60,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name_value  = htmlspecialchars($last_name, ENT_QUOTES, 'UTF-8');
     $email_value      = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    // --- Validation ---
     if (!$tokenValid) {
 
         $error = 'This request could not be verified. Refresh the page and try again.';
@@ -94,7 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Unable to connect to the database. Please make sure MySQL is running.';
 
     } else {
-        // --- Check for existing email ---
         $check = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
 
         if (!$check) {
@@ -114,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $check->close();
 
-            // --- Insert the new user ---
             if ($error === '') {
 
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
@@ -125,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insert = $conn->prepare(
                     "INSERT INTO users
                         (first_name, last_name, email, password, role, is_active,
-                         email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, ?, ?)"
+                         is_first_timer, email_activation_token, email_activation_expires)
+                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 1, ?, ?)"
                 );
 
                 if (!$insert) {

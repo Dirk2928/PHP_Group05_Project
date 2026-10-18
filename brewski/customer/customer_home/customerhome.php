@@ -60,6 +60,19 @@ if ($choiceUserId > 0) {
             brewski_preference_links($catalog)
         );
         $choiceBestMatch = brewski_best_match($choiceRanking);
+
+        foreach ($sections as $categoryName => $categoryProducts) {
+            usort(
+                $categoryProducts,
+                static function (array $left, array $right) use ($choiceRanking): int {
+                    $leftMatch = $choiceRanking[(int) $left['product_id']]['percent'] ?? 0;
+                    $rightMatch = $choiceRanking[(int) $right['product_id']]['percent'] ?? 0;
+
+                    return $rightMatch <=> $leftMatch;
+                }
+            );
+            $sections[$categoryName] = $categoryProducts;
+        }
     }
 }
 
@@ -99,7 +112,8 @@ require __DIR__ . '/../partials/header.php';
                 type="button"
                 class="greeting__help"
                 id="choice-open"
-                aria-label="Open drink recommendation form"
+                data-choice-mode="recommendation"
+                aria-label="Get a drink recommendation"
             >
                 <i data-lucide="help-circle"></i>
             </button>
@@ -109,14 +123,14 @@ require __DIR__ . '/../partials/header.php';
         <?php if ($choiceFirstTimer && empty($choiceAssessmentCompleted) && !empty($_SESSION['choice_skipped'])): ?>
             <p class="catalog-notice" role="status">
                 Finish your taste profile to organize your menu.
-                <button type="button" class="btn-link" id="choice-open-notice">Finish your taste profile</button>
+                <button type="button" class="btn-link" id="choice-open-notice" data-choice-mode="first-timer">Finish your taste profile</button>
             </p>
         <?php endif; ?>
 
         <?php if ($choiceBestMatch): ?>
             <section class="category">
                 <h2 class="category__title">Your best match</h2>
-                <p><?= e($choiceBestMatch['percent']) ?>% match · <?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
+                <p><?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
             </section>
         <?php endif; ?>
 
@@ -156,6 +170,10 @@ require __DIR__ . '/../partials/header.php';
                             data-base-price="<?= e($product['price']) ?>"
                             data-options="<?= e($customizations) ?>"
                         >
+
+                            <?php if (($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
+                                <span class="product-card__match">Best match</span>
+                            <?php endif; ?>
 
                             <div class="product-card__image">
 

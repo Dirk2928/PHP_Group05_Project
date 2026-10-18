@@ -7,40 +7,42 @@ if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
     define('BREWSKI_CHOICE_FINGERPRINT_KEY', 'choice_catalog_fingerprint');
 }
 
-function brewski_choice_questions(): array
+function brewski_custom_option_values(string $group, array $fallback): array
 {
-    $customChoices = static function (string $group, array $fallback): array {
-        try {
-            $connection = brewski_db_connect();
-            if (!$connection) {
-                return $fallback;
-            }
-            $statement = $connection->prepare(
-                'SELECT DISTINCT option_name
-                 FROM product_customization_options
-                 WHERE option_group = ?
-                 ORDER BY option_name'
-            );
-            $statement->bind_param('s', $group);
-            $statement->execute();
-            $result = $statement->get_result();
-            $names = [];
-            while ($row = $result->fetch_assoc()) {
-                $names[] = (string) $row['option_name'];
-            }
-            $statement->close();
-            $connection->close();
-            return $names ?: $fallback;
-        } catch (Throwable $error) {
-            error_log('Preference option lookup error: ' . $error->getMessage());
+    try {
+        $connection = brewski_db_connect();
+        if (!$connection) {
             return $fallback;
         }
-    };
-    $beanChoices = $customChoices('bean', ['Arabica', 'Robusta', 'Blend']);
-    $milkChoices = $customChoices('milk', ['Dairy milk', 'Oat milk', 'Almond milk', 'Soy milk', 'No milk']);
-    $allergenChoices = $customChoices('allergen', ['Dairy', 'Nuts', 'Gluten']);
-    $flavorChoices = $customChoices('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
-    $caffeineChoices = $customChoices('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
+        $statement = $connection->prepare(
+            'SELECT DISTINCT option_name
+             FROM product_customization_options
+             WHERE option_group = ?
+             ORDER BY option_name'
+        );
+        $statement->bind_param('s', $group);
+        $statement->execute();
+        $result = $statement->get_result();
+        $names = [];
+        while ($row = $result->fetch_assoc()) {
+            $names[] = (string) $row['option_name'];
+        }
+        $statement->close();
+        $connection->close();
+        return $names ?: $fallback;
+    } catch (Throwable $error) {
+        error_log('Preference option lookup error: ' . $error->getMessage());
+        return $fallback;
+    }
+}
+
+function brewski_choice_questions(): array
+{
+    $beanChoices = brewski_custom_option_values('bean', ['Arabica', 'Robusta', 'Blend']);
+    $milkChoices = brewski_custom_option_values('milk', ['Dairy milk', 'Oat milk', 'Almond milk', 'Soy milk', 'No milk']);
+    $allergenChoices = brewski_custom_option_values('allergen', ['Dairy', 'Nuts', 'Gluten']);
+    $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
+    $caffeineChoices = brewski_custom_option_values('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
     $choiceAnswers = static function (array $names, string $prefix): array {
         $answers = [];
         foreach ($names as $name) {
@@ -102,6 +104,57 @@ function brewski_choice_questions(): array
                 ),
                 ['None' => []]
             ),
+        ],
+    ];
+}
+
+function brewski_recommendation_questions(): array
+{
+    $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
+    $flavorAnswers = [];
+    foreach ($flavorChoices as $name) {
+        $flavorAnswers[$name] = ['flavor:' . $name];
+    }
+    $flavorAnswers['No preference'] = ['flavor:any'];
+
+    return [
+        'mood' => [
+            'question' => 'What kind of drink are you in the mood for?',
+            'answers' => [
+                'Coffee' => ['coffee'],
+                'Non-coffee' => ['non-coffee'],
+                'Surprise me' => ['coffee', 'non-coffee'],
+            ],
+        ],
+        'flavor' => [
+            'question' => 'Which flavor sounds best right now?',
+            'answers' => $flavorAnswers,
+        ],
+        'temperature' => [
+            'question' => 'Hot or iced?',
+            'answers' => [
+                'Hot' => ['temp:hot'],
+                'Iced' => ['temp:iced'],
+                'Either' => ['temp:hot', 'temp:iced'],
+            ],
+        ],
+        'sweetness' => [
+            'question' => 'How sweet do you feel like having it?',
+            'answers' => [
+                'Sweet' => ['sugar:sweet'],
+                'Mild' => ['sugar:light'],
+                'Not sweet' => ['sugar:none'],
+                'No preference' => ['sugar:sweet', 'sugar:light', 'sugar:none'],
+            ],
+        ],
+        'caffeine' => [
+            'question' => 'How much caffeine do you want?',
+            'answers' => [
+                'Regular' => ['caffeine:Regular'],
+                'Decaf' => ['caffeine:Decaf'],
+                'Caffeine-free' => ['caffeine:Caffeine-free'],
+                'No preference' => ['caffeine:any'],
+            ],
         ],
     ];
 }
@@ -528,7 +581,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
         $ranked[(int) $productId] = [
             'product_id' => (int) $productId,
             'percent' => $percent,
-            'status' => $excludedFor ? 'excluded' : ($percent >= 70 ? 'recommended' : 'available'),
+            'status' => $excludedFor ? 'excluded' : ($percent >= 50 ? 'recommended' : 'available'),
             'matched' => array_values(array_unique($matched)),
             'excluded_for' => array_values(array_unique($excludedFor)),
         ];
@@ -536,11 +589,11 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
     return $ranked;
 }
 
-function brewski_best_match(array $ranked): ?array
+function brewski_best_match(array $ranked, int $minimum = 50): ?array
 {
     $best = null;
     foreach ($ranked as $candidate) {
-        if ($candidate['status'] === 'excluded' || $candidate['percent'] < 40) {
+        if ($candidate['status'] === 'excluded' || $candidate['percent'] < $minimum) {
             continue;
         }
         if ($best === null
@@ -726,7 +779,10 @@ function brewski_save_user_preferences(int $userId, array $names): bool
         $connection->commit();
 
         $assessment = $connection->prepare(
-            'UPDATE users SET assessment_completed_at = NOW() WHERE user_id = ?'
+            'UPDATE users
+             SET assessment_completed_at = NOW(),
+                 is_first_timer = 0
+             WHERE user_id = ?'
         );
         $assessment->bind_param('i', $userId);
         $assessment->execute();
@@ -831,9 +887,11 @@ function brewski_user_choice_scores(int $userId, array $products): array
     return is_array($result) ? $result : [];
 }
 
-function brewski_answers_valid(array $answers): bool
+function brewski_answers_valid(array $answers, ?array $questions = null): bool
 {
-    foreach (brewski_choice_questions() as $questionKey => $question) {
+    $questions = $questions ?? brewski_choice_questions();
+
+    foreach ($questions as $questionKey => $question) {
         if (!isset($answers[$questionKey])) {
             return false;
         }
@@ -860,11 +918,12 @@ function brewski_answers_valid(array $answers): bool
     return true;
 }
 
-function brewski_answers_to_preferences(array $answers): array
+function brewski_answers_to_preferences(array $answers, ?array $questions = null): array
 {
+    $questions = $questions ?? brewski_choice_questions();
     $preferences = [];
 
-    foreach (brewski_choice_questions() as $questionKey => $question) {
+    foreach ($questions as $questionKey => $question) {
         if (!isset($answers[$questionKey])) {
             continue;
         }

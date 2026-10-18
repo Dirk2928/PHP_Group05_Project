@@ -10,16 +10,112 @@ document.addEventListener('DOMContentLoaded', function () {
     var body = modal.querySelector('.modal__body');
     var closeButton = document.getElementById('choice-close');
     var saveButton = document.getElementById('choice-save');
+    var saveLabel = document.getElementById('choice-save-label');
     var status = document.getElementById('choice-status');
+    var title = document.getElementById('choice-modal-title');
+    var subtitle = document.getElementById('choice-modal-subtitle');
     var openButton = document.getElementById('choice-open');
     var skipButton = document.getElementById('choice-skip');
     var noticeButton = document.getElementById('choice-open-notice');
-    var questions = Array.prototype.slice.call(
-        modal.querySelectorAll('[data-choice-question]')
+    var panels = {};
+    Array.prototype.forEach.call(
+        modal.querySelectorAll('[data-choice-panel]'),
+        function (panel) {
+            panels[panel.dataset.choicePanel] = panel;
+        }
     );
-    var isFirstTimer = modal.dataset.choiceMode === 'first-timer';
+    var currentMode = modal.dataset.choiceMode === 'first-timer'
+        ? 'first-timer'
+        : 'recommendation';
+    var resultPanel = null;
 
-    function open() {
+    var copy = {
+        'first-timer': {
+            title: 'Set up your drink preferences',
+            subtitle: 'Answer a few questions to sort your menu by compatibility.',
+            button: 'Sort my menu',
+            saved: 'Preferences saved! Ranking every drink for you...'
+        },
+        recommendation: {
+            title: 'Get a drink recommendation',
+            subtitle: 'Answer a few quick questions and we will pick one drink for you.',
+            button: 'Recommend a drink',
+            saved: 'Finding the best drink for your mood...'
+        }
+    };
+
+    function activePanel() {
+        return panels[currentMode] || null;
+    }
+
+    function questions() {
+        var panel = activePanel();
+
+        return panel
+            ? Array.prototype.slice.call(panel.querySelectorAll('[data-choice-question]'))
+            : [];
+    }
+
+    function clearResult() {
+        if (resultPanel && resultPanel.parentNode) {
+            resultPanel.parentNode.removeChild(resultPanel);
+        }
+        resultPanel = null;
+    }
+
+    function resetRecommendationAnswers() {
+        var panel = panels.recommendation;
+
+        if (!panel) {
+            return;
+        }
+
+        Array.prototype.forEach.call(
+            panel.querySelectorAll('.choice-answer.active'),
+            function (answer) {
+                answer.classList.remove('active');
+                answer.setAttribute('aria-pressed', 'false');
+            }
+        );
+    }
+
+    function setStatus(message, modifier) {
+        if (!status) {
+            return;
+        }
+        status.textContent = message;
+        status.className = 'choice-status' + (modifier ? ' ' + modifier : '');
+    }
+
+    function setMode(mode) {
+        currentMode = mode === 'first-timer' ? 'first-timer' : 'recommendation';
+
+        Object.keys(panels).forEach(function (key) {
+            panels[key].hidden = key !== currentMode;
+        });
+
+        title.textContent = copy[currentMode].title;
+        subtitle.textContent = copy[currentMode].subtitle;
+        saveLabel.textContent = copy[currentMode].button;
+
+        if (skipButton) {
+            skipButton.hidden = currentMode !== 'first-timer';
+        }
+    }
+
+    function open(mode) {
+        setMode(mode || currentMode);
+        if (currentMode === 'recommendation') {
+            resetRecommendationAnswers();
+        }
+        clearResult();
+        setStatus('', '');
+        if (status) {
+            status.hidden = false;
+        }
+        if (saveButton) {
+            saveButton.hidden = false;
+        }
         modal.classList.add('show');
     }
 
@@ -27,15 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.classList.remove('show');
     }
 
-    function setStatus(message, modifier) {
-        status.textContent = message;
-        status.className = 'choice-status' + (modifier ? ' ' + modifier : '');
-    }
-
     function selectedAnswers() {
         var answers = {};
 
-        questions.forEach(function (question) {
+        questions().forEach(function (question) {
             var key = question.dataset.choiceQuestion;
             var isMulti = question.dataset.choiceMulti === '1';
 
@@ -57,6 +148,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         return answers;
+    }
+
+    function triggerMode(element, fallback) {
+        var mode = element && element.dataset ? element.dataset.choiceMode : '';
+
+        return mode === 'first-timer' || mode === 'recommendation' ? mode : fallback;
     }
 
     if (body) {
@@ -103,10 +200,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (openButton) {
-        openButton.addEventListener('click', open);
+        openButton.addEventListener('click', function () {
+            open(triggerMode(openButton, 'recommendation'));
+        });
     }
     if (noticeButton) {
-        noticeButton.addEventListener('click', open);
+        noticeButton.addEventListener('click', function () {
+            open(triggerMode(noticeButton, 'first-timer'));
+        });
     }
 
     if (closeButton) {
@@ -119,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var payload = new URLSearchParams();
             payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
             payload.append('action', 'skip');
+            payload.append('mode', currentMode);
             fetch('../partials/choice-save.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -136,12 +238,109 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function productLink(productId, label, className) {
+        var link = document.createElement('a');
+        link.className = className;
+        link.textContent = label;
+        link.href = '../customer_menu/customermenu.php?product_id='
+            + encodeURIComponent(String(parseInt(productId, 10)));
+
+        return link;
+    }
+
+    function hidePanelsForResult() {
+        Object.keys(panels).forEach(function (key) {
+            panels[key].hidden = true;
+        });
+        if (status) {
+            status.hidden = true;
+        }
+        if (saveButton) {
+            saveButton.hidden = true;
+        }
+        if (skipButton) {
+            skipButton.hidden = true;
+        }
+    }
+
+    function showRanking(ranking, message) {
+        hidePanelsForResult();
+        clearResult();
+        resultPanel = document.createElement('section');
+        resultPanel.className = 'choice-result';
+
+        var heading = document.createElement('h3');
+        heading.textContent = 'Your drink ranking';
+        resultPanel.appendChild(heading);
+
+        if (!ranking || ranking.length === 0) {
+            var empty = document.createElement('p');
+            empty.textContent = message;
+            resultPanel.appendChild(empty);
+            body.appendChild(resultPanel);
+
+            return;
+        }
+
+        var intro = document.createElement('p');
+        intro.textContent = 'Sorted from greatest to least match with your preferences.';
+        resultPanel.appendChild(intro);
+
+        var list = document.createElement('ol');
+        list.className = 'choice-ranking';
+
+        ranking.forEach(function (drink) {
+            var item = document.createElement('li');
+            item.className = 'choice-ranking__item';
+
+            var image = document.createElement('img');
+            image.src = drink.image;
+            image.alt = drink.name;
+            item.appendChild(image);
+
+            var info = document.createElement('div');
+            info.className = 'choice-ranking__info';
+
+            var name = document.createElement('strong');
+            name.textContent = '#' + drink.rank + ' ' + drink.name;
+            info.appendChild(name);
+
+            if (drink.percent >= 50) {
+                var best = document.createElement('span');
+                best.textContent = 'Best match';
+                info.appendChild(best);
+            }
+
+            if (drink.matched && drink.matched.length) {
+                var reasons = document.createElement('small');
+                reasons.textContent = 'Why: ' + drink.matched.join(', ');
+                info.appendChild(reasons);
+            }
+
+            item.appendChild(info);
+            item.appendChild(
+                productLink(drink.product_id, 'View', 'btn-link')
+            );
+            list.appendChild(item);
+        });
+
+        resultPanel.appendChild(list);
+
+        var home = document.createElement('a');
+        home.className = 'btn-confirm choice-result__home';
+        home.textContent = 'Back to my menu';
+        home.href = modal.dataset.homeUrl || '../customer_home/customerhome.php';
+        resultPanel.appendChild(home);
+        body.appendChild(resultPanel);
+    }
+
     if (saveButton && status) {
         saveButton.addEventListener('click', function () {
-            var answers = selectedAnswers();
+            var answered = selectedAnswers();
+            var total = questions().length;
 
-            if (Object.keys(answers).length < questions.length) {
-                setStatus('Please answer all ' + questions.length + ' questions.', 'is-error');
+            if (Object.keys(answered).length < total) {
+                setStatus('Please answer all ' + total + ' questions.', 'is-error');
                 return;
             }
 
@@ -152,9 +351,10 @@ document.addEventListener('DOMContentLoaded', function () {
             var csrfMeta = document.querySelector('meta[name="csrf-token"]');
 
             payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
+            payload.append('mode', currentMode);
 
-            Object.keys(answers).forEach(function (questionKey) {
-                var value = answers[questionKey];
+            Object.keys(answered).forEach(function (questionKey) {
+                var value = answered[questionKey];
                 if (Array.isArray(value)) {
                     value.forEach(function (item) {
                         payload.append('answers[' + questionKey + '][]', item);
@@ -163,6 +363,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     payload.append('answers[' + questionKey + ']', value);
                 }
             });
+
+            var submittedMode = currentMode;
 
             fetch('../partials/choice-save.php', {
                 method: 'POST',
@@ -183,14 +385,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(function (result) {
                     if (result.ok && result.data && result.data.ok) {
-                        setStatus(
-                            isFirstTimer
-                                ? 'Preferences saved! Organizing your menu...'
-                                : 'Preferences saved! Ranking your recommendations...',
-                            'is-saved'
-                        );
+                        if (submittedMode === 'recommendation') {
+                            var match = result.data.best_match;
 
-                        showResult(result.data.best_match, result.data.message);
+                            if (match && match.product_id) {
+                                window.location.href = '../customer_menu/customermenu.php?product_id='
+                                    + encodeURIComponent(String(parseInt(match.product_id, 10)));
+
+                                return true;
+                            }
+
+                            setStatus('No recommendation is available right now.', 'is-error');
+                            saveButton.disabled = false;
+
+                            return false;
+                        }
+
+                        setStatus(copy[submittedMode].saved, 'is-saved');
+                        showRanking(result.data.ranking, result.data.message);
+                        saveButton.disabled = false;
 
                         return true;
                     }
@@ -198,74 +411,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     setStatus(
                         result.ok && result.text.indexOf('<') === -1
                             ? result.text
-                            : 'Could not save your choices. Please log in again and try.',
+                            : 'Could not complete the request. Please log in again and try.',
                         'is-error'
                     );
+                    saveButton.disabled = false;
 
                     return false;
                 })
                 .catch(function () {
-                    setStatus('Could not save your choices. Please try again.', 'is-error');
-
-                    return false;
-                })
-                .then(function (saved) {
-                    if (saved !== true) {
-                        saveButton.disabled = false;
-                    }
+                    setStatus('Could not complete the request. Please try again.', 'is-error');
+                    saveButton.disabled = false;
                 });
-
-                function showResult(bestMatch, message) {
-                    while (body.firstChild) {
-                        body.removeChild(body.firstChild);
-                    }
-                    var panel = document.createElement('section');
-                    panel.className = 'choice-result';
-                    var title = document.createElement('h3');
-                    title.textContent = bestMatch ? bestMatch.label : 'No recommendation yet';
-                    panel.appendChild(title);
-                    if (bestMatch) {
-                        var image = document.createElement('img');
-                        image.src = bestMatch.image;
-                        image.alt = bestMatch.name;
-                        panel.appendChild(image);
-                    }
-                    var text = document.createElement('p');
-                    text.textContent = bestMatch
-                        ? bestMatch.name + ' matches ' + bestMatch.percent + '% of your preferences.'
-                        : message;
-                    panel.appendChild(text);
-                    if (bestMatch) {
-                        var price = document.createElement('p');
-                        price.textContent = 'Price: ₱' + Number(bestMatch.price).toFixed(2);
-                        panel.appendChild(price);
-                        var reasons = document.createElement('p');
-                        reasons.textContent = bestMatch.matched.length
-                            ? 'Why: ' + bestMatch.matched.join(', ')
-                            : 'This is the closest safe match in the current menu.';
-                        panel.appendChild(reasons);
-                        var menuLink = document.createElement('a');
-                        menuLink.className = 'btn-confirm';
-                        menuLink.textContent = 'See it on the menu';
-                        menuLink.href = '../customer_menu/customermenu.php?product_id='
-                            + encodeURIComponent(String(parseInt(bestMatch.product_id, 10)));
-                        panel.appendChild(menuLink);
-                    } else {
-                        var retake = document.createElement('button');
-                        retake.type = 'button';
-                        retake.className = 'btn-confirm';
-                        retake.textContent = 'Retake';
-                        retake.addEventListener('click', function () {
-                            window.location.reload();
-                        });
-                        panel.appendChild(retake);
-                    }
-                    body.appendChild(panel);
-                }
         });
     }
 
+    setMode(currentMode);
+
     if (modal.dataset.autoOpen === '1') {
-        open();
+        open('first-timer');
     }
 });

@@ -143,10 +143,10 @@ require __DIR__ . '/../partials/header.php';
                         data-options="<?= e($customizations) ?>"
                     >
 
-                        <?php if ($bestMatchScore > 0 && $cardScore >= $bestMatchScore): ?>
+                        <?php if ($bestMatchScore >= 50 && $cardScore >= $bestMatchScore && $cardRanking && $cardRanking['status'] !== 'excluded'): ?>
                             <span class="product-card__match">Your best match</span>
-                        <?php elseif ($cardRanking): ?>
-                            <span class="product-card__match"><?= (int) $cardRanking['percent'] ?>% match</span>
+                        <?php elseif ($cardRanking && $cardRanking['status'] === 'recommended'): ?>
+                            <span class="product-card__match">Best match</span>
                         <?php endif; ?>
 
                         <div class="product-card__image">

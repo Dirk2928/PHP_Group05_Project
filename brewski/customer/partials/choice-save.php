@@ -28,12 +28,21 @@ $userId = (int) ($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
     http_response_code(401);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Please log in to save your preferences';
+    echo 'Please log in to use drink features';
     exit;
 }
 
+$mode = ($_POST['mode'] ?? 'first-timer') === 'recommendation'
+    ? 'recommendation'
+    : 'first-timer';
+$questions = $mode === 'recommendation'
+    ? brewski_recommendation_questions()
+    : brewski_choice_questions();
+
 if (($_POST['action'] ?? '') === 'skip') {
-    $_SESSION['choice_skipped'] = true;
+    if ($mode === 'first-timer') {
+        $_SESSION['choice_skipped'] = true;
+    }
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'skipped';
     exit;
@@ -50,7 +59,7 @@ if (!is_array($rawAnswers)) {
 
 $normalizedAnswers = [];
 
-foreach (brewski_choice_questions() as $questionKey => $question) {
+foreach ($questions as $questionKey => $question) {
     $isMulti = !empty($question['multi']);
 
     if ($isMulti) {
@@ -90,14 +99,53 @@ foreach (brewski_choice_questions() as $questionKey => $question) {
     }
 }
 
-if (!brewski_answers_valid($normalizedAnswers)) {
+if (!brewski_answers_valid($normalizedAnswers, $questions)) {
     http_response_code(400);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Please answer all questions';
     exit;
 }
 
-$preferenceNames = brewski_answers_to_preferences($normalizedAnswers);
+$catalog = brewski_load_catalog();
+$productIndex = [];
+foreach ($catalog['products'] as $product) {
+    $productIndex[(int) $product['product_id']] = $product;
+}
+$productImage = static function (array $product): string {
+    return !empty($product['image_mime_type'])
+        ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+        : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+};
+
+if ($mode === 'recommendation') {
+    $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
+    $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
+    $best = brewski_best_match($ranking);
+    $bestMatch = null;
+
+    if ($best && isset($productIndex[(int) $best['product_id']])) {
+        $product = $productIndex[(int) $best['product_id']];
+        $bestMatch = [
+            'product_id' => (int) $product['product_id'],
+            'name' => $product['product_name'],
+            'price' => (float) $product['price'],
+            'image' => $productImage($product),
+            'percent' => (int) $best['percent'],
+            'label' => 'Your drink recommendation',
+            'matched' => array_slice($best['matched'], 0, 3),
+        ];
+    }
+
+    echo json_encode([
+        'ok' => true,
+        'mode' => $mode,
+        'best_match' => $bestMatch,
+        'message' => $bestMatch ? 'Your drink recommendation is ready.' : 'No recommendation is available right now.',
+    ]);
+    exit;
+}
+
+$preferenceNames = brewski_answers_to_preferences($normalizedAnswers, $questions);
 
 if (!brewski_save_user_preferences($userId, $preferenceNames)) {
     http_response_code(500);
@@ -106,66 +154,44 @@ if (!brewski_save_user_preferences($userId, $preferenceNames)) {
     exit;
 }
 
-$catalog = brewski_load_catalog();
+unset($_SESSION['choice_skipped']);
+
 $preferences = brewski_user_preferences($userId) ?? [];
 $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
-$best = brewski_best_match($ranking);
-$bestMatch = null;
-
-if ($best) {
-    foreach ($catalog['products'] as $product) {
-        if ((int) $product['product_id'] !== (int) $best['product_id']) {
-            continue;
-        }
-        $image = !empty($product['image_mime_type'])
-            ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
-            : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
-        $bestMatch = [
-            'product_id' => (int) $product['product_id'],
-            'name' => $product['product_name'],
-            'price' => (float) $product['price'],
-            'image' => $image,
-            'percent' => (int) $best['percent'],
-            'label' => $best['percent'] >= 70 ? 'Your best match' : 'Closest match we found',
-            'matched' => array_slice($best['matched'], 0, 3),
-        ];
-        break;
+$rankedProducts = array_values(array_filter(
+    $ranking,
+    static fn (array $entry): bool => $entry['status'] !== 'excluded'
+));
+usort(
+    $rankedProducts,
+    static function (array $left, array $right): int {
+        return ($right['percent'] <=> $left['percent'])
+            ?: (count($right['matched']) <=> count($left['matched']));
     }
-}
+);
 
-$recommendationConnection = brewski_db_connect();
-if ($recommendationConnection) {
-    $recommendationConnection->begin_transaction();
-    try {
-        $deleteRecommendations = $recommendationConnection->prepare(
-            'DELETE FROM recommendations WHERE user_id = ?'
-        );
-        $deleteRecommendations->bind_param('i', $userId);
-        $deleteRecommendations->execute();
-        $deleteRecommendations->close();
-        if ($bestMatch) {
-            $reason = implode(', ', $bestMatch['matched']);
-            $insertRecommendation = $recommendationConnection->prepare(
-                'INSERT INTO recommendations
-                 (user_id, product_id, recommendation_score, recommendation_reason)
-                 VALUES (?, ?, ?, ?)'
-            );
-            $productId = $bestMatch['product_id'];
-            $score = $bestMatch['percent'];
-            $insertRecommendation->bind_param('iids', $userId, $productId, $score, $reason);
-            $insertRecommendation->execute();
-            $insertRecommendation->close();
-        }
-        $recommendationConnection->commit();
-    } catch (mysqli_sql_exception $error) {
-        $recommendationConnection->rollback();
-        error_log('Recommendation persistence error: ' . $error->getMessage());
+$rankingOutput = [];
+foreach ($rankedProducts as $position => $entry) {
+    if (!isset($productIndex[(int) $entry['product_id']])) {
+        continue;
     }
-    $recommendationConnection->close();
+    $product = $productIndex[(int) $entry['product_id']];
+    $rankingOutput[] = [
+        'rank' => $position + 1,
+        'product_id' => (int) $product['product_id'],
+        'name' => $product['product_name'],
+        'price' => (float) $product['price'],
+        'image' => $productImage($product),
+        'percent' => (int) $entry['percent'],
+        'matched' => array_slice($entry['matched'], 0, 3),
+    ];
 }
 
 echo json_encode([
     'ok' => true,
-    'best_match' => $bestMatch,
-    'message' => $bestMatch ? 'Your recommendation is ready.' : 'No safe match was found.',
+    'mode' => $mode,
+    'ranking' => $rankingOutput,
+    'message' => $rankingOutput
+        ? 'Your menu is now sorted from greatest to least match.'
+        : 'No safe match was found in the current menu.',
 ]);
