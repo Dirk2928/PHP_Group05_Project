@@ -335,7 +335,7 @@ CREATE TABLE IF NOT EXISTS product_preferences (
 CREATE TABLE IF NOT EXISTS product_customization_options (
     product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
-    option_group VARCHAR(20) NOT NULL,
+    option_group VARCHAR(30) NOT NULL,
     option_name VARCHAR(100) NOT NULL,
     additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
@@ -347,6 +347,49 @@ CREATE TABLE IF NOT EXISTS product_customization_options (
     CONSTRAINT unique_product_customization_option
         UNIQUE (product_id, option_group, option_name)
 );
+
+-- Product choice containers used by the preference matcher. Product
+-- customizations store the exact bean, milk, and allergen choices.
+CREATE TABLE IF NOT EXISTS preference_choice_groups (
+    choice_group_id INT AUTO_INCREMENT PRIMARY KEY,
+    group_name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255) NULL
+);
+
+CREATE TABLE IF NOT EXISTS preference_choices (
+    choice_id INT AUTO_INCREMENT PRIMARY KEY,
+    choice_group_id INT NOT NULL,
+    choice_name VARCHAR(100) NOT NULL,
+    UNIQUE (choice_group_id, choice_name),
+    CONSTRAINT fk_preference_choices_group
+        FOREIGN KEY (choice_group_id)
+        REFERENCES preference_choice_groups(choice_group_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+INSERT IGNORE INTO preference_choice_groups (group_name, description)
+VALUES
+    ('bean', 'Coffee bean type'),
+    ('milk', 'Milk type'),
+    ('allergen', 'Allergens present in the product');
+
+INSERT IGNORE INTO preference_choices (choice_group_id, choice_name)
+SELECT choice_group_id, choice_name
+FROM preference_choice_groups
+JOIN (
+    SELECT 'bean' AS group_name, 'Arabica' AS choice_name
+    UNION ALL SELECT 'bean', 'Robusta'
+    UNION ALL SELECT 'bean', 'Blend'
+    UNION ALL SELECT 'milk', 'Dairy milk'
+    UNION ALL SELECT 'milk', 'Oat milk'
+    UNION ALL SELECT 'milk', 'Almond milk'
+    UNION ALL SELECT 'milk', 'Soy milk'
+    UNION ALL SELECT 'milk', 'No milk'
+    UNION ALL SELECT 'allergen', 'Dairy'
+    UNION ALL SELECT 'allergen', 'Nuts'
+    UNION ALL SELECT 'allergen', 'Gluten'
+) choices USING (group_name);
 
 CREATE TABLE IF NOT EXISTS catalog_addons (
     addon_id INT AUTO_INCREMENT PRIMARY KEY,

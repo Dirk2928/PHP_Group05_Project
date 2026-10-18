@@ -52,27 +52,11 @@ require __DIR__ . '/../partials/header.php';
 
                 <p>
                     New to Brewski? Let our platform recommend
-                    your preferred drinks!
-                    <br>
-                    Click the question mark button.
+                    one drink that matches your preferences.
                 </p>
 
             </div>
 
-            <button
-                type="button"
-                class="greeting__help"
-                id="choice-open"
-                aria-label="Help"
-            >
-                <i data-lucide="help-circle"></i>
-            </button>
-
-        </section>
-
-        <section class="catalog-search" aria-label="Search drinks">
-            <i data-lucide="search" aria-hidden="true"></i>
-            <input id="product-search" type="search" placeholder="Search drinks" autocomplete="off">
         </section>
 
         <?php if ($catalogError !== ''): ?>
@@ -80,11 +64,6 @@ require __DIR__ . '/../partials/header.php';
         <?php elseif (!$sections): ?>
             <p class="catalog-notice">Our beverage menu is being prepared. Please check back soon.</p>
         <?php endif; ?>
-
-        <div id="no-results" class="no-results" style="display: none;">
-            <i data-lucide="search-x" aria-hidden="true"></i>
-            <p>No drinks match your search.</p>
-        </div>
 
         <?php foreach ($sections as $title => $products): ?>
 

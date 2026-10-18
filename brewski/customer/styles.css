@@ -63,42 +63,6 @@ html, body {
     color: var(--cream);
 }
 
-.catalog-search {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    max-width: 440px;
-    margin: 0 0 2rem;
-    padding: 0.2rem 0.3rem 0.2rem 1rem;
-    border: 1px solid #dfc8a7;
-    border-radius: 999px;
-    background: var(--white);
-    box-shadow: var(--shadow-sm);
-}
-
-.catalog-search i {
-    width: 18px;
-    height: 18px;
-    color: var(--mocha);
-    flex-shrink: 0;
-}
-
-.catalog-search input {
-    width: 100%;
-    min-width: 0;
-    padding: 0.7rem 0.5rem;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--espresso);
-    font: inherit;
-}
-
-.catalog-search:focus-within {
-    border-color: var(--mocha);
-    box-shadow: 0 0 0 4px rgba(113, 73, 42, 0.13);
-}
-
 .no-results {
     margin: 2rem 0;
     text-align: center;

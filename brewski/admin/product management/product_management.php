@@ -24,6 +24,23 @@ $optionChoices = [
         ['name' => '25%', 'price' => 0],
         ['name' => '0%', 'price' => 0],
     ],
+    'bean' => [
+        ['name' => 'Arabica', 'price' => 0],
+        ['name' => 'Robusta', 'price' => 0],
+        ['name' => 'Blend', 'price' => 0],
+    ],
+    'milk' => [
+        ['name' => 'Dairy milk', 'price' => 0],
+        ['name' => 'Oat milk', 'price' => 0],
+        ['name' => 'Almond milk', 'price' => 0],
+        ['name' => 'Soy milk', 'price' => 0],
+        ['name' => 'No milk', 'price' => 0],
+    ],
+    'allergen' => [
+        ['name' => 'Dairy', 'price' => 0],
+        ['name' => 'Nuts', 'price' => 0],
+        ['name' => 'Gluten', 'price' => 0],
+    ],
 ];
 
 $validOptions = [];
@@ -73,7 +90,7 @@ try {
         "CREATE TABLE IF NOT EXISTS product_customization_options (
             product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
             product_id INT NOT NULL,
-            option_group VARCHAR(20) NOT NULL,
+            option_group VARCHAR(30) NOT NULL,
             option_name VARCHAR(100) NOT NULL,
             additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,

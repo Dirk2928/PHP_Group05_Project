@@ -28,7 +28,7 @@ function brewski_migrate_catalog_schema(mysqli $connection): void
         "CREATE TABLE IF NOT EXISTS product_customization_options (
             product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
             product_id INT NOT NULL,
-            option_group VARCHAR(20) NOT NULL,
+            option_group VARCHAR(30) NOT NULL,
             option_name VARCHAR(100) NOT NULL,
             additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
