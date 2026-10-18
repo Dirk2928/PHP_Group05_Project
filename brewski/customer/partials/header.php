@@ -9,9 +9,10 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $cartSessionUrl = BREWSKI_BASE_URL . '/customer/customer_cart/cart_session.php';
+$btnBrewskiLogo = BREWSKI_BASE_URL . '/Start-screen/start.php';
 
 $navItems = [
-    'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../Start-screen/start.php'],
+    'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
     'menu'    => ['label' => 'Menu',    'icon' => 'coffee',        'href' => '../customer_menu/customermenu.php'],
     'orders'  => ['label' => 'Orders',  'icon' => 'receipt',       'href' => '../customer_orders/orders.php'],
     'profile' => ['label' => 'Profile', 'icon' => 'user',          'href' => '../customer_profile/customer_profile.php'],
@@ -188,7 +189,7 @@ if ($headerInitials === '') {
 
     <header class="topbar">
 
-        <a class="topbar__brand" href="<?= e($navItems['home']['href']) ?>" aria-label="Brewski home">
+        <a class="topbar__brand" href="<?= e($btnBrewskiLogo) ?>" aria-label="Brewski home">
             brewski
         </a>
 
