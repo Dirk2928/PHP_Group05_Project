@@ -33,7 +33,6 @@ if ($userId > 0) {
     $avatarConn->close();
 }
 
-// ---- Fetch avatar URL with cache-buster ----
 $avatarUrl = null;
 if ($userId > 0) {
     try {
@@ -78,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
 
         $action = (string) ($_POST['action'] ?? '');
 
-        // ---- AVATAR UPLOAD ----
         if ($action === 'update_avatar') {
 
             if (!isset($_FILES['avatar'])) {
@@ -88,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $conn = brewski_db_connection();
                     $avatar = brewski_read_avatar_upload($_FILES['avatar']);
 
-                    // updated_at = NOW() ensures cache-buster URL changes
                     $stmt = $conn->prepare(
                         'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
                     );
@@ -107,7 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
-        // ---- AVATAR REMOVE ----
         if ($action === 'remove_avatar') {
             $conn = brewski_db_connection();
             $stmt = $conn->prepare(
@@ -123,7 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             exit;
         }
 
-        // ---- UPDATE PROFILE ----
         if ($action === 'update_profile') {
 
             $firstNameInput = trim((string) ($_POST['first_name'] ?? ''));
@@ -175,7 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
-        // ---- ADD ADDRESS ----
         if ($action === 'add_address') {
 
             foreach (array_keys($addressFormValues) as $field) {
@@ -224,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
-        // ---- CHANGE PASSWORD ----
         if ($action === 'change_password') {
 
             $currentInput = (string) ($_POST['current_password'] ?? '');
@@ -314,7 +307,7 @@ $choiceAnswers = is_array($choicePreferences)
     : [];
 $choiceValues = $choiceAnswers;
 $choiceAutoOpen = false;
-$choiceMode = 'recommendation';
+$choiceMode = 'first-timer';
 
 require __DIR__ . '/../partials/header.php';
 
@@ -1158,6 +1151,7 @@ require __DIR__ . '/../partials/header.php';
                         type="button"
                         class="btn btn--dark btn--block"
                         id="choice-open"
+                        data-choice-mode="first-timer"
                     >
 
                         <i data-lucide="sparkles"></i>

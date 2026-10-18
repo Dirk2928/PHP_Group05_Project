@@ -1,10 +1,40 @@
 <?php
 
 $choiceQuestions = brewski_choice_questions();
+$recommendationQuestions = brewski_recommendation_questions();
 $choiceValues = $choiceValues ?? [];
 $choiceAutoOpen = $choiceAutoOpen ?? false;
 $choiceMode = $choiceMode ?? 'recommendation';
-$isFirstTimer = $choiceMode === 'first-timer';
+$initialMode = $choiceMode === 'first-timer' ? 'first-timer' : 'recommendation';
+$renderQuestions = static function (array $questionSet, array $values): void {
+    foreach ($questionSet as $questionKey => $question) {
+        $isMulti = !empty($question['multi']);
+        $chosen = $values[$questionKey] ?? null;
+        $chosenList = is_array($chosen) ? $chosen : ($chosen !== null ? [$chosen] : []);
+        ?>
+        <section
+            class="choice-question"
+            data-choice-question="<?= e($questionKey) ?>"
+            data-choice-multi="<?= $isMulti ? '1' : '0' ?>"
+        >
+            <h3><?= e($question['question']) ?></h3>
+            <div class="choice-answers">
+                <?php foreach ($question['answers'] as $label => $preferences): ?>
+                    <?php $isActive = in_array($label, $chosenList, true); ?>
+                    <button
+                        type="button"
+                        class="choice-answer<?= $isActive ? ' active' : '' ?>"
+                        data-choice-answer="<?= e($label) ?>"
+                        aria-pressed="<?= $isActive ? 'true' : 'false' ?>"
+                    >
+                        <?= e($label) ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php
+    }
+};
 
 ?>
 
@@ -12,7 +42,8 @@ $isFirstTimer = $choiceMode === 'first-timer';
     class="modal-overlay choice-modal"
     id="choice-modal"
     data-auto-open="<?= $choiceAutoOpen ? '1' : '0' ?>"
-    data-choice-mode="<?= e($choiceMode) ?>"
+    data-choice-mode="<?= e($initialMode) ?>"
+    data-home-url="../customer_home/customerhome.php"
 >
 
     <div
@@ -27,13 +58,13 @@ $isFirstTimer = $choiceMode === 'first-timer';
             <div>
 
                 <h2 id="choice-modal-title">
-                    <?= $isFirstTimer ? 'Set up your drink preferences' : 'Get drink recommendations' ?>
+                    <?= $initialMode === 'first-timer' ? 'Set up your drink preferences' : 'Get a drink recommendation' ?>
                 </h2>
 
-                <p class="modal__subtitle">
-                    <?= $isFirstTimer
-                        ? 'Answer a few questions to organize your menu by compatibility.'
-                        : 'Answer a few questions to rank drinks that fit your taste.' ?>
+                <p class="modal__subtitle" id="choice-modal-subtitle">
+                    <?= $initialMode === 'first-timer'
+                        ? 'Answer a few questions to sort your menu by compatibility.'
+                        : 'Answer a few quick questions and we will pick one drink for you.' ?>
                 </p>
 
             </div>
@@ -53,44 +84,13 @@ $isFirstTimer = $choiceMode === 'first-timer';
 
         <div class="modal__body">
 
-            <?php foreach ($choiceQuestions as $questionKey => $question): ?>
+            <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
+                <?php $renderQuestions($choiceQuestions, $choiceValues); ?>
+            </div>
 
-                <?php
-                    $isMulti = !empty($question['multi']);
-                    $chosen = $choiceValues[$questionKey] ?? null;
-                    $chosenList = is_array($chosen) ? $chosen : ($chosen !== null ? [$chosen] : []);
-                ?>
-
-                <section
-                    class="choice-question"
-                    data-choice-question="<?= e($questionKey) ?>"
-                    data-choice-multi="<?= $isMulti ? '1' : '0' ?>"
-                >
-
-                    <h3><?= e($question['question']) ?></h3>
-
-                    <div class="choice-answers">
-
-                        <?php foreach ($question['answers'] as $label => $preferences): ?>
-
-                            <?php $isActive = in_array($label, $chosenList, true); ?>
-
-                            <button
-                                type="button"
-                                class="choice-answer<?= $isActive ? ' active' : '' ?>"
-                                data-choice-answer="<?= e($label) ?>"
-                                aria-pressed="<?= $isActive ? 'true' : 'false' ?>"
-                            >
-                                <?= e($label) ?>
-                            </button>
-
-                        <?php endforeach; ?>
-
-                    </div>
-
-                </section>
-
-            <?php endforeach; ?>
+            <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>
+                <?php $renderQuestions($recommendationQuestions, []); ?>
+            </div>
 
             <p
                 class="choice-status"
@@ -111,7 +111,7 @@ $isFirstTimer = $choiceMode === 'first-timer';
                 id="choice-save"
             >
 
-                <span><?= $isFirstTimer ? 'Organize my menu' : 'Recommend my drinks' ?></span>
+                <span id="choice-save-label"><?= $initialMode === 'first-timer' ? 'Sort my menu' : 'Recommend a drink' ?></span>
 
                 <i data-lucide="arrow-right"></i>
 
