@@ -314,6 +314,7 @@ $choiceAnswers = is_array($choicePreferences)
     : [];
 $choiceValues = $choiceAnswers;
 $choiceAutoOpen = false;
+$choiceMode = 'recommendation';
 
 require __DIR__ . '/../partials/header.php';
 

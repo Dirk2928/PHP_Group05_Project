@@ -195,6 +195,22 @@ function brewski_preferences_ensure_tables(mysqli $connection): void
         return;
     }
 
+    $columns = [
+        'is_first_timer' => 'TINYINT(1) NOT NULL DEFAULT 0',
+        'assessment_completed_at' => 'DATETIME NULL',
+    ];
+    foreach ($columns as $column => $definition) {
+        $columnCheck = $connection->prepare('SHOW COLUMNS FROM users LIKE ?');
+        $columnCheck->bind_param('s', $column);
+        $columnCheck->execute();
+        $columnCheck->store_result();
+        $exists = $columnCheck->num_rows > 0;
+        $columnCheck->close();
+        if (!$exists) {
+            $connection->query('ALTER TABLE users ADD COLUMN ' . $column . ' ' . $definition);
+        }
+    }
+
     $connection->query(
         "CREATE TABLE IF NOT EXISTS preferences (
             preference_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -438,6 +454,90 @@ function brewski_preference_links(array $catalog): array
     return $links;
 }
 
+const BREWSKI_RANK_WEIGHTS = [
+    'temperature' => 25,
+    'caffeine' => 25,
+    'sweetness' => 20,
+    'flavor' => 20,
+    'base' => 10,
+];
+
+function brewski_rank_products(array $userPreferences, array $productTags): array
+{
+    $groups = [
+        'temperature' => ['temp:hot', 'temp:iced'],
+        'caffeine' => ['caffeine:Regular', 'caffeine:Decaf', 'caffeine:Caffeine-free'],
+        'sweetness' => ['sugar:sweet', 'sugar:light', 'sugar:none'],
+        'flavor' => ['flavor:Chocolate', 'flavor:Nutty', 'flavor:Fruity', 'flavor:Creamy'],
+        'base' => ['coffee', 'non-coffee'],
+    ];
+    $ranked = [];
+    $avoided = array_values(array_filter(
+        $userPreferences,
+        static fn (string $preference): bool => str_starts_with($preference, 'avoid:')
+    ));
+    foreach ($productTags as $productId => $tags) {
+        $tags = array_values(array_unique($tags));
+        $excludedFor = [];
+        $hasAllergenData = (bool) array_filter(
+            $tags,
+            static fn (string $tag): bool => str_starts_with($tag, 'avoid:')
+        );
+        foreach ($avoided as $avoid) {
+            if (!$hasAllergenData) {
+                $excludedFor[] = 'allergen info not listed';
+            } elseif (in_array($avoid, $tags, true)) {
+                $excludedFor[] = substr($avoid, 6);
+            }
+        }
+        $earned = 0;
+        $possible = 0;
+        $matched = [];
+        foreach ($groups as $group => $options) {
+            $wanted = array_values(array_intersect($userPreferences, $options));
+            if (!$wanted) {
+                continue;
+            }
+            $possible += BREWSKI_RANK_WEIGHTS[$group];
+            $productMatches = array_values(array_intersect($wanted, $tags));
+            if ($productMatches) {
+                $earned += BREWSKI_RANK_WEIGHTS[$group];
+                foreach ($productMatches as $match) {
+                    $matched[] = ucfirst(str_replace(['temp:', 'sugar:', 'flavor:', 'caffeine:'], '', $match));
+                }
+            } elseif (!array_intersect($options, $tags)) {
+                $earned += (int) round(BREWSKI_RANK_WEIGHTS[$group] / 2);
+            }
+        }
+        $percent = $excludedFor ? 0 : ($possible > 0 ? (int) round(100 * $earned / $possible) : 0);
+        $ranked[(int) $productId] = [
+            'product_id' => (int) $productId,
+            'percent' => $percent,
+            'status' => $excludedFor ? 'excluded' : ($percent >= 70 ? 'recommended' : 'available'),
+            'matched' => array_values(array_unique($matched)),
+            'excluded_for' => array_values(array_unique($excludedFor)),
+        ];
+    }
+    return $ranked;
+}
+
+function brewski_best_match(array $ranked): ?array
+{
+    $best = null;
+    foreach ($ranked as $candidate) {
+        if ($candidate['status'] === 'excluded' || $candidate['percent'] < 40) {
+            continue;
+        }
+        if ($best === null
+            || $candidate['percent'] > $best['percent']
+            || ($candidate['percent'] === $best['percent']
+                && count($candidate['matched']) > count($best['matched']))) {
+            $best = $candidate;
+        }
+    }
+    return $best;
+}
+
 function brewski_preference_links_write(mysqli $connection, array $catalog): void
 {
     $ids = [];
@@ -609,6 +709,13 @@ function brewski_save_user_preferences(int $userId, array $names): bool
         }
 
         $connection->commit();
+
+        $assessment = $connection->prepare(
+            'UPDATE users SET assessment_completed_at = NOW() WHERE user_id = ?'
+        );
+        $assessment->bind_param('i', $userId);
+        $assessment->execute();
+        $assessment->close();
 
         return true;
     });

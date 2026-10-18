@@ -12,6 +12,7 @@ $catalogError = '';
 $categories = [];
 $products = [];
 $choiceScores = [];
+$choiceRanking = [];
 try {
     $catalog = brewski_load_catalog();
     $categories = $catalog['categories'];
@@ -21,7 +22,16 @@ try {
     $choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
 
     if ($choiceUserId > 0) {
-        $choiceScores = brewski_user_choice_scores($choiceUserId, $products);
+        $choicePreferences = brewski_user_preferences($choiceUserId);
+        if ($choicePreferences) {
+            $choiceRanking = brewski_rank_products(
+                $choicePreferences,
+                brewski_preference_links($catalog)
+            );
+            foreach ($choiceRanking as $productId => $ranking) {
+                $choiceScores[$productId] = $ranking['percent'];
+            }
+        }
     }
 
     if ($choiceScores) {
@@ -31,7 +41,12 @@ try {
             $positions[(int) $product['product_id']] = $position;
         }
 
-        usort($products, function ($first, $second) use ($choiceScores, $positions) {
+        usort($products, function ($first, $second) use ($choiceScores, $choiceRanking, $positions) {
+            $firstExcluded = (($choiceRanking[(int) $first['product_id']]['status'] ?? '') === 'excluded');
+            $secondExcluded = (($choiceRanking[(int) $second['product_id']]['status'] ?? '') === 'excluded');
+            if ($firstExcluded !== $secondExcluded) {
+                return $firstExcluded ? 1 : -1;
+            }
             $firstScore = $choiceScores[(int) $first['product_id']] ?? 0;
             $secondScore = $choiceScores[(int) $second['product_id']] ?? 0;
 
@@ -115,6 +130,7 @@ require __DIR__ . '/../partials/header.php';
                         JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
                     );
                     $cardScore = $choiceScores[(int) $product['product_id']] ?? 0;
+                    $cardRanking = $choiceRanking[(int) $product['product_id']] ?? null;
                     ?>
 
                     <div
@@ -128,7 +144,9 @@ require __DIR__ . '/../partials/header.php';
                     >
 
                         <?php if ($bestMatchScore > 0 && $cardScore >= $bestMatchScore): ?>
-                            <span class="product-card__match">Best match</span>
+                            <span class="product-card__match">Your best match</span>
+                        <?php elseif ($cardRanking): ?>
+                            <span class="product-card__match"><?= (int) $cardRanking['percent'] ?>% match</span>
                         <?php endif; ?>
 
                         <div class="product-card__image">
@@ -147,6 +165,11 @@ require __DIR__ . '/../partials/header.php';
                             <h3><?= e($product['product_name']) ?></h3>
 
                             <p class="price">₱<?= number_format((float) $product['price'], 2) ?></p>
+                            <?php if ($cardRanking && $cardRanking['status'] === 'excluded'): ?>
+                                <p class="catalog-notice">Contains <?= e(implode(', ', $cardRanking['excluded_for'])) ?></p>
+                            <?php elseif ($cardRanking && $cardRanking['matched']): ?>
+                                <p class="catalog-notice"><?= e(implode(', ', array_slice($cardRanking['matched'], 0, 2))) ?></p>
+                            <?php endif; ?>
 
                             <button class="btn-add">
 

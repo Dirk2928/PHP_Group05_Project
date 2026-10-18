@@ -3,6 +3,8 @@
 $choiceQuestions = brewski_choice_questions();
 $choiceValues = $choiceValues ?? [];
 $choiceAutoOpen = $choiceAutoOpen ?? false;
+$choiceMode = $choiceMode ?? 'recommendation';
+$isFirstTimer = $choiceMode === 'first-timer';
 
 ?>
 
@@ -10,6 +12,7 @@ $choiceAutoOpen = $choiceAutoOpen ?? false;
     class="modal-overlay choice-modal"
     id="choice-modal"
     data-auto-open="<?= $choiceAutoOpen ? '1' : '0' ?>"
+    data-choice-mode="<?= e($choiceMode) ?>"
 >
 
     <div
@@ -23,9 +26,15 @@ $choiceAutoOpen = $choiceAutoOpen ?? false;
 
             <div>
 
-                <h2 id="choice-modal-title">Let's find your drink</h2>
+                <h2 id="choice-modal-title">
+                    <?= $isFirstTimer ? 'Set up your drink preferences' : 'Get drink recommendations' ?>
+                </h2>
 
-                <p class="modal__subtitle"><?= count($choiceQuestions) ?> quick questions</p>
+                <p class="modal__subtitle">
+                    <?= $isFirstTimer
+                        ? 'Answer a few questions to organize your menu by compatibility.'
+                        : 'Answer a few questions to rank drinks that fit your taste.' ?>
+                </p>
 
             </div>
 
@@ -94,13 +103,15 @@ $choiceAutoOpen = $choiceAutoOpen ?? false;
 
         <div class="modal__footer">
 
+            <button type="button" class="modal__close" id="choice-skip">Skip for now</button>
+
             <button
                 type="button"
                 class="btn-confirm"
                 id="choice-save"
             >
 
-                <span>Show my drinks</span>
+                <span><?= $isFirstTimer ? 'Organize my menu' : 'Recommend my drinks' ?></span>
 
                 <i data-lucide="arrow-right"></i>
 

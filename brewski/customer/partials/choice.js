@@ -12,9 +12,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var saveButton = document.getElementById('choice-save');
     var status = document.getElementById('choice-status');
     var openButton = document.getElementById('choice-open');
+    var skipButton = document.getElementById('choice-skip');
+    var noticeButton = document.getElementById('choice-open-notice');
     var questions = Array.prototype.slice.call(
         modal.querySelectorAll('[data-choice-question]')
     );
+    var isFirstTimer = modal.dataset.choiceMode === 'first-timer';
 
     function open() {
         modal.classList.add('show');
@@ -102,9 +105,29 @@ document.addEventListener('DOMContentLoaded', function () {
     if (openButton) {
         openButton.addEventListener('click', open);
     }
+    if (noticeButton) {
+        noticeButton.addEventListener('click', open);
+    }
 
     if (closeButton) {
         closeButton.addEventListener('click', close);
+    }
+
+    if (skipButton) {
+        skipButton.addEventListener('click', function () {
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            var payload = new URLSearchParams();
+            payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
+            payload.append('action', 'skip');
+            fetch('../partials/choice-save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload.toString(),
+                credentials: 'same-origin'
+            }).then(function () {
+                close();
+            });
+        });
     }
 
     modal.addEventListener('click', function (event) {
@@ -149,16 +172,25 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(function (response) {
                     return response.text().then(function (text) {
-                        return { ok: response.ok, text: text };
+                        var data = null;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (error) {
+                            data = null;
+                        }
+                        return { ok: response.ok, text: text, data: data };
                     });
                 })
                 .then(function (result) {
-                    if (result.ok && result.text === 'ok') {
-                        setStatus('Saved! Taking you to your menu...', 'is-saved');
+                    if (result.ok && result.data && result.data.ok) {
+                        setStatus(
+                            isFirstTimer
+                                ? 'Preferences saved! Organizing your menu...'
+                                : 'Preferences saved! Ranking your recommendations...',
+                            'is-saved'
+                        );
 
-                        window.setTimeout(function () {
-                            window.location.href = '../customer_menu/customermenu.php';
-                        }, 700);
+                        showResult(result.data.best_match, result.data.message);
 
                         return true;
                     }
@@ -182,6 +214,54 @@ document.addEventListener('DOMContentLoaded', function () {
                         saveButton.disabled = false;
                     }
                 });
+
+                function showResult(bestMatch, message) {
+                    while (body.firstChild) {
+                        body.removeChild(body.firstChild);
+                    }
+                    var panel = document.createElement('section');
+                    panel.className = 'choice-result';
+                    var title = document.createElement('h3');
+                    title.textContent = bestMatch ? bestMatch.label : 'No recommendation yet';
+                    panel.appendChild(title);
+                    if (bestMatch) {
+                        var image = document.createElement('img');
+                        image.src = bestMatch.image;
+                        image.alt = bestMatch.name;
+                        panel.appendChild(image);
+                    }
+                    var text = document.createElement('p');
+                    text.textContent = bestMatch
+                        ? bestMatch.name + ' matches ' + bestMatch.percent + '% of your preferences.'
+                        : message;
+                    panel.appendChild(text);
+                    if (bestMatch) {
+                        var price = document.createElement('p');
+                        price.textContent = 'Price: ₱' + Number(bestMatch.price).toFixed(2);
+                        panel.appendChild(price);
+                        var reasons = document.createElement('p');
+                        reasons.textContent = bestMatch.matched.length
+                            ? 'Why: ' + bestMatch.matched.join(', ')
+                            : 'This is the closest safe match in the current menu.';
+                        panel.appendChild(reasons);
+                        var menuLink = document.createElement('a');
+                        menuLink.className = 'btn-confirm';
+                        menuLink.textContent = 'See it on the menu';
+                        menuLink.href = '../customer_menu/customermenu.php?product_id='
+                            + encodeURIComponent(String(parseInt(bestMatch.product_id, 10)));
+                        panel.appendChild(menuLink);
+                    } else {
+                        var retake = document.createElement('button');
+                        retake.type = 'button';
+                        retake.className = 'btn-confirm';
+                        retake.textContent = 'Retake';
+                        retake.addEventListener('click', function () {
+                            window.location.reload();
+                        });
+                        panel.appendChild(retake);
+                    }
+                    body.appendChild(panel);
+                }
         });
     }
 

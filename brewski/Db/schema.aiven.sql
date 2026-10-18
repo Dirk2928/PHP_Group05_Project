@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
+    is_first_timer TINYINT(1) NOT NULL DEFAULT 0,
+    assessment_completed_at DATETIME NULL,
     job_title VARCHAR(50) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     is_locked TINYINT(1) NOT NULL DEFAULT 0,

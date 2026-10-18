@@ -11,6 +11,7 @@ $extraStyles = ['partials/choice.css'];
 $catalogError = '';
 $sections = [];
 $choicePreferences = null;
+$choiceBestMatch = null;
 
 try {
     $catalog = brewski_load_catalog();
@@ -18,23 +19,47 @@ try {
         $sections[$product['category_name']][] = $product;
     }
     brewski_preference_sync($catalog);
+    $choicePreferences = null;
 } catch (mysqli_sql_exception $error) {
     error_log('Customer home catalog error: ' . $error->getMessage());
     $catalogError = 'The menu is temporarily unavailable. Please try again later.';
 }
 
 $choiceUserId = (int) ($_SESSION['user_id'] ?? 0);
+$choiceFirstTimer = false;
+$choiceAssessmentCompleted = null;
 
 if ($choiceUserId > 0) {
     $choicePreferences = brewski_user_preferences($choiceUserId);
+    $statusConnection = brewski_db_connect();
+    $statusStatement = $statusConnection->prepare(
+        'SELECT is_first_timer, assessment_completed_at FROM users WHERE user_id = ?'
+    );
+    $statusStatement->bind_param('i', $choiceUserId);
+    $statusStatement->execute();
+    $statusStatement->bind_result($choiceFirstTimer, $choiceAssessmentCompleted);
+    $statusStatement->fetch();
+    $statusStatement->close();
+    $statusConnection->close();
+    if (is_array($choicePreferences) && $choicePreferences) {
+        $choiceRanking = brewski_rank_products(
+            $choicePreferences,
+            brewski_preference_links($catalog)
+        );
+        $choiceBestMatch = brewski_best_match($choiceRanking);
+    }
 }
 
 $choiceValues = is_array($choicePreferences)
     ? brewski_answers_from_preferences($choicePreferences)
     : [];
 $choiceAutoOpen = $choiceUserId > 0
+    && (int) $choiceFirstTimer === 1
+    && empty($choiceAssessmentCompleted)
     && is_array($choicePreferences)
-    && count($choicePreferences) === 0;
+    && count($choicePreferences) === 0
+    && empty($_SESSION['choice_skipped']);
+$choiceMode = $choiceAutoOpen ? 'first-timer' : 'recommendation';
 
 require __DIR__ . '/../partials/header.php';
 
@@ -67,6 +92,20 @@ require __DIR__ . '/../partials/header.php';
             </button>
 
         </section>
+
+        <?php if ($choiceFirstTimer && empty($choiceAssessmentCompleted) && !empty($_SESSION['choice_skipped'])): ?>
+            <p class="catalog-notice" role="status">
+                Finish your taste profile to organize your menu.
+                <button type="button" class="btn-link" id="choice-open-notice">Finish your taste profile</button>
+            </p>
+        <?php endif; ?>
+
+        <?php if ($choiceBestMatch): ?>
+            <section class="category">
+                <h2 class="category__title">Your best match</h2>
+                <p><?= e($choiceBestMatch['percent']) ?>% match · <?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
+            </section>
+        <?php endif; ?>
 
         <?php if ($catalogError !== ''): ?>
             <p class="catalog-notice" role="alert"><?= e($catalogError) ?></p>

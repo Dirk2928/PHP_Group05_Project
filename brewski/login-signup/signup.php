@@ -4,6 +4,7 @@ require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/recaptcha.php';
 require_once __DIR__ . '/../Db/db_config.php';
+require_once __DIR__ . '/../Db/staff_columns.php';
 require_once __DIR__ . '/email-service-client.php';
 
 if (empty($_SESSION['csrf_token'])) {
@@ -15,6 +16,7 @@ $success = '';
 $first_name_value = '';
 $last_name_value = '';
 $email_value = '';
+$first_timer_value = '';
 
 $password_policy = brewski_password_policy();
 $password_requirements = [
@@ -55,6 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email      = trim($_POST['email'] ?? '');
     $password   = $_POST['password'] ?? '';
     $confirm    = $_POST['confirm_password'] ?? '';
+    $first_timer = $_POST['first_timer'] ?? '';
+    $firstTimerValue = $first_timer === 'yes' ? 1 : 0;
+    $first_timer_value = htmlspecialchars((string) $first_timer, ENT_QUOTES, 'UTF-8');
 
     $first_name_value = htmlspecialchars($first_name, ENT_QUOTES, 'UTF-8');
     $last_name_value  = htmlspecialchars($last_name, ENT_QUOTES, 'UTF-8');
@@ -81,6 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error = 'Please enter a valid email address.';
 
+    } elseif (!in_array($first_timer, ['yes', 'no'], true)) {
+        $error = 'Please tell us whether this is your first time ordering from a café.';
     } elseif ($password !== $confirm) {
 
         $error = 'The passwords do not match.';
@@ -94,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Unable to connect to the database. Please make sure MySQL is running.';
 
     } else {
+        brewski_ensure_preference_columns($conn);
 
         // --- Check for existing email ---
         $check = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
@@ -125,9 +133,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $insert = $conn->prepare(
                     "INSERT INTO users
-                        (first_name, last_name, email, password, role, is_active,
+                        (first_name, last_name, email, password, role, is_active, is_first_timer,
                          email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, ?, ?)"
+                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, ?, ?, ?)"
                 );
 
                 if (!$insert) {
@@ -137,11 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
 
                     $insert->bind_param(
-                        'ssssss',
+                        'ssssiss',
                         $first_name,
                         $last_name,
                         $email,
                         $passwordHash,
+                        $firstTimerValue,
                         $activationToken,
                         $activationExpires
                     );
@@ -299,6 +308,18 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     >
 
                 </div>
+
+                <fieldset class="field">
+                    <legend>Is this your first time ordering beverages from a café?</legend>
+                    <label>
+                        <input type="radio" name="first_timer" value="yes"<?= $first_timer_value === 'yes' ? ' checked' : '' ?> required>
+                        Yes
+                    </label>
+                    <label>
+                        <input type="radio" name="first_timer" value="no"<?= $first_timer_value === 'no' ? ' checked' : '' ?>>
+                        No
+                    </label>
+                </fieldset>
 
                 <div class="field">
 
