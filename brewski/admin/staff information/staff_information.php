@@ -21,7 +21,7 @@ $endpoint = htmlspecialchars(
     'UTF-8'
 );
 
-$pageSize = 5;
+$pageSize = 6;
 
 function admin_staff_respond(bool $ok, string $message, int $status = 200): void
 {

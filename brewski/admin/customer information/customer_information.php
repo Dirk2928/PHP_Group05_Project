@@ -212,7 +212,7 @@ $customers = $pdo->query(
      ORDER BY user_id DESC"
 )->fetchAll();
 
-$pageSize = 5;
+$pageSize = 6;
 ?>
 
 <div class="page-container">

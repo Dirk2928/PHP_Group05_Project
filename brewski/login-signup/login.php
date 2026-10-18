@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    $submissionErrors = brewski_auth_submission_errors($_POST, (bool) $portal['recaptcha']);
+    $submissionErrors = brewski_auth_submission_errors($_POST, false);
 
     if ($submissionErrors) {
 
@@ -124,8 +124,6 @@ $csrfToken = (string) $_SESSION['csrf_token'];
         rel="stylesheet"
         href="styles.css"
     >
-
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 </head>
 
@@ -307,11 +305,6 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     ></p>
 
                 </div>
-
-                <div
-                    class="g-recaptcha"
-                    data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"
-                ></div>
 
                 <button
                     type="submit"
