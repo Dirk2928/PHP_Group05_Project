@@ -298,6 +298,12 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
                     </div>
 
+                    <p class="auth__switch" style="margin: 0.4rem 0 0; text-align: right; font-size: 0.72rem;">
+                        <a href="forgot-password.php" style="color: var(--espresso); text-decoration: underline;">
+                            Forgot your password?
+                        </a>
+                    </p>
+
                     <p
                         class="field__error"
                         id="password-error"
@@ -314,14 +320,6 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 </button>
 
             </form>
-
-            <p class="auth__switch" style="margin-top: 0.5rem;">
-
-                <a href="forgot-password.php">
-                    Forgot your password?
-                </a>
-
-            </p>
 
             <p class="auth__switch">
 
