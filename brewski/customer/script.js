@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var menuPagination = document.getElementById('menuPagination');
     var filterState = { category: 'all' };
     var menuPageSize = 6;
-    var visibleMenuItems = menuPageSize;
+    var menuPage = 1;
 
     function matchingCards() {
         return Array.prototype.filter.call(productCards, function (card) {
@@ -77,12 +77,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
         menuPagination.innerHTML = '';
 
-        if (visibleMenuItems >= matchingCards().length) {
-            return;
+        menuPagination.appendChild(menuPageButton('Previous', menuPage === 1, false, function () {
+            menuPage--;
+            applyFilters();
+        }));
+
+        var firstPage = Math.max(1, menuPage - 1);
+        var lastPage = Math.min(pageCount, firstPage + 2);
+        firstPage = Math.max(1, lastPage - 2);
+
+        for (var page = firstPage; page <= lastPage; page++) {
+            (function (target) {
+                menuPagination.appendChild(menuPageButton(String(target), false, target === menuPage, function () {
+                    menuPage = target;
+                    applyFilters();
+                }));
+            })(page);
         }
 
-        menuPagination.appendChild(menuPageButton('See more', false, false, function () {
-            visibleMenuItems += menuPageSize;
+        menuPagination.appendChild(menuPageButton('Next', menuPage === pageCount, false, function () {
+            menuPage++;
             applyFilters();
         }));
     }
@@ -92,17 +106,20 @@ document.addEventListener('DOMContentLoaded', function () {
         var shown = matches;
 
         if (menuPagination) {
-            var end = Math.min(visibleMenuItems, matches.length);
+            var pageCount = Math.max(1, Math.ceil(matches.length / menuPageSize));
+            menuPage = Math.min(menuPage, pageCount);
+            var start = (menuPage - 1) * menuPageSize;
+            var end = Math.min(start + menuPageSize, matches.length);
 
-            shown = matches.slice(0, end);
+            shown = matches.slice(start, end);
 
             if (menuPageInfo) {
                 menuPageInfo.textContent = matches.length === 0
                     ? 'No results'
-                    : 'Showing ' + end + ' of ' + matches.length + ' drinks';
+                    : 'Showing ' + (start + 1) + '–' + end + ' of ' + matches.length + ' drinks';
             }
 
-            renderMenuPagination();
+            renderMenuPagination(pageCount);
         }
 
         productCards.forEach(function (card) {
@@ -133,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 btn.classList.add('active');
                 filterState[stateKey] = btn.dataset.filter;
-                visibleMenuItems = menuPageSize;
+                menuPage = 1;
                 applyFilters();
             });
         });

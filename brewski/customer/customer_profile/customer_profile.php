@@ -529,6 +529,14 @@ require __DIR__ . '/../partials/header.php';
             color: var(--danger);
         }
 
+        .avatar-upload-hint {
+            max-width: 220px;
+            margin: 0.65rem auto 0;
+            color: var(--dark-mocha);
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
         .profile-summary h2 {
             font-size: 1.3rem;
             margin-bottom: 0.4rem;
@@ -824,6 +832,7 @@ require __DIR__ . '/../partials/header.php';
                         hidden
                         onchange="document.getElementById('avatar-form').submit();"
                     >
+                    <p class="avatar-upload-hint">JPG, PNG, or WebP only. Maximum file size: 5 MB.</p>
                 </form>
 
                 <?php if ($avatarUrl): ?>

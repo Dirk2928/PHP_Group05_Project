@@ -13,7 +13,7 @@
  *   - Cross-verified MIME
  */
 
-const BREWSKI_AVATAR_MAX_BYTES  = 2097152;   // 2 MB
+const BREWSKI_AVATAR_MAX_BYTES  = 5242880;
 const BREWSKI_AVATAR_MAX_DIM    = 1000;      // 1000×1000 px
 const BREWSKI_AVATAR_MAX_PIXELS = 1000000;   // 1 megapixel
 const BREWSKI_AVATAR_ALLOWED    = [
@@ -48,7 +48,7 @@ function brewski_read_avatar_upload(array $upload): array
     }
 
     if (($upload['size'] ?? 0) <= 0 || $upload['size'] > BREWSKI_AVATAR_MAX_BYTES) {
-        throw new RuntimeException('Choose an image smaller than 2 MB.');
+        throw new RuntimeException('Choose an image no larger than 5 MB.');
     }
 
     if (!is_uploaded_file($upload['tmp_name'])) {
