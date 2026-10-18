@@ -52,10 +52,19 @@ require __DIR__ . '/../partials/header.php';
 
                 <p>
                     New to Brewski? Let our platform recommend
-                    one drink that matches your preferences.
+                    drinks that match your preferences.
                 </p>
 
             </div>
+
+            <button
+                type="button"
+                class="greeting__help"
+                id="choice-open"
+                aria-label="Open drink recommendation form"
+            >
+                <i data-lucide="help-circle"></i>
+            </button>
 
         </section>
 

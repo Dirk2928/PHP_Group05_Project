@@ -41,6 +41,17 @@ $optionChoices = [
         ['name' => 'Nuts', 'price' => 0],
         ['name' => 'Gluten', 'price' => 0],
     ],
+    'flavor' => [
+        ['name' => 'Chocolate', 'price' => 0],
+        ['name' => 'Nutty', 'price' => 0],
+        ['name' => 'Fruity', 'price' => 0],
+        ['name' => 'Creamy', 'price' => 0],
+    ],
+    'caffeine' => [
+        ['name' => 'Regular', 'price' => 0],
+        ['name' => 'Decaf', 'price' => 0],
+        ['name' => 'Caffeine-free', 'price' => 0],
+    ],
 ];
 
 $validOptions = [];
@@ -450,6 +461,66 @@ try {
                     if (!is_string($selectedOption)) {
                         throw new RuntimeException('Choose only listed customization options.');
                     }
+                }
+
+                $customOptionNames = $_POST['custom_option_name'] ?? [];
+                if (!is_array($customOptionNames)) {
+                    throw new RuntimeException('Enter valid custom customization names.');
+                }
+                foreach (['bean', 'milk', 'allergen', 'flavor', 'caffeine'] as $customGroup) {
+                    $groupNames = $customOptionNames[$customGroup] ?? [];
+                    if (!is_array($groupNames)) {
+                        throw new RuntimeException('Enter valid custom customization names.');
+                    }
+                    $knownNames = [];
+                    foreach ($optionChoices[$customGroup] as $choice) {
+                        $knownNames[strtolower($choice['name'])] = true;
+                    }
+                    foreach ($groupNames as $customNameInput) {
+                        if (!is_string($customNameInput)) {
+                            throw new RuntimeException('Enter valid custom customization names.');
+                        }
+                        $customName = trim($customNameInput);
+                        if ($customName === '') {
+                            continue;
+                        }
+                        if (strlen($customName) > 100 || strpos($customName, ':') !== false) {
+                            throw new RuntimeException('Customization names must be 1 to 100 characters without colons.');
+                        }
+                        $normalizedName = strtolower($customName);
+                        if (isset($knownNames[$normalizedName])) {
+                            throw new RuntimeException('Customization names must be unique within each group.');
+                        }
+                        $knownNames[$normalizedName] = true;
+                        $optionKey = $customGroup . ':' . $customName;
+                        $validOptions[$optionKey] = [
+                            'group' => $customGroup,
+                            'name' => $customName,
+                            'price' => 0,
+                        ];
+                        $selectedOptions[] = $optionKey;
+                    }
+                }
+                if ($productId > 0) {
+                    $existingOptions = $connection->prepare(
+                        'SELECT option_group, option_name
+                         FROM product_customization_options
+                         WHERE product_id = ?'
+                    );
+                    $existingOptions->bind_param('i', $productId);
+                    $existingOptions->execute();
+                    $existingOptionResult = $existingOptions->get_result();
+                    while ($existingOption = $existingOptionResult->fetch_assoc()) {
+                        $optionKey = $existingOption['option_group'] . ':' . $existingOption['option_name'];
+                        if (!isset($validOptions[$optionKey])) {
+                            $validOptions[$optionKey] = [
+                                'group' => $existingOption['option_group'],
+                                'name' => $existingOption['option_name'],
+                                'price' => 0,
+                            ];
+                        }
+                    }
+                    $existingOptions->close();
                 }
 
                 $customSizeNames = $_POST['custom_size_name'] ?? [];
@@ -1074,6 +1145,11 @@ $pageSize = 5;
                                 <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
                                     <?= $catalogIcon('plus') ?>Add another size
                                 </button>
+                            <?php elseif (in_array($group, ['bean', 'milk', 'allergen', 'flavor', 'caffeine'], true)): ?>
+                                <div class="catalog-custom-options" data-custom-options></div>
+                                <button type="button" class="catalog-button catalog-button--secondary" data-add-custom-option data-option-group="<?= $escape($group) ?>">
+                                    <?= $catalogIcon('plus') ?>Add another <?= $escape($group) ?> option
+                                </button>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -1302,6 +1378,22 @@ $pageSize = 5;
                                     <legend>Customizations customers may choose</legend>
                                     <?php foreach ($optionChoices as $group => $choices): ?>
                                         <?php
+                                        $customChoices = [];
+                                        foreach ($product['customizations'] as $customization) {
+                                            $customizationParts = explode(':', $customization, 2);
+                                            if (($customizationParts[0] ?? '') === $group
+                                                && !in_array(
+                                                    $customizationParts[1] ?? '',
+                                                    array_column($choices, 'name'),
+                                                    true
+                                                )) {
+                                                $customChoices[] = [
+                                                    'name' => $customizationParts[1] ?? '',
+                                                    'price' => 0,
+                                                ];
+                                            }
+                                        }
+                                        $groupChoices = array_merge($choices, $customChoices);
                                         $selectedGroupOptions = array_filter(
                                             $product['customizations'],
                                             static fn ($option): bool => strpos($option, $group . ':') === 0
@@ -1326,7 +1418,7 @@ $pageSize = 5;
                                             )
                                             : [];
                                         $selectedChoiceCount = count(array_filter(
-                                            $choices,
+                                            $groupChoices,
                                             static fn ($choice): bool => in_array(
                                                 $group . ':' . $choice['name'],
                                                 $product['customizations'],
@@ -1337,11 +1429,11 @@ $pageSize = 5;
                                         <div class="catalog-option-group" data-customization-group>
                                             <strong><?= $escape(ucfirst($group)) ?></strong>
                                             <label class="catalog-select-all">
-                                                <input type="checkbox" data-select-all-customizations<?= $selectedChoiceCount === count($choices) ? ' checked' : '' ?>>
+                                                <input type="checkbox" data-select-all-customizations<?= $selectedChoiceCount === count($groupChoices) ? ' checked' : '' ?>>
                                                 Select all <?= $escape($group) ?> options
                                             </label>
                                             <div class="catalog-option-list">
-                                                <?php foreach ($choices as $choice): ?>
+                                                <?php foreach ($groupChoices as $choice): ?>
                                                     <?php $optionKey = $group . ':' . $choice['name']; ?>
                                                     <div class="catalog-option-row">
                                                         <label class="catalog-option">
@@ -1375,6 +1467,11 @@ $pageSize = 5;
                                                 </div>
                                                 <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
                                                     <?= $catalogIcon('plus') ?>Add another size
+                                                </button>
+                                            <?php elseif (in_array($group, ['bean', 'milk', 'allergen', 'flavor', 'caffeine'], true)): ?>
+                                                <div class="catalog-custom-options" data-custom-options></div>
+                                                <button type="button" class="catalog-button catalog-button--secondary" data-add-custom-option data-option-group="<?= $escape($group) ?>">
+                                                    <?= $catalogIcon('plus') ?>Add another <?= $escape($group) ?> option
                                                 </button>
                                             <?php endif; ?>
                                         </div>
@@ -1514,10 +1611,50 @@ $pageSize = 5;
             return;
         }
 
+        var addCustomOptionButton = event.target.closest('[data-add-custom-option]');
+        if (addCustomOptionButton) {
+            var customOptionGroup = addCustomOptionButton.closest('[data-customization-group]');
+            var customOptionList = customOptionGroup && customOptionGroup.querySelector('[data-custom-options]');
+            var optionGroupName = addCustomOptionButton.dataset.optionGroup;
+            if (!customOptionList || !optionGroupName) return;
+
+            var customOptionRow = document.createElement('div');
+            customOptionRow.className = 'catalog-custom-size-row';
+            customOptionRow.innerHTML =
+                '<label class="catalog-option">' +
+                '<input type="checkbox" name="customizations[]" value="" data-customization-option data-custom-option-checkbox checked>' +
+                'Use this option</label>' +
+                '<label>Option name' +
+                '<input type="text" name="custom_option_name[' + optionGroupName + '][]" maxlength="100" required data-custom-option-name>' +
+                '</label>' +
+                '<button type="button" class="catalog-button catalog-button--danger" data-remove-custom-option>Remove</button>';
+            customOptionList.appendChild(customOptionRow);
+            customOptionRow.querySelector('[data-custom-option-name]').focus();
+            return;
+        }
+
         var removeSizeButton = event.target.closest('[data-remove-size]');
         if (removeSizeButton) {
             var sizeRow = removeSizeButton.closest('.catalog-custom-size-row');
             if (sizeRow) sizeRow.remove();
+            return;
+        }
+
+        var removeCustomOptionButton = event.target.closest('[data-remove-custom-option]');
+        if (removeCustomOptionButton) {
+            var customOptionRow = removeCustomOptionButton.closest('.catalog-custom-size-row');
+            if (customOptionRow) customOptionRow.remove();
+        }
+    });
+
+    document.addEventListener('input', function (event) {
+        var customOptionName = event.target.closest('[data-custom-option-name]');
+        if (!customOptionName) return;
+        var customOptionRow = customOptionName.closest('.catalog-custom-size-row');
+        var checkbox = customOptionRow && customOptionRow.querySelector('[data-custom-option-checkbox]');
+        var optionGroupName = customOptionName.name.match(/^custom_option_name\[([^\]]+)\]/);
+        if (checkbox && optionGroupName) {
+            checkbox.value = optionGroupName[1] + ':' + customOptionName.value.trim();
         }
     });
 

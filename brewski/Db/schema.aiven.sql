@@ -372,7 +372,9 @@ INSERT IGNORE INTO preference_choice_groups (group_name, description)
 VALUES
     ('bean', 'Coffee bean type'),
     ('milk', 'Milk type'),
-    ('allergen', 'Allergens present in the product');
+    ('allergen', 'Allergens present in the product'),
+    ('flavor', 'Flavor profile'),
+    ('caffeine', 'Caffeine content');
 
 INSERT IGNORE INTO preference_choices (choice_group_id, choice_name)
 SELECT choice_group_id, choice_name
@@ -389,6 +391,13 @@ JOIN (
     UNION ALL SELECT 'allergen', 'Dairy'
     UNION ALL SELECT 'allergen', 'Nuts'
     UNION ALL SELECT 'allergen', 'Gluten'
+    UNION ALL SELECT 'flavor', 'Chocolate'
+    UNION ALL SELECT 'flavor', 'Nutty'
+    UNION ALL SELECT 'flavor', 'Fruity'
+    UNION ALL SELECT 'flavor', 'Creamy'
+    UNION ALL SELECT 'caffeine', 'Regular'
+    UNION ALL SELECT 'caffeine', 'Decaf'
+    UNION ALL SELECT 'caffeine', 'Caffeine-free'
 ) choices USING (group_name);
 
 CREATE TABLE IF NOT EXISTS catalog_addons (

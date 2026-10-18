@@ -9,6 +9,47 @@ if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
 
 function brewski_choice_questions(): array
 {
+    $customChoices = static function (string $group, array $fallback): array {
+        try {
+            $connection = brewski_db_connect();
+            if (!$connection) {
+                return $fallback;
+            }
+            $statement = $connection->prepare(
+                'SELECT DISTINCT option_name
+                 FROM product_customization_options
+                 WHERE option_group = ?
+                 ORDER BY option_name'
+            );
+            $statement->bind_param('s', $group);
+            $statement->execute();
+            $result = $statement->get_result();
+            $names = [];
+            while ($row = $result->fetch_assoc()) {
+                $names[] = (string) $row['option_name'];
+            }
+            $statement->close();
+            $connection->close();
+            return $names ?: $fallback;
+        } catch (Throwable $error) {
+            error_log('Preference option lookup error: ' . $error->getMessage());
+            return $fallback;
+        }
+    };
+    $beanChoices = $customChoices('bean', ['Arabica', 'Robusta', 'Blend']);
+    $milkChoices = $customChoices('milk', ['Dairy milk', 'Oat milk', 'Almond milk', 'Soy milk', 'No milk']);
+    $allergenChoices = $customChoices('allergen', ['Dairy', 'Nuts', 'Gluten']);
+    $flavorChoices = $customChoices('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
+    $caffeineChoices = $customChoices('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
+    $choiceAnswers = static function (array $names, string $prefix): array {
+        $answers = [];
+        foreach ($names as $name) {
+            $answers[$name] = [$prefix . $name];
+        }
+        $answers['No preference'] = [$prefix . 'any'];
+        return $answers;
+    };
+
     return [
         'base' => [
             'question' => 'What kind of drink do you want?',
@@ -20,23 +61,19 @@ function brewski_choice_questions(): array
         ],
         'bean' => [
             'question' => 'Which coffee bean do you want?',
-            'answers' => [
-                'Arabica' => ['bean:Arabica'],
-                'Robusta' => ['bean:Robusta'],
-                'Blend' => ['bean:Blend'],
-                'No preference' => ['bean:any'],
-            ],
+            'answers' => $choiceAnswers($beanChoices, 'bean:'),
         ],
         'milk' => [
             'question' => 'Which milk should it use?',
-            'answers' => [
-                'Dairy milk' => ['milk:Dairy milk'],
-                'Oat milk' => ['milk:Oat milk'],
-                'Almond milk' => ['milk:Almond milk'],
-                'Soy milk' => ['milk:Soy milk'],
-                'No milk' => ['milk:No milk'],
-                'No preference' => ['milk:any'],
-            ],
+            'answers' => $choiceAnswers($milkChoices, 'milk:'),
+        ],
+        'flavor' => [
+            'question' => 'Which flavor profile sounds best?',
+            'answers' => $choiceAnswers($flavorChoices, 'flavor:'),
+        ],
+        'caffeine' => [
+            'question' => 'How much caffeine do you want?',
+            'answers' => $choiceAnswers($caffeineChoices, 'caffeine:'),
         ],
         'temperature' => [
             'question' => 'Hot or iced?',
@@ -58,19 +95,20 @@ function brewski_choice_questions(): array
         'dietary' => [
             'question' => 'Which allergens should your drink avoid?',
             'multi' => true,
-            'answers' => [
-                'Avoid dairy' => ['avoid:dairy'],
-                'Avoid nuts' => ['avoid:nuts'],
-                'Avoid gluten' => ['avoid:gluten'],
-                'None' => [],
-            ],
+            'answers' => array_merge(
+                array_combine(
+                    array_map(static fn (string $name): string => 'Avoid ' . $name, $allergenChoices),
+                    array_map(static fn (string $name): array => ['avoid:' . strtolower($name)], $allergenChoices)
+                ),
+                ['None' => []]
+            ),
         ],
     ];
 }
 
 function brewski_preference_definitions(): array
 {
-    return [
+    $definitions = [
         'coffee' => 'Coffee based',
         'non-coffee' => 'Not coffee based',
         'bean:Arabica' => 'Arabica coffee bean',
@@ -83,6 +121,13 @@ function brewski_preference_definitions(): array
         'milk:Soy milk' => 'Soy milk',
         'milk:No milk' => 'No milk',
         'milk:any' => 'Any milk',
+        'flavor:Chocolate' => 'Chocolate flavor',
+        'flavor:Nutty' => 'Nutty flavor',
+        'flavor:Fruity' => 'Fruity flavor',
+        'flavor:Creamy' => 'Creamy flavor',
+        'caffeine:Regular' => 'Regular caffeine',
+        'caffeine:Decaf' => 'Decaffeinated',
+        'caffeine:Caffeine-free' => 'Caffeine-free',
         'temp:hot' => 'Served hot',
         'temp:iced' => 'Served iced',
         'sugar:sweet' => 'Sweet',
@@ -92,6 +137,16 @@ function brewski_preference_definitions(): array
         'avoid:nuts' => 'Avoid nuts',
         'avoid:gluten' => 'Avoid gluten',
     ];
+    foreach (['bean', 'milk', 'flavor', 'caffeine', 'dietary'] as $group) {
+        foreach (brewski_choice_questions()[$group]['answers'] as $answers) {
+            foreach ($answers as $answer) {
+                if (!str_ends_with($answer, ':any')) {
+                    $definitions[$answer] = ucfirst(str_replace(':', ' ', $answer));
+                }
+            }
+        }
+    }
+    return $definitions;
 }
 
 function brewski_decaf_keywords(): array
@@ -313,6 +368,21 @@ function brewski_preference_links(array $catalog): array
 
         $isNonCoffee = brewski_matches_any([$haystack], $nonCoffeeKeywords);
         $keys[] = $isNonCoffee ? 'non-coffee' : 'coffee';
+        if (brewski_matches_any([$haystack], ['chocolate', 'cocoa', 'mocha'])) {
+            $keys[] = 'flavor:Chocolate';
+        }
+        if (brewski_matches_any([$haystack], ['nutty', 'hazelnut', 'almond'])) {
+            $keys[] = 'flavor:Nutty';
+        }
+        if (brewski_matches_any([$haystack], ['fruit', 'berry', 'mango', 'juice'])) {
+            $keys[] = 'flavor:Fruity';
+        }
+        if (brewski_matches_any([$haystack], ['cream', 'creamy', 'vanilla', 'latte'])) {
+            $keys[] = 'flavor:Creamy';
+        }
+        $keys[] = brewski_matches_any([$haystack], brewski_decaf_keywords())
+            ? 'caffeine:Decaf'
+            : 'caffeine:Regular';
 
         $temperatures = [];
         $sugarLevels = [];
@@ -324,8 +394,11 @@ function brewski_preference_links(array $catalog): array
             if ($group === 'bean' || $group === 'milk') {
                 $keys[] = $group . ':' . $customization['name'];
             }
+            if ($group === 'flavor' || $group === 'caffeine') {
+                $keys[] = $group . ':' . $customization['name'];
+            }
 
-            if ($group === 'allergen' && in_array($name, ['dairy', 'nuts', 'gluten'], true)) {
+            if ($group === 'allergen' && $name !== '') {
                 $keys[] = 'avoid:' . $name;
             }
 

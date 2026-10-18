@@ -43,18 +43,6 @@ try {
             return $secondScore <=> $firstScore;
         });
 
-        $bestMatchScore = max($choiceScores);
-        $bestMatchProductId = null;
-        foreach ($products as $product) {
-            if (($choiceScores[(int) $product['product_id']] ?? 0) === $bestMatchScore) {
-                $bestMatchProductId = (int) $product['product_id'];
-                break;
-            }
-        }
-        $products = array_values(array_filter(
-            $products,
-            static fn (array $product): bool => (int) $product['product_id'] === $bestMatchProductId
-        ));
     }
 } catch (mysqli_sql_exception $error) {
     error_log('Customer menu catalog error: ' . $error->getMessage());

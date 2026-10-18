@@ -32,7 +32,7 @@ if (!empty($_SESSION['user_id'])) {
         $avatarStmt->execute();
         $avatarStmt->bind_result($avatarMime);
         if ($avatarStmt->fetch() && $avatarMime) {
-            $headerAvatarUrl = '/Brewski/brewski/customer/user_avatar.php?id=' . (int) $_SESSION['user_id'];
+            $headerAvatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . (int) $_SESSION['user_id'];
         }
         $avatarStmt->close();
         $avatarConn->close();
@@ -275,6 +275,7 @@ if ($headerInitials === '') {
                     aria-label="Open profile menu"
                     aria-haspopup="true"
                     aria-expanded="false"
+                    aria-controls="profile-dropdown"
                 >
 
                     <?php if ($headerAvatarUrl): ?>
