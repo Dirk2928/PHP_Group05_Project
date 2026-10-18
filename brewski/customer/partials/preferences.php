@@ -174,7 +174,9 @@ function brewski_preferences_connection()
 
 function brewski_preferences_attempt(callable $work)
 {
-    $previous_report_mode = mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+    $driver = new mysqli_driver();
+    $previous_report_mode = $driver->report_mode;
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
     try {
         return $work();
@@ -200,11 +202,24 @@ function brewski_preferences_ensure_tables(mysqli $connection): void
         'assessment_completed_at' => 'DATETIME NULL',
     ];
     foreach ($columns as $column => $definition) {
-        $columnCheck = $connection->prepare('SHOW COLUMNS FROM users LIKE ?');
-        $columnCheck->bind_param('s', $column);
+        $columnCheck = $connection->prepare(
+            'SELECT COUNT(*)
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?
+               AND COLUMN_NAME = ?'
+        );
+        if (!$columnCheck) {
+            throw new mysqli_sql_exception(
+                'Could not inspect users columns: ' . $connection->error
+            );
+        }
+        $tableName = 'users';
+        $columnCheck->bind_param('ss', $tableName, $column);
         $columnCheck->execute();
-        $columnCheck->store_result();
-        $exists = $columnCheck->num_rows > 0;
+        $columnCheck->bind_result($columnCount);
+        $columnCheck->fetch();
+        $exists = (int) $columnCount > 0;
         $columnCheck->close();
         if (!$exists) {
             $connection->query('ALTER TABLE users ADD COLUMN ' . $column . ' ' . $definition);

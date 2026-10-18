@@ -103,7 +103,9 @@ function brewski_db_tls_connect(array $settings): ?mysqli
 function brewski_db_connect(): ?mysqli
 {
     $settings = brewski_db_settings();
-    $previous_report_mode = mysqli_report(MYSQLI_REPORT_OFF);
+    $driver = new mysqli_driver();
+    $previous_report_mode = $driver->report_mode;
+    mysqli_report(MYSQLI_REPORT_OFF);
     $connection = null;
 
     try {
