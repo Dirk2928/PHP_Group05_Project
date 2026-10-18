@@ -89,6 +89,41 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
         ];
     }
 
+    if ($endpoint === 'send-password-reset') {
+        $email = $payload['email'] ?? null;
+        $firstName = $payload['firstName'] ?? null;
+        $resetUrl = $payload['resetUrl'] ?? null;
+
+        if (
+            !brewski_mail_email_ok($email)
+            || !brewski_mail_text_ok($firstName, 100)
+            || !brewski_mail_text_ok($resetUrl, 2048)
+        ) {
+            return null;
+        }
+
+        $safeName = brewski_mail_h($firstName);
+        $safeUrl = brewski_mail_h($resetUrl);
+
+        return [
+            'to' => $email,
+            'subject' => 'Reset your Brewski password',
+            'text' => "Hello {$firstName},\n\n"
+                . "Reset your password using this link (valid for 1 hour):\n"
+                . "{$resetUrl}\n\n"
+                . 'If you did not request a password reset, you can ignore this email.',
+            'html' => '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">'
+                . "<h2>Hello, {$safeName}!</h2>"
+                . '<p>Use the link below to reset your Brewski password. This link expires in 1 hour.</p>'
+                . '<p><a href="' . $safeUrl . '" style="display:inline-block;padding:12px 24px;'
+                . 'background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">'
+                . 'Reset my password</a></p>'
+                . '<p style="font-size:12px;color:#71492a">'
+                . 'If you did not request a password reset, you can ignore this email.</p>'
+                . '</div>',
+        ];
+    }
+
     if ($endpoint === 'send-order-otp') {
         $email = $payload['email'] ?? null;
         $firstName = $payload['firstName'] ?? null;

@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
     activation_expires DATETIME NULL,
     email_activation_token CHAR(64) NULL,
     email_activation_expires DATETIME NULL,
+    password_reset_token CHAR(64) NULL,
+    password_reset_expires DATETIME NULL,
     totp_secret_encrypted TEXT NULL,
     totp_enabled_at DATETIME NULL,
     failed_login_attempts TINYINT NOT NULL DEFAULT 0,

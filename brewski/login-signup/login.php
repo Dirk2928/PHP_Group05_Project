@@ -315,6 +315,14 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
             </form>
 
+            <p class="auth__switch" style="margin-top: 0.5rem;">
+
+                <a href="forgot-password.php">
+                    Forgot your password?
+                </a>
+
+            </p>
+
             <p class="auth__switch">
 
                 Don't have an account?

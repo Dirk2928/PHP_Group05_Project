@@ -327,6 +327,12 @@ $escape = static function (string $value): string {
 
                 </form>
 
+                <p class="auth__switch" style="margin-top: 0.8rem;">
+                    <a href="../login-signup/forgot-password.php">
+                        Forgot your password?
+                    </a>
+                </p>
+
             <?php endif; ?>
 
             <p class="auth__switch">

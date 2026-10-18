@@ -105,6 +105,70 @@ if (passwordInput && passwordToggle) {
 
 
 
+    const resetPasswordForm = document.getElementById('reset-password-form');
+
+    if (resetPasswordForm) {
+
+        resetPasswordForm.addEventListener('submit', function (event) {
+
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirm_password');
+
+            let hasError = false;
+
+            clearFieldErrors(resetPasswordForm);
+
+            if (password) {
+                const messages = [];
+
+                if (password.value === '') {
+                    messages.push('Enter a password.');
+                } else {
+                    passwordPolicyMessages(
+                        password.value,
+                        passwordPolicy(password)
+                    ).forEach(message => {
+                        messages.push(message);
+                    });
+                }
+
+                setFieldErrors('password', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
+            }
+
+            if (confirmPassword) {
+                const messages = [];
+
+                if (confirmPassword.value === '') {
+                    messages.push('Confirm your password.');
+                } else if (password && confirmPassword.value !== password.value) {
+                    messages.push('The passwords do not match.');
+                }
+
+                setFieldErrors('confirm_password', messages);
+
+                if (messages.length > 0) {
+                    hasError = true;
+                }
+            }
+
+            if (hasError) {
+                event.preventDefault();
+                return;
+            }
+
+            const submitBtn = resetPasswordForm.querySelector('.btn');
+
+            if (submitBtn) {
+                submitBtn.textContent = 'Updating password...';
+                submitBtn.disabled = true;
+            }
+        });
+    }
+
     const signupForm = document.getElementById('signup-form');
 
     if (signupForm) {

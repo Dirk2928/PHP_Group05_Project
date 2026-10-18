@@ -135,6 +135,51 @@ const hasAmount = (value) => {
 
 const formatAmount = (amount) => Number(amount).toFixed(2);
 
+app.post("/send-password-reset", async (req, res) => {
+    try {
+        const { email, firstName, resetUrl } = req.body;
+
+        if (
+            !hasValidEmail(email) ||
+            !hasText(firstName, 100) ||
+            !hasText(resetUrl, 2048)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing or invalid password reset details."
+            });
+        }
+
+        const safeResetUrl = String(resetUrl).trim();
+
+        await deliver({
+            to: email,
+            subject: "Reset your Brewski password",
+            text: `Hello ${firstName},\n\nReset your password using this link (valid for 1 hour):\n${safeResetUrl}\n\nIf you did not request a password reset, you can ignore this email.`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
+                    <h2>Hello, ${escapeHtml(firstName)}!</h2>
+                    <p>Use the link below to reset your Brewski password. This link expires in 1 hour.</p>
+                    <p>
+                        <a href="${escapeHtml(safeResetUrl)}" style="display:inline-block;padding:12px 24px;background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">
+                            Reset my password
+                        </a>
+                    </p>
+                    <p style="font-size:12px;color:#71492a">If you did not request a password reset, you can ignore this email.</p>
+                </div>
+            `
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Password reset email failed:", error);
+        res.status(500).json({
+            success: false,
+            message: "Unable to send the reset email right now."
+        });
+    }
+});
+
 app.post("/send-order-receipt", async (req, res) => {
     try {
         const {
