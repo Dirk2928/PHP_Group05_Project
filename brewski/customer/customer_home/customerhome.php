@@ -70,11 +70,21 @@ require __DIR__ . '/../partials/header.php';
 
         </section>
 
+        <section class="catalog-search" aria-label="Search drinks">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="product-search" type="search" placeholder="Search drinks" autocomplete="off">
+        </section>
+
         <?php if ($catalogError !== ''): ?>
             <p class="catalog-notice" role="alert"><?= e($catalogError) ?></p>
         <?php elseif (!$sections): ?>
             <p class="catalog-notice">Our beverage menu is being prepared. Please check back soon.</p>
         <?php endif; ?>
+
+        <div id="no-results" class="no-results" style="display: none;">
+            <i data-lucide="search-x" aria-hidden="true"></i>
+            <p>No drinks match your search.</p>
+        </div>
 
         <?php foreach ($sections as $title => $products): ?>
 

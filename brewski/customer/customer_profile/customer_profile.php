@@ -27,6 +27,12 @@ $addressFormValues = [
 ];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
+if ($userId > 0) {
+    $avatarConn = brewski_db_connection();
+    brewski_ensure_user_avatar_columns($avatarConn);
+    $avatarConn->close();
+}
+
 // ---- Fetch avatar URL with cache-buster ----
 $avatarUrl = null;
 if ($userId > 0) {
@@ -95,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     header('Location: customer_profile.php');
                     exit;
 
-                } catch (RuntimeException $e) {
+                } catch (Throwable $e) {
                     $errors[] = $e->getMessage();
                 }
             }

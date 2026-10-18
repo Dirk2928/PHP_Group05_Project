@@ -15,6 +15,16 @@ window.brewskiImageFallback = function (image) {
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
+    var sessionTimeout = document.querySelector('meta[name="session-timeout-seconds"]');
+    var logoutUrl = document.querySelector('meta[name="logout-url"]');
+    var timeoutSeconds = sessionTimeout ? Number(sessionTimeout.content) : 0;
+
+    if (timeoutSeconds > 0 && logoutUrl && logoutUrl.content) {
+        window.setTimeout(function () {
+            window.location.assign(logoutUrl.content);
+        }, timeoutSeconds * 1000);
+    }
+
     if (window.lucide) {
         window.lucide.createIcons();
     }
@@ -49,14 +59,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var noResults = document.getElementById('no-results');
     var menuPageInfo = document.getElementById('menuPageInfo');
     var menuPagination = document.getElementById('menuPagination');
-    var filterState = { category: 'all' };
+    var productSearch = document.getElementById('product-search');
+    var filterState = { category: 'all', search: '' };
     var menuPageSize = 6;
     var menuPage = 1;
 
     function matchingCards() {
         return Array.prototype.filter.call(productCards, function (card) {
-            return filterState.category === 'all' ||
+            var matchesCategory = filterState.category === 'all' ||
                 card.dataset.category === filterState.category;
+            var matchesSearch = !filterState.search ||
+                card.dataset.name.toLowerCase().indexOf(filterState.search) !== -1;
+
+            return matchesCategory && matchesSearch;
         });
     }
 
@@ -157,6 +172,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setupFilterGroup('category-filters', 'category');
+
+    if (productSearch) {
+        productSearch.addEventListener('input', function () {
+            filterState.search = productSearch.value.trim().toLowerCase();
+            menuPage = 1;
+            applyFilters();
+        });
+    }
+
     applyFilters();
 
     var modal = document.getElementById('customization-modal');

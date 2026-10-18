@@ -16,6 +16,10 @@ if (empty($_SESSION['csrf_token'])) {
 $csrfToken = (string) $_SESSION['csrf_token'];
 $endpoint  = BREWSKI_BASE_URL . '/admin/profile/profile.php';
 
+$avatarConnection = brewski_db_connection();
+brewski_ensure_user_avatar_columns($avatarConnection);
+$avatarConnection->close();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     header('Content-Type: text/plain; charset=utf-8');
@@ -52,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $update->execute([$avatar['data'], $avatar['mime'], $userId]);
             echo 'ok';
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             echo $exception->getMessage();
         }
         exit;
@@ -500,6 +504,10 @@ $escape = static function (string $value): string {
             credentials: 'same-origin'
         })
             .then(function (response) {
+                if (response.redirected) {
+                    window.location.assign(response.url);
+                    throw new Error('redirected');
+                }
                 return response.text();
             })
             .then(function (text) {
@@ -511,7 +519,10 @@ $escape = static function (string $value): string {
                     setStatus(status, message || 'Could not save. Please try again.', 'is-error');
                 }
             })
-            .catch(function () {
+            .catch(function (error) {
+                if (error.message === 'redirected') {
+                    return;
+                }
                 setStatus(status, 'Could not save. Please try again.', 'is-error');
             })
             .finally(function () {

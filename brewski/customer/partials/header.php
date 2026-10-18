@@ -65,6 +65,8 @@ if ($headerInitials === '') {
     <meta name="checkout-url" content="<?= e($checkoutHref) ?>">
     <meta name="csrf-token" content="<?= e($_SESSION['csrf_token']) ?>">
     <meta name="cart-sync-enabled" content="<?= !empty($_SESSION['user_id']) ? '1' : '0' ?>">
+    <meta name="session-timeout-seconds" content="<?= (int) SESSION_IDLE_TIMEOUT ?>">
+    <meta name="logout-url" content="<?= e(BREWSKI_BASE_URL . '/login-signup/logout.php?timeout=1') ?>">
 
     <title><?= e($pageTitle) ?></title>
 
@@ -189,9 +191,9 @@ if ($headerInitials === '') {
 
     <header class="topbar">
 
-        <div class="topbar__brand">
+        <a class="topbar__brand" href="<?= e($navItems['home']['href']) ?>" aria-label="Brewski home">
             brewski
-        </div>
+        </a>
 
         <nav class="topbar__nav">
 

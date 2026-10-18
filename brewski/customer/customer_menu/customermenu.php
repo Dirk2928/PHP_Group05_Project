@@ -68,6 +68,11 @@ require __DIR__ . '/../partials/header.php';
 
         </section>
 
+        <section class="catalog-search" aria-label="Search drinks">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="product-search" type="search" placeholder="Search drinks" autocomplete="off">
+        </section>
+
         <section class="filter-section">
 
             <div class="filter-group">

@@ -22,6 +22,21 @@ const BREWSKI_AVATAR_ALLOWED    = [
     'image/webp' => true,
 ];
 
+function brewski_ensure_user_avatar_columns(mysqli $connection): void
+{
+    $columns = $connection->query("SHOW COLUMNS FROM users LIKE 'avatar_data'");
+
+    if ($columns->num_rows === 0) {
+        $connection->query('ALTER TABLE users ADD COLUMN avatar_data LONGBLOB NULL AFTER email');
+    }
+
+    $columns = $connection->query("SHOW COLUMNS FROM users LIKE 'avatar_mime_type'");
+
+    if ($columns->num_rows === 0) {
+        $connection->query('ALTER TABLE users ADD COLUMN avatar_mime_type VARCHAR(32) NULL AFTER avatar_data');
+    }
+}
+
 /**
  * Validates and reads an uploaded avatar.
  * Returns ['data' => binary, 'mime' => string] or throws RuntimeException.
