@@ -147,10 +147,6 @@ $escape = static function (string $value): string {
             brew<span>ski</span>
         </p>
 
-        <p class="portal__badge">
-            Internal
-        </p>
-
         <p class="side__line">
             Staff &amp; administrator console.
         </p>
