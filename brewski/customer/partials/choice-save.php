@@ -120,7 +120,7 @@ $productImage = static function (array $product): string {
 if ($mode === 'recommendation') {
     $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
     $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
-    $best = brewski_best_match($ranking, 0);
+    $best = brewski_best_match($ranking);
     $bestMatch = null;
 
     if ($best && isset($productIndex[(int) $best['product_id']])) {

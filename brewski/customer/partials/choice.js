@@ -305,9 +305,11 @@ document.addEventListener('DOMContentLoaded', function () {
             name.textContent = '#' + drink.rank + ' ' + drink.name;
             info.appendChild(name);
 
-            var match = document.createElement('span');
-            match.textContent = drink.percent + '% match';
-            info.appendChild(match);
+            if (drink.percent >= 50) {
+                var best = document.createElement('span');
+                best.textContent = 'Best match';
+                info.appendChild(best);
+            }
 
             if (drink.matched && drink.matched.length) {
                 var reasons = document.createElement('small');
@@ -329,65 +331,6 @@ document.addEventListener('DOMContentLoaded', function () {
         home.textContent = 'Back to my menu';
         home.href = modal.dataset.homeUrl || '../customer_home/customerhome.php';
         resultPanel.appendChild(home);
-        body.appendChild(resultPanel);
-    }
-
-    function showRecommendation(bestMatch, message) {
-        hidePanelsForResult();
-        clearResult();
-        resultPanel = document.createElement('section');
-        resultPanel.className = 'choice-result';
-
-        var heading = document.createElement('h3');
-        heading.textContent = bestMatch ? bestMatch.label : 'No recommendation yet';
-        resultPanel.appendChild(heading);
-
-        if (bestMatch) {
-            var image = document.createElement('img');
-            image.src = bestMatch.image;
-            image.alt = bestMatch.name;
-            resultPanel.appendChild(image);
-        }
-
-        var text = document.createElement('p');
-        text.textContent = bestMatch
-            ? bestMatch.name + ' matches ' + bestMatch.percent + '% of your answers.'
-            : message;
-        resultPanel.appendChild(text);
-
-        if (bestMatch) {
-            var price = document.createElement('p');
-            price.textContent = 'Price: ₱' + Number(bestMatch.price).toFixed(2);
-            resultPanel.appendChild(price);
-
-            var reasons = document.createElement('p');
-            reasons.textContent = bestMatch.matched.length
-                ? 'Why: ' + bestMatch.matched.join(', ')
-                : 'This is the closest match in the current menu.';
-            resultPanel.appendChild(reasons);
-            resultPanel.appendChild(
-                productLink(bestMatch.product_id, 'See it on the menu', 'btn-confirm')
-            );
-        } else {
-            var retake = document.createElement('button');
-            retake.type = 'button';
-            retake.className = 'btn-confirm';
-            retake.textContent = 'Try again';
-            retake.addEventListener('click', function () {
-                setMode('recommendation');
-                resetRecommendationAnswers();
-                clearResult();
-                setStatus('', '');
-                if (status) {
-                    status.hidden = false;
-                }
-                if (saveButton) {
-                    saveButton.hidden = false;
-                }
-            });
-            resultPanel.appendChild(retake);
-        }
-
         body.appendChild(resultPanel);
     }
 
@@ -442,13 +385,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(function (result) {
                     if (result.ok && result.data && result.data.ok) {
-                        setStatus(copy[submittedMode].saved, 'is-saved');
+                        if (submittedMode === 'recommendation') {
+                            var match = result.data.best_match;
 
-                        if (submittedMode === 'first-timer') {
-                            showRanking(result.data.ranking, result.data.message);
-                        } else {
-                            showRecommendation(result.data.best_match, result.data.message);
+                            if (match && match.product_id) {
+                                window.location.href = '../customer_menu/customermenu.php?product_id='
+                                    + encodeURIComponent(String(parseInt(match.product_id, 10)));
+
+                                return true;
+                            }
+
+                            setStatus('No recommendation is available right now.', 'is-error');
+                            saveButton.disabled = false;
+
+                            return false;
                         }
+
+                        setStatus(copy[submittedMode].saved, 'is-saved');
+                        showRanking(result.data.ranking, result.data.message);
                         saveButton.disabled = false;
 
                         return true;

@@ -130,7 +130,7 @@ require __DIR__ . '/../partials/header.php';
         <?php if ($choiceBestMatch): ?>
             <section class="category">
                 <h2 class="category__title">Your best match</h2>
-                <p><?= e($choiceBestMatch['percent']) ?>% match · <?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
+                <p><?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
             </section>
         <?php endif; ?>
 
@@ -171,10 +171,8 @@ require __DIR__ . '/../partials/header.php';
                             data-options="<?= e($customizations) ?>"
                         >
 
-                            <?php if (isset($choiceRanking[(int) $product['product_id']])): ?>
-                                <span class="product-card__match">
-                                    <?= (int) $choiceRanking[(int) $product['product_id']]['percent'] ?>% match
-                                </span>
+                            <?php if (($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
+                                <span class="product-card__match">Best match</span>
                             <?php endif; ?>
 
                             <div class="product-card__image">

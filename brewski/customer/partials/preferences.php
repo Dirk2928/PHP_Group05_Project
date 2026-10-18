@@ -581,7 +581,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
         $ranked[(int) $productId] = [
             'product_id' => (int) $productId,
             'percent' => $percent,
-            'status' => $excludedFor ? 'excluded' : ($percent >= 70 ? 'recommended' : 'available'),
+            'status' => $excludedFor ? 'excluded' : ($percent >= 50 ? 'recommended' : 'available'),
             'matched' => array_values(array_unique($matched)),
             'excluded_for' => array_values(array_unique($excludedFor)),
         ];
@@ -589,7 +589,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
     return $ranked;
 }
 
-function brewski_best_match(array $ranked, int $minimum = 40): ?array
+function brewski_best_match(array $ranked, int $minimum = 50): ?array
 {
     $best = null;
     foreach ($ranked as $candidate) {
