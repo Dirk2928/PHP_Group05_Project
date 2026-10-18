@@ -514,13 +514,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 applyFilters();
             }
 
+            Array.prototype.forEach.call(
+                requestedCard.querySelectorAll('.product-card__match'),
+                function (badge) {
+                    badge.remove();
+                }
+            );
+
+            var recommendedBadge = document.createElement('span');
+            recommendedBadge.className = 'product-card__match';
+            recommendedBadge.textContent = 'Recommended drink';
+            requestedCard.insertBefore(recommendedBadge, requestedCard.firstChild);
+
             requestedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            var requestAdd = requestedCard.querySelector('.btn-add');
-
-            if (requestAdd) {
-                requestAdd.click();
-            }
         }
     }
 });

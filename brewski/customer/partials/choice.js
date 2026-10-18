@@ -27,20 +27,17 @@ document.addEventListener('DOMContentLoaded', function () {
     var currentMode = modal.dataset.choiceMode === 'first-timer'
         ? 'first-timer'
         : 'recommendation';
-    var resultPanel = null;
 
     var copy = {
         'first-timer': {
             title: 'Set up your drink preferences',
             subtitle: 'Answer a few questions to sort your menu by compatibility.',
-            button: 'Sort my menu',
-            saved: 'Preferences saved! Ranking every drink for you...'
+            button: 'Sort my menu'
         },
         recommendation: {
             title: 'Get a drink recommendation',
             subtitle: 'Answer a few quick questions and we will pick one drink for you.',
-            button: 'Recommend a drink',
-            saved: 'Finding the best drink for your mood...'
+            button: 'Recommend a drink'
         }
     };
 
@@ -54,13 +51,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return panel
             ? Array.prototype.slice.call(panel.querySelectorAll('[data-choice-question]'))
             : [];
-    }
-
-    function clearResult() {
-        if (resultPanel && resultPanel.parentNode) {
-            resultPanel.parentNode.removeChild(resultPanel);
-        }
-        resultPanel = null;
     }
 
     function resetRecommendationAnswers() {
@@ -108,13 +98,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (currentMode === 'recommendation') {
             resetRecommendationAnswers();
         }
-        clearResult();
         setStatus('', '');
         if (status) {
             status.hidden = false;
         }
         if (saveButton) {
             saveButton.hidden = false;
+            saveButton.disabled = false;
         }
         modal.classList.add('show');
     }
@@ -238,102 +228,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    function productLink(productId, label, className) {
-        var link = document.createElement('a');
-        link.className = className;
-        link.textContent = label;
-        link.href = '../customer_menu/customermenu.php?product_id='
-            + encodeURIComponent(String(parseInt(productId, 10)));
-
-        return link;
-    }
-
-    function hidePanelsForResult() {
-        Object.keys(panels).forEach(function (key) {
-            panels[key].hidden = true;
-        });
-        if (status) {
-            status.hidden = true;
-        }
-        if (saveButton) {
-            saveButton.hidden = true;
-        }
-        if (skipButton) {
-            skipButton.hidden = true;
-        }
-    }
-
-    function showRanking(ranking, message) {
-        hidePanelsForResult();
-        clearResult();
-        resultPanel = document.createElement('section');
-        resultPanel.className = 'choice-result';
-
-        var heading = document.createElement('h3');
-        heading.textContent = 'Your drink ranking';
-        resultPanel.appendChild(heading);
-
-        if (!ranking || ranking.length === 0) {
-            var empty = document.createElement('p');
-            empty.textContent = message;
-            resultPanel.appendChild(empty);
-            body.appendChild(resultPanel);
-
-            return;
-        }
-
-        var intro = document.createElement('p');
-        intro.textContent = 'Sorted from greatest to least match with your preferences.';
-        resultPanel.appendChild(intro);
-
-        var list = document.createElement('ol');
-        list.className = 'choice-ranking';
-
-        ranking.forEach(function (drink) {
-            var item = document.createElement('li');
-            item.className = 'choice-ranking__item';
-
-            var image = document.createElement('img');
-            image.src = drink.image;
-            image.alt = drink.name;
-            item.appendChild(image);
-
-            var info = document.createElement('div');
-            info.className = 'choice-ranking__info';
-
-            var name = document.createElement('strong');
-            name.textContent = '#' + drink.rank + ' ' + drink.name;
-            info.appendChild(name);
-
-            if (drink.percent >= 50) {
-                var best = document.createElement('span');
-                best.textContent = 'Best match';
-                info.appendChild(best);
-            }
-
-            if (drink.matched && drink.matched.length) {
-                var reasons = document.createElement('small');
-                reasons.textContent = 'Why: ' + drink.matched.join(', ');
-                info.appendChild(reasons);
-            }
-
-            item.appendChild(info);
-            item.appendChild(
-                productLink(drink.product_id, 'View', 'btn-link')
-            );
-            list.appendChild(item);
-        });
-
-        resultPanel.appendChild(list);
-
-        var home = document.createElement('a');
-        home.className = 'btn-confirm choice-result__home';
-        home.textContent = 'Back to my menu';
-        home.href = modal.dataset.homeUrl || '../customer_home/customerhome.php';
-        resultPanel.appendChild(home);
-        body.appendChild(resultPanel);
-    }
-
     if (saveButton && status) {
         saveButton.addEventListener('click', function () {
             var answered = selectedAnswers();
@@ -401,9 +295,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             return false;
                         }
 
-                        setStatus(copy[submittedMode].saved, 'is-saved');
-                        showRanking(result.data.ranking, result.data.message);
-                        saveButton.disabled = false;
+                        window.location.href = '../customer_menu/customermenu.php';
 
                         return true;
                     }
