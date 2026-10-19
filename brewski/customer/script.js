@@ -529,4 +529,35 @@ document.addEventListener('DOMContentLoaded', function () {
             requestedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
+
+    if (!menuPagination) {
+        document.querySelectorAll('.category .product-grid').forEach(function (grid) {
+            var cards = Array.prototype.slice.call(grid.querySelectorAll('.product-card'));
+            var shown = 6;
+
+            if (cards.length <= shown) {
+                return;
+            }
+
+            var more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'see-more';
+            more.textContent = 'See more';
+            grid.parentNode.insertBefore(more, grid.nextSibling);
+
+            var render = function () {
+                cards.forEach(function (card, index) {
+                    card.style.display = index < shown ? '' : 'none';
+                });
+                more.hidden = shown >= cards.length;
+            };
+
+            more.addEventListener('click', function () {
+                shown += 6;
+                render();
+            });
+
+            render();
+        });
+    }
 });

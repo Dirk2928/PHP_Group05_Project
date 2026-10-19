@@ -98,7 +98,7 @@ if ($headerInitials === '') {
 
     <?php endforeach; ?>
 
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest" defer></script>
 
     <style>
         .cart-dropdown__footer {
