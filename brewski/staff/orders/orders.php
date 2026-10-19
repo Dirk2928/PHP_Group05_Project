@@ -225,6 +225,10 @@ $csrf_token = $_SESSION['csrf_token'];
                     </div>
                     <span class="availability-overview-icon" aria-hidden="true">✓</span>
                 </div>
+                <div class="product-search-field">
+                    <label class="sr-only" for="productSearch">Search products</label>
+                    <input class="toolbar-input" id="productSearch" type="search" placeholder="Search products by name or category">
+                </div>
                 <div class="table-card product-table-card">
                     <div class="product-list-heading">
                         <div>
@@ -242,6 +246,13 @@ $csrf_token = $_SESSION['csrf_token'];
                         </div>
                     </div>
                     <div class="product-availability-list" id="productAvailabilityList"></div>
+                    <div class="orders-empty hidden" id="productsEmpty">
+                        <p class="empty-title">No products in this category</p>
+                    </div>
+                    <div class="pagination-footer">
+                        <p class="pagination-info" id="productsPageInfo"></p>
+                        <div class="pagination-nav" id="productsPagination"></div>
+                    </div>
                 </div>
                 <p class="demo-feedback" id="productFeedback" role="status" aria-live="polite"></p>
             </div>

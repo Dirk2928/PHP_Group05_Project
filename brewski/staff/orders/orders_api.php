@@ -200,7 +200,9 @@ try {
                 p.product_name AS name,
                 COALESCE(c.category_name, 'Uncategorised') AS category,
                 p.price,
-                p.availability
+                p.availability,
+                p.image_path,
+                p.image_mime_type
            FROM products p
            LEFT JOIN categories c ON c.category_id = p.category_id
           ORDER BY category ASC, p.product_name ASC"
@@ -215,6 +217,9 @@ try {
             'category'  => (string) $product['category'],
             'price'     => (float) $product['price'],
             'available' => (int) $product['availability'] === 1,
+            'image_url' => !empty($product['image_mime_type'])
+                ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+                : BREWSKI_BASE_URL . '/images/' . rawurlencode((string) ($product['image_path'] ?: 'brewskilogo.png')),
         ];
     }
 
