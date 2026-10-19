@@ -271,8 +271,8 @@ require __DIR__ . '/../partials/header.php';
 
 <dialog id="order-confirmation-dialog" aria-labelledby="order-confirmation-title">
     <form id="order-confirmation-form" class="order-confirmation-dialog__content">
-        <h2 id="order-confirmation-title">Continue to secure payment?</h2>
-        <p>You’ll choose and complete your payment on PayMongo’s secure checkout page.</p>
+        <h2 id="order-confirmation-title">Continue to payment?</h2>
+        <p>You’ll choose your preferred payment method on the next step.</p>
         <p id="order-confirmation-message" role="status" aria-live="polite"></p>
         <div class="order-confirmation-dialog__actions">
             <button type="button" id="order-confirmation-cancel">Cancel</button>
