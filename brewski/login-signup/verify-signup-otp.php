@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pending !== null) {
         if (!$connection) {
             $error = 'Unable to connect to the database. Please try again later.';
         } else {
+            try {
             $statement = $connection->prepare(
                 'SELECT otp_id, code_hash, expires_at, attempts
                  FROM otp_codes
@@ -55,8 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pending !== null) {
                 $statement->bind_param('i', $userId);
                 $statement->execute();
                 $statement->bind_result($otpId, $codeHash, $expiresAt, $attempts);
+                $codeFound = $statement->fetch();
+                $otpId = (int) $otpId;
+                $codeHash = (string) $codeHash;
+                $attempts = (int) $attempts;
+                $statement->close();
 
-                if (!$statement->fetch()) {
+                if (!$codeFound) {
                     $error = 'This verification code is no longer available. Please request a new one.';
                 } else {
                     $expired = !$expiresAt || strtotime($expiresAt) < time();
@@ -88,6 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pending !== null) {
                             $userStatement->execute();
                             $userStatement->bind_result($firstName, $userEmail);
                             $userFound = $userStatement->fetch();
+                            $firstName = (string) $firstName;
+                            $userEmail = (string) $userEmail;
                             $userStatement->close();
 
                             if (!$userFound) {
@@ -128,8 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pending !== null) {
                         }
                     }
                 }
-
-                $statement->close();
+            }
+            } catch (Throwable $exception) {
+                error_log('Signup OTP verification error: ' . $exception->getMessage());
+                $error = 'Verification is temporarily unavailable. Please try again.';
             }
             $connection->close();
         }
