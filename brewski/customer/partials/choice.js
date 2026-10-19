@@ -295,15 +295,17 @@ document.addEventListener('DOMContentLoaded', function () {
                             return false;
                         }
 
-                        window.location.href = '../customer_menu/customermenu.php';
+                        window.location.href = '../customer_home/customerhome.php';
 
                         return true;
                     }
 
                     setStatus(
-                        result.ok && result.text.indexOf('<') === -1
-                            ? result.text
-                            : 'Could not complete the request. Please log in again and try.',
+                        result.data && result.data.message
+                            ? result.data.message
+                            : (result.ok && result.text.indexOf('<') === -1
+                                ? result.text
+                                : 'Could not complete the request. Please try again.'),
                         'is-error'
                     );
                     saveButton.disabled = false;

@@ -13,28 +13,31 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$submittedToken = $_POST['csrf_token'] ?? '';
-$sessionToken = $_SESSION['csrf_token'] ?? '';
+$mode = ($_POST['mode'] ?? 'first-timer') === 'recommendation'
+    ? 'recommendation'
+    : 'first-timer';
 
-if (empty($sessionToken) || !is_string($submittedToken) || !hash_equals($sessionToken, $submittedToken)) {
-    http_response_code(403);
-    header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Invalid request token';
-    exit;
+if ($mode === 'first-timer') {
+    $submittedToken = $_POST['csrf_token'] ?? '';
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+
+    if (empty($sessionToken) || !is_string($submittedToken) || !hash_equals($sessionToken, $submittedToken)) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo 'Invalid request token';
+        exit;
+    }
 }
 
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
-if ($userId <= 0) {
+if ($mode === 'first-timer' && $userId <= 0) {
     http_response_code(401);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Please log in to use drink features';
     exit;
 }
 
-$mode = ($_POST['mode'] ?? 'first-timer') === 'recommendation'
-    ? 'recommendation'
-    : 'first-timer';
 $questions = $mode === 'recommendation'
     ? brewski_recommendation_questions()
     : brewski_choice_questions();
@@ -118,9 +121,19 @@ $productImage = static function (array $product): string {
 };
 
 if ($mode === 'recommendation') {
-    $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
-    $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
-    $best = brewski_best_match($ranking);
+    try {
+        $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
+        $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
+        $best = brewski_best_match($ranking);
+    } catch (Throwable $error) {
+        error_log('Brewski recommendation error: ' . $error->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'ok' => false,
+            'message' => 'Could not build a recommendation right now. Please try again.',
+        ]);
+        exit;
+    }
     $bestMatch = null;
 
     if ($best && isset($productIndex[(int) $best['product_id']])) {
@@ -141,7 +154,7 @@ if ($mode === 'recommendation') {
         'mode' => $mode,
         'best_match' => $bestMatch,
         'message' => $bestMatch ? 'Your drink recommendation is ready.' : 'No recommendation is available right now.',
-    ]);
+    ], JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }
 

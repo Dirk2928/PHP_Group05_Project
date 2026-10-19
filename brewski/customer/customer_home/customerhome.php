@@ -12,7 +12,7 @@ $catalogError = '';
 $sections = [];
 $productsById = [];
 $choicePreferences = null;
-$choiceBestMatch = null;
+$choiceBestMatches = [];
 
 try {
     $catalog = brewski_load_catalog();
@@ -59,7 +59,15 @@ if ($choiceUserId > 0) {
             $choicePreferences,
             brewski_preference_links($catalog)
         );
-        $choiceBestMatch = brewski_best_match($choiceRanking);
+        foreach ($choiceRanking as $candidate) {
+            if ($candidate['status'] !== 'excluded' && $candidate['percent'] >= 50) {
+                $choiceBestMatches[] = $candidate;
+            }
+        }
+        usort($choiceBestMatches, static function (array $left, array $right): int {
+            return [$right['percent'], count($right['matched'])]
+                <=> [$left['percent'], count($left['matched'])];
+        });
 
         foreach ($sections as $categoryName => $categoryProducts) {
             usort(
@@ -192,15 +200,21 @@ require __DIR__ . '/../partials/header.php';
         <?php endif; ?>
 
         <?php
-        $bestMatchProduct = $choiceBestMatch
-            ? ($productsById[(int) $choiceBestMatch['product_id']] ?? null)
-            : null;
+        $bestMatchProducts = [];
+        foreach ($choiceBestMatches as $candidate) {
+            $bestMatchProduct = $productsById[(int) $candidate['product_id']] ?? null;
+            if ($bestMatchProduct) {
+                $bestMatchProducts[] = $bestMatchProduct;
+            }
+        }
         ?>
-        <?php if ($bestMatchProduct): ?>
+        <?php if ($bestMatchProducts): ?>
             <section class="category category--best-match">
-                <h2 class="category__title">Your best match</h2>
+                <h2 class="category__title">Your best matches</h2>
                 <div class="product-grid">
-                    <?php $renderProductCard($bestMatchProduct, true); ?>
+                    <?php foreach ($bestMatchProducts as $bestMatchProduct): ?>
+                        <?php $renderProductCard($bestMatchProduct, true); ?>
+                    <?php endforeach; ?>
                 </div>
             </section>
         <?php endif; ?>
