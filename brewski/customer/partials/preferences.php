@@ -409,10 +409,12 @@ function brewski_sugar_percent(string $name): ?int
     }
 
     $levels = [
+        'not sweet' => 0,
         'none' => 0,
         'no sugar' => 0,
         'unsweet' => 0,
         'zero' => 0,
+        'mild' => 50,
         'half' => 50,
         'less' => 50,
         'light' => 50,
@@ -483,7 +485,7 @@ function brewski_preference_links(array $catalog): array
         $isCoffee = $categoryName === 'coffee'
             || brewski_matches_any(
                 [$text],
-                ['coffee', 'espresso', 'latte', 'macchiato', 'americano', 'mocha', 'cappuccino']
+                ['coffee', 'espresso', 'macchiato', 'americano', 'mocha', 'cappuccino']
             );
         $keys[] = $isCoffee ? 'coffee' : 'non-coffee';
 
@@ -601,6 +603,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
         'base' => ['coffee', 'non-coffee'],
     ];
     $ranked = [];
+    $baseWanted = array_values(array_intersect($userPreferences, ['coffee', 'non-coffee']));
     $avoided = array_values(array_filter(
         $userPreferences,
         static fn (string $preference): bool => str_starts_with($preference, 'avoid:')
@@ -636,7 +639,10 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
         $matched = [];
         foreach ($groups as $group => $options) {
             $wanted = array_values(array_intersect($userPreferences, $options));
-            if (!$wanted) {
+            if (!$wanted || (
+                in_array($group, ['temperature', 'sweetness', 'base'], true)
+                && count($wanted) === count($options)
+            )) {
                 continue;
             }
             $possible += BREWSKI_RANK_WEIGHTS[$group];
@@ -649,6 +655,9 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
             }
         }
         $percent = $excludedFor ? 0 : ($possible > 0 ? (int) round(100 * $earned / $possible) : 0);
+        if ($percent > 0 && $baseWanted && !array_intersect($baseWanted, $tags)) {
+            $percent = 0;
+        }
         $ranked[(int) $productId] = [
             'product_id' => (int) $productId,
             'percent' => $percent,
