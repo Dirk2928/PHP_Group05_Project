@@ -93,7 +93,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Unable to connect to the database. Please make sure MySQL is running.';
 
     } else {
-        $check = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
+        $otpTableReady = $conn->query(
+            "CREATE TABLE IF NOT EXISTS otp_codes (
+                otp_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                code_hash VARCHAR(255) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                attempts TINYINT NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_otp_codes_user_id (user_id),
+                CONSTRAINT fk_otp_codes_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES users(user_id)
+                    ON UPDATE CASCADE
+                    ON DELETE CASCADE
+            )"
+        );
+
+        if (!$otpTableReady) {
+            $error = 'Email verification is temporarily unavailable. Please try again later.';
+        }
+
+        $check = $error === ''
+            ? $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1")
+            : false;
 
         if (!$check) {
 
@@ -117,13 +140,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
                 $activationToken = bin2hex(random_bytes(32));
+                $activationTokenHash = hash('sha256', $activationToken);
                 $activationExpires = date('Y-m-d H:i:s', time() + 86400);
 
                 $insert = $conn->prepare(
                     "INSERT INTO users
                         (first_name, last_name, email, password, role, is_active,
                          is_first_timer, email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 1, ?, ?)"
+                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 0, ?, ?)"
                 );
 
                 if (!$insert) {
@@ -138,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $last_name,
                         $email,
                         $passwordHash,
-                        $activationToken,
+                        $activationTokenHash,
                         $activationExpires
                     );
 
@@ -148,26 +172,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     } else {
 
-                        $activationUrl = brewski_app_public_url(
-                            '/login-signup/activate.php?token=' . urlencode($activationToken)
+                        $otp = (string) random_int(100000, 999999);
+                        $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+                        $otpExpires = date('Y-m-d H:i:s', time() + 600);
+                        $otpInsert = $conn->prepare(
+                            'INSERT INTO otp_codes (user_id, code_hash, expires_at, attempts)
+                             VALUES (?, ?, ?, 0)'
                         );
 
-                        $activationEmailSent = $activationUrl !== null && email_service_send(
-                            'send-activation',
+                        if (!$otpInsert) {
+                            $error = 'Your account could not be prepared for email verification.';
+                        } else {
+                            $newUserId = (int) $conn->insert_id;
+                            $otpInsert->bind_param('iss', $newUserId, $otpHash, $otpExpires);
+                            $otpSaved = $otpInsert->execute();
+                            $otpInsert->close();
+                        }
+
+                        $otpSent = $otpSaved ?? false;
+                        if ($otpSent) {
+                            $otpSent = email_service_send(
+                            'send-signup-otp',
                             [
                                 'email'         => $email,
                                 'firstName'     => $first_name,
-                                'activationUrl' => $activationUrl,
+                                'otp'            => $otp,
                             ]
-                        );
+                            );
+                        }
 
-                        if ($activationEmailSent) {
-                            $_SESSION['signup_success'] = 'Account created! Check your email to activate it.';
-                            header('Location: login.php');
+                        if ($otpSent) {
+                            $_SESSION['signup_otp_pending'] = [
+                                'user_id' => $newUserId,
+                                'email' => $email,
+                                'first_name' => $first_name,
+                                'activation_token' => $activationToken,
+                                'expires_at' => time() + 600,
+                            ];
+                            header('Location: verify-signup-otp.php');
                             exit;
                         }
 
-                        $error = 'Your account was created, but we could not send the activation email. Please contact support.';
+                        $error = 'Your account was created, but we could not send the verification code. Please contact support.';
                     }
                     $insert->close();
                 }
@@ -435,6 +481,13 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     Click here to log in.
                 </a>
 
+            </p>
+
+            <p class="auth__switch">
+                Staff or administrator?
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    Open the staff &amp; admin sign-in.
+                </a>
             </p>
 
         </div>

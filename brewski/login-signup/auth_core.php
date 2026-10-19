@@ -201,8 +201,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
 
     $maxAttempts = brewski_max_login_attempts();
     $accountLocked = (int) $isLocked === 1;
-    $lockedMessage = 'This account is locked after too many failed sign-in attempts. '
-        . 'Contact an administrator to unlock it.';
+    $genericLoginMessage = 'Incorrect email or password.';
 
     $passwordOk = password_verify($password, $storedPassword);
 
@@ -234,7 +233,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
     }
 
     if ($accountLocked) {
-        return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+        return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
     }
 
     if (!$passwordOk) {
@@ -252,7 +251,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             }
             brewski_record_login_attempt($conn, $email, $attempts, true);
 
-            return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+            return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
         }
 
         $attemptUpdate = $conn->prepare(
@@ -266,15 +265,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
         }
         brewski_record_login_attempt($conn, $email, $attempts, false);
 
-        $remaining = $maxAttempts - $attempts;
-
-        return brewski_auth_result(
-            BREWSKI_AUTH_INVALID,
-            'Incorrect email or password. '
-                . $remaining
-                . ($remaining === 1 ? ' attempt' : ' attempts')
-                . ' left before this account is locked.'
-        );
+        return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
     }
 
     // Portal gate. This runs only after the password has verified, so an

@@ -332,6 +332,13 @@ $csrfToken = (string) $_SESSION['csrf_token'];
             </p>
 
             <p class="auth__switch">
+                Staff or administrator?
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    Open the staff &amp; admin sign-in.
+                </a>
+            </p>
+
+            <p class="auth__switch">
 
                 How we handle your data:
 
