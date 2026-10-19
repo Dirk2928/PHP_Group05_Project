@@ -64,8 +64,6 @@ try {
     $catalogError = 'The menu is temporarily unavailable. Please try again later.';
 }
 
-$bestMatchScore = $choiceScores ? max($choiceScores) : 0;
-
 require __DIR__ . '/../partials/header.php';
 
 ?>
@@ -129,7 +127,6 @@ require __DIR__ . '/../partials/header.php';
                         $product['customizations'],
                         JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
                     );
-                    $cardScore = $choiceScores[(int) $product['product_id']] ?? 0;
                     $cardRanking = $choiceRanking[(int) $product['product_id']] ?? null;
                     ?>
 
@@ -142,12 +139,6 @@ require __DIR__ . '/../partials/header.php';
                         data-category="<?= (int) $product['category_id'] ?>"
                         data-options="<?= e($customizations) ?>"
                     >
-
-                        <?php if ($bestMatchScore >= 50 && $cardScore >= $bestMatchScore && $cardRanking && $cardRanking['status'] !== 'excluded'): ?>
-                            <span class="product-card__match">Your best match</span>
-                        <?php elseif ($cardRanking && $cardRanking['status'] === 'recommended'): ?>
-                            <span class="product-card__match">Best match</span>
-                        <?php endif; ?>
 
                         <div class="product-card__image">
 
