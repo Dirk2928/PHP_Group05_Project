@@ -138,7 +138,7 @@ function brewski_load_catalog(): array
         $products = [];
         $productResult = $connection->query(
             'SELECT p.product_id, p.category_id, c.category_name, p.product_name,
-                    p.price, p.image_path, p.image_mime_type
+                    p.description, p.price, p.image_path, p.image_mime_type
              FROM products p
              INNER JOIN categories c ON c.category_id = p.category_id
              WHERE p.availability = 1

@@ -420,18 +420,24 @@ try {
                 }
 
                 $productNameInput = $_POST['product_name'] ?? '';
+                $descriptionInput = $_POST['description'] ?? '';
                 $categoryIdInput = $_POST['category_id'] ?? null;
                 $priceValue = $_POST['price'] ?? '';
                 if (!is_string($productNameInput)
+                    || !is_string($descriptionInput)
                     || (!is_string($categoryIdInput) && !is_int($categoryIdInput))
                     || !is_string($priceValue)) {
                     throw new RuntimeException('Enter valid product details.');
                 }
                 $productName = trim($productNameInput);
+                $description = trim($descriptionInput);
                 $categoryId = filter_var($categoryIdInput, FILTER_VALIDATE_INT);
                 $priceInput = trim($priceValue);
                 if ($productName === '' || strlen($productName) > 150) {
                     throw new RuntimeException('Enter a product name of 1 to 150 characters.');
+                }
+                if (mb_strlen($description) > 1000) {
+                    throw new RuntimeException('Keep the description to 1000 characters or fewer.');
                 }
                 if (!$categoryId || $categoryId < 1) {
                     throw new RuntimeException('Choose a category for this product.');
@@ -708,14 +714,15 @@ try {
                     if ($imageData !== null) {
                         $statement = $connection->prepare(
                             'UPDATE products
-                             SET category_id = ?, product_name = ?, price = ?, image_path = NULL,
+                             SET category_id = ?, product_name = ?, description = ?, price = ?, image_path = NULL,
                                  image_data = ?, image_mime_type = ?, availability = 1
                              WHERE product_id = ?'
                         );
                         $statement->bind_param(
-                            'isdssi',
+                            'issdssi',
                             $categoryId,
                             $productName,
+                            $description,
                             $price,
                             $imageData,
                             $imageMimeType,
@@ -724,10 +731,10 @@ try {
                     } else {
                         $statement = $connection->prepare(
                             'UPDATE products
-                             SET category_id = ?, product_name = ?, price = ?, availability = 1
+                             SET category_id = ?, product_name = ?, description = ?, price = ?, availability = 1
                              WHERE product_id = ?'
                         );
-                        $statement->bind_param('isdi', $categoryId, $productName, $price, $productId);
+                        $statement->bind_param('issdi', $categoryId, $productName, $description, $price, $productId);
                     }
                     $statement->execute();
                     $statement->close();
@@ -735,10 +742,10 @@ try {
                 } else {
                     $statement = $connection->prepare(
                         'INSERT INTO products
-                         (category_id, product_name, price, image_path, image_data, image_mime_type, availability)
-                         VALUES (?, ?, ?, NULL, ?, ?, 1)'
+                         (category_id, product_name, description, price, image_path, image_data, image_mime_type, availability)
+                         VALUES (?, ?, ?, ?, NULL, ?, ?, 1)'
                     );
-                    $statement->bind_param('isdss', $categoryId, $productName, $price, $imageData, $imageMimeType);
+                    $statement->bind_param('issdss', $categoryId, $productName, $description, $price, $imageData, $imageMimeType);
                     $statement->execute();
                     $savedProductId = (int) $connection->insert_id;
                     $statement->close();
@@ -873,7 +880,7 @@ try {
     }
 
     $productResult = $connection->query(
-        'SELECT p.product_id, p.category_id, p.product_name, p.price, p.image_path,
+        'SELECT p.product_id, p.category_id, p.product_name, p.description, p.price, p.image_path,
                 p.image_mime_type,
                 c.category_name
          FROM products p
@@ -1096,6 +1103,10 @@ $pageSize = 5;
                     <label>
                         Product name
                         <input type="text" name="product_name" maxlength="150" required>
+                    </label>
+                    <label>
+                        Description
+                        <textarea name="description" rows="3" maxlength="1000" placeholder="Flavor, ingredients, and caffeine level. Used for drink matching."></textarea>
                     </label>
                     <label>
                         Category
@@ -1351,6 +1362,10 @@ $pageSize = 5;
                                     <label>
                                         Product name
                                         <input type="text" name="product_name" maxlength="150" value="<?= $escape($product['product_name']) ?>" required>
+                                    </label>
+                                    <label>
+                                        Description
+                                        <textarea name="description" rows="3" maxlength="1000" placeholder="Flavor, ingredients, and caffeine level. Used for drink matching."><?= $escape($product['description'] ?? '') ?></textarea>
                                     </label>
                                     <label>
                                         Category

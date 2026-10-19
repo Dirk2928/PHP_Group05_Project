@@ -352,7 +352,8 @@ function brewski_catalog_fingerprint(array $catalog): string
 
     foreach ($catalog['products'] as $product) {
         $parts[] = $product['product_id'] . ':' . $product['product_name']
-            . ':' . $product['category_name'] . ':' . $product['price'];
+            . ':' . $product['category_name'] . ':' . $product['price']
+            . ':' . ($product['description'] ?? '');
 
         foreach ($product['customizations'] as $customization) {
             $parts[] = $product['product_id'] . ':' . $customization['group']
@@ -440,18 +441,28 @@ function brewski_price_preference(float $price, array $thresholds): string
 
 function brewski_preference_links(array $catalog): array
 {
-    $nonCoffeeKeywords = brewski_non_coffee_keywords();
     $links = [];
 
     foreach ($catalog['products'] as $product) {
         $productId = (int) $product['product_id'];
-        $haystack = mb_strtolower(
-            $product['category_name'] . ' ' . $product['product_name'] . ' ' . ($product['description'] ?? '')
+        $categoryName = mb_strtolower((string) $product['category_name']);
+        $text = mb_strtolower(
+            $product['product_name'] . ' ' . ($product['description'] ?? '')
         );
+        $haystack = $categoryName . ' ' . $text;
         $keys = [];
 
-        $isNonCoffee = brewski_matches_any([$haystack], $nonCoffeeKeywords);
-        $keys[] = $isNonCoffee ? 'non-coffee' : 'coffee';
+        if (brewski_matches_any([$categoryName], ['pastry', 'pastries', 'food', 'snack', 'dessert'])) {
+            $links[$productId] = [];
+            continue;
+        }
+
+        $isCoffee = $categoryName === 'coffee'
+            || brewski_matches_any(
+                [$text],
+                ['coffee', 'espresso', 'latte', 'macchiato', 'americano', 'mocha', 'cappuccino']
+            );
+        $keys[] = $isCoffee ? 'coffee' : 'non-coffee';
         if (brewski_matches_any([$haystack], ['chocolate', 'cocoa', 'mocha'])) {
             $keys[] = 'flavor:Chocolate';
         }
@@ -464,9 +475,9 @@ function brewski_preference_links(array $catalog): array
         if (brewski_matches_any([$haystack], ['cream', 'creamy', 'vanilla', 'latte'])) {
             $keys[] = 'flavor:Creamy';
         }
-        $keys[] = brewski_matches_any([$haystack], brewski_decaf_keywords())
-            ? 'caffeine:Decaf'
-            : 'caffeine:Regular';
+        $isCaffeinated = $isCoffee
+            || brewski_matches_any([$text], ['matcha', 'tea']);
+        $keys[] = $isCaffeinated ? 'caffeine:Regular' : 'caffeine:Decaf';
 
         $temperatures = [];
         $sugarLevels = [];
@@ -546,6 +557,18 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
     ));
     foreach ($productTags as $productId => $tags) {
         $tags = array_values(array_unique($tags));
+
+        if (!$tags) {
+            $ranked[(int) $productId] = [
+                'product_id' => (int) $productId,
+                'percent' => 0,
+                'status' => 'available',
+                'matched' => [],
+                'excluded_for' => [],
+            ];
+            continue;
+        }
+
         $excludedFor = [];
         $hasAllergenData = (bool) array_filter(
             $tags,

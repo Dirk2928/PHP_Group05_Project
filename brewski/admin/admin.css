@@ -1703,6 +1703,7 @@ body.sidebar-open::after {
 .product-management-page .catalog-form input[type="text"],
 .product-management-page .catalog-form input[type="number"],
 .product-management-page .catalog-form input[type="file"],
+.product-management-page .catalog-form textarea,
 .product-management-page .catalog-form select {
     min-height: 40px;
     width: 100%;
@@ -1712,6 +1713,11 @@ body.sidebar-open::after {
     background: #fff;
     color: #1e110a;
     font: inherit;
+}
+
+.product-management-page .catalog-form textarea {
+    min-height: 5.5rem;
+    resize: vertical;
 }
 
 .product-management-page .catalog-category-create > label {

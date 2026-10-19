@@ -23,6 +23,7 @@ function brewski_product_image_fallback(): string
 function brewski_ensure_product_image_columns(mysqli $connection): void
 {
     $columns = [
+        'description' => 'TEXT NULL',
         'image_data' => 'LONGBLOB NULL',
         'image_mime_type' => 'VARCHAR(32) NULL',
     ];
