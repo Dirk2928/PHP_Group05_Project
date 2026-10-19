@@ -129,6 +129,7 @@ function brewski_recommendation_questions(): array
 
     $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
     $caffeineChoices = brewski_custom_option_values('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
+    $allergenChoices = brewski_custom_option_values('allergen', ['Dairy', 'Nuts', 'Gluten']);
     $flavorAnswers = [];
     foreach ($flavorChoices as $name) {
         $flavorAnswers[$name] = ['flavor:' . $name];
@@ -173,6 +174,17 @@ function brewski_recommendation_questions(): array
         'caffeine' => [
             'question' => 'How much caffeine do you want?',
             'answers' => $caffeineAnswers,
+        ],
+        'dietary' => [
+            'question' => 'Which allergens should your drink avoid?',
+            'multi' => true,
+            'answers' => array_merge(
+                array_combine(
+                    array_map(static fn (string $name): string => 'Avoid ' . $name, $allergenChoices),
+                    array_map(static fn (string $name): array => ['avoid:' . strtolower($name)], $allergenChoices)
+                ),
+                ['None' => []]
+            ),
         ],
     ];
 }
