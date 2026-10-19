@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var productList = document.getElementById('productAvailabilityList');
     var productFeedback = document.getElementById('productFeedback');
     var productCategoryFilter = document.getElementById('productCategoryFilter');
+    var productsEmpty = document.getElementById('productsEmpty');
+    var productsPageInfo = document.getElementById('productsPageInfo');
+    var productsPagination = document.getElementById('productsPagination');
     var ordersPageInfo = document.getElementById('ordersPageInfo');
     var ordersPagination = document.getElementById('ordersPagination');
 
@@ -39,6 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var products = [];
     var ordersPage = 1;
     var ordersPageSize = 5;
+    var productsPage = 1;
+    var productsPageSize = 6;
     var autoRefreshInterval = null;
     var isRefreshing = false;
 
@@ -284,6 +289,11 @@ document.addEventListener('DOMContentLoaded', function () {
         var visibleProducts = products.filter(function (product) {
             return selectedCategory === 'ALL' || product.category === selectedCategory;
         });
+        var pageCount = Math.max(1, Math.ceil(visibleProducts.length / productsPageSize));
+        if (productsPage > pageCount) productsPage = pageCount;
+
+        var start = (productsPage - 1) * productsPageSize;
+        var pageProducts = visibleProducts.slice(start, start + productsPageSize);
 
         var availableElement = document.getElementById('availableProductCount');
         var totalElement = document.getElementById('totalProductCount');
@@ -295,12 +305,16 @@ document.addEventListener('DOMContentLoaded', function () {
             listCountElement.textContent = visibleProducts.length + (visibleProducts.length === 1 ? ' item' : ' items');
         }
 
-        productList.innerHTML = visibleProducts.map(function (product) {
+        productList.innerHTML = pageProducts.map(function (product) {
             var state = product.available ? 'Available' : 'Unavailable';
 
             return '<article class="availability-product">' +
-                '<div class="availability-product-icon" aria-hidden="true">' +
+                '<div class="availability-product-photo">' +
+                    '<img class="availability-product-image" src="' + escapeHtml(product.image_url) +
+                        '" alt="' + escapeHtml(product.name) + '" loading="lazy">' +
+                    '<span class="availability-product-icon hidden" aria-hidden="true">' +
                     escapeHtml(String(product.name).charAt(0)) +
+                    '</span>' +
                 '</div>' +
                 '<div class="availability-product-details"><strong>' + escapeHtml(product.name) +
                     '</strong><span>' + escapeHtml(product.category) + '</span></div>' +
@@ -314,6 +328,50 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<span></span></button>' +
                 '</article>';
         }).join('');
+
+        if (productsEmpty) {
+            productsEmpty.classList.toggle('hidden', visibleProducts.length > 0);
+        }
+
+        if (productsPageInfo) {
+            productsPageInfo.textContent = visibleProducts.length === 0
+                ? 'No products'
+                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + productsPageSize, visibleProducts.length) +
+                  ' of ' + visibleProducts.length + ' products';
+        }
+
+        renderProductsPagination(pageCount);
+    }
+
+    function renderProductsPagination(pageCount) {
+        if (!productsPagination) {
+            return;
+        }
+
+        productsPagination.innerHTML = '';
+
+        productsPagination.appendChild(pageButton('Previous', productsPage === 1, false, function () {
+            if (productsPage > 1) {
+                productsPage--;
+                renderProducts();
+            }
+        }));
+
+        for (var page = 1; page <= pageCount; page++) {
+            (function (target) {
+                productsPagination.appendChild(pageButton(String(target), false, target === productsPage, function () {
+                    productsPage = target;
+                    renderProducts();
+                }));
+            })(page);
+        }
+
+        productsPagination.appendChild(pageButton('Next', productsPage === pageCount, false, function () {
+            if (productsPage < pageCount) {
+                productsPage++;
+                renderProducts();
+            }
+        }));
     }
 
     function renderCategoryOptions() {
@@ -498,7 +556,17 @@ document.addEventListener('DOMContentLoaded', function () {
         renderOrders();
     });
     
-    productCategoryFilter.addEventListener('change', renderProducts);
+    productCategoryFilter.addEventListener('change', function () {
+        productsPage = 1;
+        renderProducts();
+    });
+
+    productList.addEventListener('error', function (event) {
+        if (event.target.matches('.availability-product-image')) {
+            event.target.hidden = true;
+            event.target.nextElementSibling.classList.remove('hidden');
+        }
+    }, true);
 
     document.addEventListener('visibilitychange', function () {
         if (document.hidden) {
