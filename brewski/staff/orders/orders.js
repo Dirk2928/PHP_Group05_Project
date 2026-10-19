@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var productList = document.getElementById('productAvailabilityList');
     var productFeedback = document.getElementById('productFeedback');
     var productCategoryFilter = document.getElementById('productCategoryFilter');
+    var productSearch = document.getElementById('productSearch');
     var productsEmpty = document.getElementById('productsEmpty');
     var productsPageInfo = document.getElementById('productsPageInfo');
     var productsPagination = document.getElementById('productsPagination');
@@ -286,8 +287,13 @@ document.addEventListener('DOMContentLoaded', function () {
             return product.available;
         }).length;
         var selectedCategory = productCategoryFilter.value;
+        var query = productSearch.value.trim().toLowerCase();
         var visibleProducts = products.filter(function (product) {
-            return selectedCategory === 'ALL' || product.category === selectedCategory;
+            var matchesCategory = selectedCategory === 'ALL' || product.category === selectedCategory;
+            var matchesSearch = !query ||
+                (product.name + ' ' + product.category).toLowerCase().indexOf(query) !== -1;
+
+            return matchesCategory && matchesSearch;
         });
         var pageCount = Math.max(1, Math.ceil(visibleProducts.length / productsPageSize));
         if (productsPage > pageCount) productsPage = pageCount;
@@ -331,6 +337,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (productsEmpty) {
             productsEmpty.classList.toggle('hidden', visibleProducts.length > 0);
+        }
+        if (productsEmpty) {
+            productsEmpty.querySelector('.empty-title').textContent = query
+                ? 'No matching products'
+                : 'No products in this category';
         }
 
         if (productsPageInfo) {
@@ -557,6 +568,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     
     productCategoryFilter.addEventListener('change', function () {
+        productsPage = 1;
+        renderProducts();
+    });
+
+    productSearch.addEventListener('input', function () {
         productsPage = 1;
         renderProducts();
     });

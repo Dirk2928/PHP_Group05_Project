@@ -1545,6 +1545,11 @@ body.sidebar-open::after {
     font-weight: 600;
 }
 
+.product-search-field {
+    width: 100%;
+    max-width: 420px;
+}
+
 .product-list-heading {
     display: flex;
     align-items: center;

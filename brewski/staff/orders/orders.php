@@ -225,6 +225,10 @@ $csrf_token = $_SESSION['csrf_token'];
                     </div>
                     <span class="availability-overview-icon" aria-hidden="true">✓</span>
                 </div>
+                <div class="product-search-field">
+                    <label class="sr-only" for="productSearch">Search products</label>
+                    <input class="toolbar-input" id="productSearch" type="search" placeholder="Search products by name or category">
+                </div>
                 <div class="table-card product-table-card">
                     <div class="product-list-heading">
                         <div>
