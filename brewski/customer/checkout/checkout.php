@@ -7,12 +7,16 @@ if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
     exit;
 }
+if (brewski_current_role() !== 'CUSTOMER') {
+    header('Location: ../../login-signup/login.php');
+    exit;
+}
 
 $userId = (int) $_SESSION['user_id'];
 
 $pageTitle   = 'Checkout | brewski';
 $active      = 'checkout';
-$extraStyles = ['partials/menu.css'];
+$extraStyles = ['partials/menu.css', 'customer-typography.css', 'checkout/checkout.css'];
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -61,13 +65,19 @@ $total       = $subtotal + $deliveryFee;
 require __DIR__ . '/../partials/header.php';
 ?>
 
-<main class="page" style="max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem;">
+<main class="page checkout-page" style="max-width: 980px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem;">
 
     <p id="cart-sync-status" role="status" hidden
         style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1rem;"></p>
 
     <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Checkout</h1>
     <p style="color:#5c4033; margin-bottom: 2rem;">Review your order and pick a delivery address.</p>
+
+    <?php if (($_GET['payment'] ?? '') === 'cancelled'): ?>
+        <p class="checkout-payment__notice" role="status" style="padding:1rem; border:1px solid #e8dac4; border-radius:0.75rem; background:#fffaf2; margin-bottom:1.25rem;">
+            Payment was not completed. Your cart is still saved, and you can continue whenever you are ready.
+        </p>
+    <?php endif; ?>
 
     <?php if (!$items): ?>
 
@@ -115,6 +125,23 @@ require __DIR__ . '/../partials/header.php';
 
             <?php endif; ?>
 
+            <h2 style="font-size:1.15rem; margin-bottom:1rem;">Payment method</h2>
+            <div class="checkout-payment">
+                <span class="checkout-payment__icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
+                <div class="checkout-payment__copy">
+                    <strong>Secure checkout with PayMongo</strong>
+                    <small>Choose your preferred payment method on PayMongo’s secure payment page.</small>
+                    <div class="checkout-payment__methods" aria-label="Available payment methods">
+                        <span>GCash</span>
+                        <span>Maya</span>
+                        <span>QR Ph</span>
+                        <span>Cards</span>
+                        <span>Online banking</span>
+                        <span>More</span>
+                    </div>
+                </div>
+            </div>
+
             <h2 style="font-size:1.15rem; margin-bottom:1rem;">Your items</h2>
 
             <ul style="list-style:none; padding:0; margin:0;">
@@ -156,9 +183,10 @@ require __DIR__ . '/../partials/header.php';
                 <?= !$addresses ? 'disabled' : '' ?>
                 style="width:100%; margin-top:1.5rem; padding:1rem; background:#1a0f0a; color:#faf5ee; border:none; border-radius:0.75rem; font-weight:600; cursor:pointer; <?= !$addresses ? 'opacity:0.5; cursor:not-allowed;' : '' ?>"
             >
-                Place order
+                Continue to payment
             </button>
 
+            <p class="checkout-payment__notice">Your order is sent to the café only after PayMongo confirms your payment. Card details are entered on PayMongo, not stored by Brewski.</p>
             <p id="checkout-msg" style="margin-top:1rem; font-size:0.9rem;"></p>
 
         </aside>
@@ -231,12 +259,20 @@ require __DIR__ . '/../partials/header.php';
         cursor: wait;
         opacity: 0.65;
     }
+
+    .checkout-page button,
+    .checkout-page input,
+    .checkout-page textarea,
+    .checkout-page select,
+    .order-confirmation-dialog {
+        font-family: inherit;
+    }
 </style>
 
 <dialog id="order-confirmation-dialog" aria-labelledby="order-confirmation-title">
     <form id="order-confirmation-form" class="order-confirmation-dialog__content">
-        <h2 id="order-confirmation-title">Place your order?</h2>
-        <p>Please confirm that you want to place this order.</p>
+        <h2 id="order-confirmation-title">Continue to secure payment?</h2>
+        <p>You’ll choose and complete your payment on PayMongo’s secure checkout page.</p>
         <p id="order-confirmation-message" role="status" aria-live="polite"></p>
         <div class="order-confirmation-dialog__actions">
             <button type="button" id="order-confirmation-cancel">Cancel</button>
@@ -322,26 +358,21 @@ require __DIR__ . '/../partials/header.php';
     confirmationForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         proceedButton.disabled = true;
-        confirmationMessage.textContent = 'Placing your order…';
+        confirmationMessage.textContent = 'Preparing secure checkout…';
         confirmationMessage.style.color = '#5c4033';
 
         try {
-            var call = await postPlaceOrder('place_order');
+            var call = await postPlaceOrder('create_payment');
             var result = call.result;
 
             if (result.ok) {
-                try {
-                    localStorage.removeItem('brewski_cart');
-                } catch (storageError) {
-                    console.error('Order placed, but the browser cart could not be cleared:', storageError);
-                }
                 window.location.href = result.redirect;
                 return;
             }
 
-            showError(describe(result, 'Could not place your order.'), confirmationMessage);
+            showError(describe(result, 'Could not start secure checkout.'), confirmationMessage);
         } catch (error) {
-            showError('Could not place the order: ' + error.message, confirmationMessage);
+            showError('Could not start secure checkout: ' + error.message, confirmationMessage);
         }
 
         proceedButton.disabled = false;

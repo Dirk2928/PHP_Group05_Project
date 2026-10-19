@@ -57,11 +57,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         admin_transactions_respond(false, 'Please choose a valid transaction.');
     }
 
-    $exists = $pdo->prepare('SELECT order_id FROM orders WHERE order_id = ? LIMIT 1');
+    $exists = $pdo->prepare(
+        'SELECT o.order_id, op.payment_status
+           FROM orders o
+           LEFT JOIN order_payments op ON op.order_id = o.order_id
+          WHERE o.order_id = ?
+          LIMIT 1'
+    );
     $exists->execute([(int) $orderId]);
+    $transaction = $exists->fetch();
 
-    if (!$exists->fetch()) {
+    if (!$transaction) {
         admin_transactions_respond(false, 'That transaction no longer exists.', 404);
+    }
+    if (
+        $transaction['payment_status'] !== null
+        && $transaction['payment_status'] !== 'PAID'
+    ) {
+        admin_transactions_respond(
+            false,
+            'This order cannot be changed until PayMongo confirms payment.',
+            422
+        );
     }
 
     if ($action === 'update') {
@@ -124,9 +141,11 @@ $transactions = $pdo->query(
                LEFT JOIN products p ON p.product_id = oi.product_id
               WHERE oi.order_id = o.order_id) AS item_summary
      FROM orders o
+     LEFT JOIN order_payments op ON op.order_id = o.order_id
      LEFT JOIN users cu ON cu.user_id = o.user_id
      LEFT JOIN deliveries d ON d.order_id = o.order_id
      LEFT JOIN users su ON su.user_id = d.staff_id
+     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
      ORDER BY o.order_date DESC, o.order_id DESC"
 )->fetchAll();
 

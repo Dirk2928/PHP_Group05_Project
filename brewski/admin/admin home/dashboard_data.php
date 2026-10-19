@@ -68,7 +68,9 @@ function dashboard_sales_buckets(
         $connection,
         "SELECT {$bucketExpression} AS bucket, SUM(o.total_amount) AS amount
          FROM orders o
-         WHERE o.order_status = 'COMPLETED'
+        LEFT JOIN order_payments op ON op.order_id = o.order_id
+        WHERE o.order_status = 'COMPLETED'
+          AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
            AND o.order_date >= '{$startDate}'
            AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
          GROUP BY bucket
@@ -124,24 +126,30 @@ try {
         "SELECT COUNT(*) AS order_count,
                 COALESCE(SUM(CASE WHEN order_status = 'COMPLETED' THEN total_amount ELSE 0 END), 0) AS sales,
                 COUNT(CASE WHEN order_status = 'COMPLETED' THEN 1 END) AS completed_count
-         FROM orders
-         WHERE order_date >= '{$todayDate}'
-           AND order_date < DATE_ADD('{$todayDate}', INTERVAL 1 DAY)"
+         FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
+         WHERE o.order_date >= '{$todayDate}'
+           AND o.order_date < DATE_ADD('{$todayDate}', INTERVAL 1 DAY)
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')"
     )[0];
     $yesterdaySummary = dashboard_fetch_rows(
         $connection,
         "SELECT COUNT(*) AS order_count,
                 COALESCE(SUM(CASE WHEN order_status = 'COMPLETED' THEN total_amount ELSE 0 END), 0) AS sales
-         FROM orders
-         WHERE order_date >= '{$yesterdayDate}'
-           AND order_date < DATE_ADD('{$yesterdayDate}', INTERVAL 1 DAY)"
+         FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
+         WHERE o.order_date >= '{$yesterdayDate}'
+           AND o.order_date < DATE_ADD('{$yesterdayDate}', INTERVAL 1 DAY)
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')"
     )[0];
     $statusRows = dashboard_fetch_rows(
         $connection,
-        "SELECT order_status, COUNT(*) AS order_count
-         FROM orders
-         WHERE order_status IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY')
-         GROUP BY order_status"
+        "SELECT o.order_status, COUNT(*) AS order_count
+         FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
+         WHERE o.order_status IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY')
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
+         GROUP BY o.order_status"
     );
 
     $statusCounts = [
@@ -249,7 +257,9 @@ try {
          INNER JOIN order_items oi ON oi.order_id = o.order_id
          INNER JOIN products p ON p.product_id = oi.product_id
          INNER JOIN categories c ON c.category_id = p.category_id
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status = 'COMPLETED'
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
            AND o.order_date >= '{$startDate}'
            AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
          GROUP BY c.category_id, c.category_name
@@ -268,7 +278,9 @@ try {
          FROM orders o
          INNER JOIN order_items oi ON oi.order_id = o.order_id
          INNER JOIN products p ON p.product_id = oi.product_id
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status = 'COMPLETED'
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
            AND o.order_date >= '{$startDate}'
            AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
          GROUP BY p.product_id, p.product_name
@@ -288,7 +300,9 @@ try {
                 FLOOR(HOUR(o.order_date) / 2) - 4 AS hour_slot,
                 COUNT(DISTINCT o.order_id) AS order_count
          FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status <> 'CANCELLED'
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
            AND o.order_date >= '{$startDate}'
            AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
            AND HOUR(o.order_date) >= 8
@@ -334,9 +348,11 @@ try {
                     ORDER BY oi.order_item_id SEPARATOR ', '
                 ), 'No items') AS items
          FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
          LEFT JOIN order_items oi ON oi.order_id = o.order_id
          LEFT JOIN products p ON p.product_id = oi.product_id
          WHERE o.order_status IN ('PENDING', 'CONFIRMED', 'PREPARING', 'READY')
+           AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
          GROUP BY o.order_id, o.order_date, o.total_amount, o.order_status
          ORDER BY o.order_date DESC
          LIMIT 5"

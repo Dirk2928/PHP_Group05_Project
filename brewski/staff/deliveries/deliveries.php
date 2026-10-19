@@ -15,15 +15,18 @@ $stmt = $pdo->prepare(
     "SELECT d.delivery_id, d.order_id, d.delivery_status, d.delivery_fee, d.notes,
             d.created_at, d.assigned_at, d.picked_up_at, d.delivered_at,
             o.total_amount,
+            op.payment_status,
             a.address_line, a.city, a.province, a.postal_code,
             u.first_name AS driver_first, u.last_name AS driver_last,
             cu.first_name AS customer_first, cu.last_name AS customer_last,
             cu.email      AS customer_email
      FROM deliveries d
      JOIN orders    o  ON o.order_id  = d.order_id
+     LEFT JOIN order_payments op ON op.order_id = o.order_id
      JOIN users     cu ON cu.user_id  = o.user_id
      LEFT JOIN addresses a ON a.address_id = o.address_id
      LEFT JOIN users     u ON u.user_id    = d.staff_id
+     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
      ORDER BY
         FIELD(d.delivery_status, 'UNASSIGNED','ASSIGNED','PICKED_UP','IN_TRANSIT','DELIVERED','FAILED','CANCELLED'),
         d.created_at DESC"

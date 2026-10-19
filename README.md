@@ -162,6 +162,21 @@ With the built-in server:
 
 Make sure MySQL and the email service are running before testing account activation or placing an order. Login verification uses the authenticator app; order verification codes and receipts are emailed to the address on the customer account.
 
+### PayMongo checkout
+
+Customer checkout uses PayMongo-hosted checkout for GCash, Maya, cards, QR Ph,
+online banking, and other methods enabled for the merchant account. Brewski
+does not collect or store card details. Configure `BREWSKI_PAYMONGO_SECRET_KEY`
+and `BREWSKI_PAYMONGO_WEBHOOK_SECRET` in the PHP environment; do not put either
+secret in the repository. Existing databases must apply
+[`20261019_add_order_payments.sql`](brewski/Db/migrations/20261019_add_order_payments.sql).
+
+In the PayMongo dashboard, register
+`https://<your-public-host>/customer/checkout/paymongo_webhook.php` and subscribe
+to `checkout_session.payment.paid`. Use PayMongo test keys and a publicly
+reachable HTTPS URL when testing webhooks. If the public host is not the default
+Render URL, set `BREWSKI_PUBLIC_URL` to the full public application base URL.
+
 ## Deployment
 
 Brewski deploys to [Render](https://render.com) as two services — the PHP app built from

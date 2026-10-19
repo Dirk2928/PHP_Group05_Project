@@ -15,16 +15,19 @@ try {
 		        o.order_date,
 		        o.total_amount,
 		        o.order_status,
+		        op.payment_status,
 		        TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
 		        oi.order_item_id,
 		        oi.quantity,
 		        COALESCE(p.product_name, 'Unknown item') AS product_name,
 		        COALESCE(s.size_name, 'Standard') AS size_name
 		   FROM orders o
+		   LEFT JOIN order_payments op ON op.order_id = o.order_id
 		   LEFT JOIN users u ON u.user_id = o.user_id
 		   LEFT JOIN order_items oi ON oi.order_id = o.order_id
 		   LEFT JOIN products p ON p.product_id = oi.product_id
 		   LEFT JOIN sizes s ON s.size_id = oi.size_id
+		  WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
 		  ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id ASC"
 	);
 

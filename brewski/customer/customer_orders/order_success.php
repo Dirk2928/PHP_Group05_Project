@@ -18,9 +18,11 @@ $deliverySelect = $hasDeliveries
 $deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id' : '';
 
 $stmt = $pdo->prepare(
-    "SELECT o.order_id, o.total_amount, o.order_status, u.email, $deliverySelect
+    "SELECT o.order_id, o.total_amount, o.order_status, u.email,
+            op.payment_status, $deliverySelect
      FROM orders o
      INNER JOIN users u ON u.user_id = o.user_id
+     LEFT JOIN order_payments op ON op.order_id = o.order_id
      $deliveryJoin
      WHERE o.order_id = ? AND o.user_id = ?"
 );
@@ -29,6 +31,10 @@ $order = $stmt->fetch();
 
 if (!$order) {
     header('Location: ../customer_home/customerhome.php');
+    exit;
+}
+if (in_array($order['payment_status'], ['PENDING', 'FAILED'], true)) {
+    header('Location: ../checkout/payment_return.php?order_id=' . $orderId);
     exit;
 }
 
