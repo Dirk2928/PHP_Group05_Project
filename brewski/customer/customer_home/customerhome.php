@@ -10,6 +10,7 @@ $extraStyles = ['partials/choice.css'];
 
 $catalogError = '';
 $sections = [];
+$productsById = [];
 $choicePreferences = null;
 $choiceBestMatch = null;
 
@@ -17,6 +18,7 @@ try {
     $catalog = brewski_load_catalog();
     foreach ($catalog['products'] as $product) {
         $sections[$product['category_name']][] = $product;
+        $productsById[(int) $product['product_id']] = $product;
     }
     brewski_preference_sync($catalog);
     $choicePreferences = null;
@@ -31,7 +33,7 @@ $choiceAssessmentCompleted = null;
 
 if ($choiceUserId > 0) {
     $choicePreferences = brewski_user_preferences($choiceUserId);
-    $statusConnection = brewski_db_connect();
+    $statusConnection = brewski_preferences_connection();
     if ($statusConnection) {
         try {
             $statusStatement = $statusConnection->prepare(
@@ -48,8 +50,6 @@ if ($choiceUserId > 0) {
             }
         } catch (Throwable $error) {
             error_log('Customer home status lookup error: ' . $error->getMessage());
-        } finally {
-            $statusConnection->close();
         }
     } else {
         error_log('Customer home status lookup skipped: database connection unavailable.');
@@ -86,6 +86,66 @@ $choiceAutoOpen = $choiceUserId > 0
     && count($choicePreferences) === 0
     && empty($_SESSION['choice_skipped']);
 $choiceMode = $choiceAutoOpen ? 'first-timer' : 'recommendation';
+$choiceRanking = $choiceRanking ?? [];
+$renderProductCard = static function (array $product) use ($choiceRanking): void {
+    $image = !empty($product['image_mime_type'])
+        ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+        : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
+    $customizations = json_encode(
+        $product['customizations'],
+        JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
+    );
+    ?>
+    <div
+        class="product-card"
+        data-id="<?= (int) $product['product_id'] ?>"
+        data-name="<?= e($product['product_name']) ?>"
+        data-image="<?= e($image) ?>"
+        data-base-price="<?= e($product['price']) ?>"
+        data-options="<?= e($customizations) ?>"
+    >
+
+        <?php if (($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
+            <span class="product-card__match">Best match</span>
+        <?php endif; ?>
+
+        <div class="product-card__image">
+
+            <img
+                src="<?= e($image) ?>"
+                alt="<?= e($product['product_name']) ?>"
+                loading="lazy"
+                onerror="this.onerror=null;this.src='<?= e(brewski_product_image_fallback()) ?>';this.classList.add('is-placeholder')"
+            >
+
+        </div>
+
+        <div class="product-card__info">
+
+            <h3>
+                <?= e($product['product_name']) ?>
+            </h3>
+
+            <p class="price">
+                ₱<?= number_format((float) $product['price'], 2) ?>
+            </p>
+
+            <button
+                type="button"
+                class="btn-add"
+            >
+
+                <i data-lucide="plus-circle"></i>
+
+                Add to Cart
+
+            </button>
+
+        </div>
+
+    </div>
+    <?php
+};
 
 require __DIR__ . '/../partials/header.php';
 
@@ -127,10 +187,17 @@ require __DIR__ . '/../partials/header.php';
             </p>
         <?php endif; ?>
 
-        <?php if ($choiceBestMatch): ?>
-            <section class="category">
+        <?php
+        $bestMatchProduct = $choiceBestMatch
+            ? ($productsById[(int) $choiceBestMatch['product_id']] ?? null)
+            : null;
+        ?>
+        <?php if ($bestMatchProduct): ?>
+            <section class="category category--best-match">
                 <h2 class="category__title">Your best match</h2>
-                <p><?= e(implode(', ', array_slice($choiceBestMatch['matched'], 0, 3))) ?></p>
+                <div class="product-grid">
+                    <?php $renderProductCard($bestMatchProduct); ?>
+                </div>
             </section>
         <?php endif; ?>
 
@@ -151,66 +218,7 @@ require __DIR__ . '/../partials/header.php';
                 <div class="product-grid">
 
                     <?php foreach ($products as $product): ?>
-
-                        <?php
-                        $image = !empty($product['image_mime_type'])
-                            ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
-                            : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
-                        $customizations = json_encode(
-                            $product['customizations'],
-                            JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP
-                        );
-                        ?>
-
-                        <div
-                            class="product-card"
-                            data-id="<?= (int) $product['product_id'] ?>"
-                            data-name="<?= e($product['product_name']) ?>"
-                            data-image="<?= e($image) ?>"
-                            data-base-price="<?= e($product['price']) ?>"
-                            data-options="<?= e($customizations) ?>"
-                        >
-
-                            <?php if (($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
-                                <span class="product-card__match">Best match</span>
-                            <?php endif; ?>
-
-                            <div class="product-card__image">
-
-                                <img
-                                    src="<?= e($image) ?>"
-                                    alt="<?= e($product['product_name']) ?>"
-                                    loading="lazy"
-                                    onerror="this.onerror=null;this.src='<?= e(brewski_product_image_fallback()) ?>';this.classList.add('is-placeholder')"
-                                >
-
-                            </div>
-
-                            <div class="product-card__info">
-
-                                <h3>
-                                    <?= e($product['product_name']) ?>
-                                </h3>
-
-                                <p class="price">
-                                    ₱<?= number_format((float) $product['price'], 2) ?>
-                                </p>
-
-                                <button
-                                    type="button"
-                                    class="btn-add"
-                                >
-
-                                    <i data-lucide="plus-circle"></i>
-
-                                    Add to Cart
-
-                                </button>
-
-                            </div>
-
-                        </div>
-
+                        <?php $renderProductCard($product); ?>
                     <?php endforeach; ?>
 
                 </div>

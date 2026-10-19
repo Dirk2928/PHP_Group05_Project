@@ -167,8 +167,6 @@ require __DIR__ . '/../partials/header.php';
                             <p class="price">₱<?= number_format((float) $product['price'], 2) ?></p>
                             <?php if ($cardRanking && $cardRanking['status'] === 'excluded'): ?>
                                 <p class="catalog-notice">Contains <?= e(implode(', ', $cardRanking['excluded_for'])) ?></p>
-                            <?php elseif ($cardRanking && $cardRanking['matched']): ?>
-                                <p class="catalog-notice"><?= e(implode(', ', array_slice($cardRanking['matched'], 0, 2))) ?></p>
                             <?php endif; ?>
 
                             <button class="btn-add">

@@ -9,10 +9,16 @@ if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
 
 function brewski_custom_option_values(string $group, array $fallback): array
 {
+    static $cache = [];
+
+    if (array_key_exists($group, $cache)) {
+        return $cache[$group];
+    }
+
     try {
-        $connection = brewski_db_connect();
+        $connection = brewski_preferences_connection();
         if (!$connection) {
-            return $fallback;
+            return $cache[$group] = $fallback;
         }
         $statement = $connection->prepare(
             'SELECT DISTINCT option_name
@@ -28,16 +34,21 @@ function brewski_custom_option_values(string $group, array $fallback): array
             $names[] = (string) $row['option_name'];
         }
         $statement->close();
-        $connection->close();
-        return $names ?: $fallback;
+        return $cache[$group] = ($names ?: $fallback);
     } catch (Throwable $error) {
         error_log('Preference option lookup error: ' . $error->getMessage());
-        return $fallback;
+        return $cache[$group] = $fallback;
     }
 }
 
 function brewski_choice_questions(): array
 {
+    static $questions = null;
+
+    if ($questions !== null) {
+        return $questions;
+    }
+
     $beanChoices = brewski_custom_option_values('bean', ['Arabica', 'Robusta', 'Blend']);
     $milkChoices = brewski_custom_option_values('milk', ['Dairy milk', 'Oat milk', 'Almond milk', 'Soy milk', 'No milk']);
     $allergenChoices = brewski_custom_option_values('allergen', ['Dairy', 'Nuts', 'Gluten']);
@@ -52,7 +63,7 @@ function brewski_choice_questions(): array
         return $answers;
     };
 
-    return [
+    return $questions = [
         'base' => [
             'question' => 'What kind of drink do you want?',
             'answers' => [
@@ -110,6 +121,12 @@ function brewski_choice_questions(): array
 
 function brewski_recommendation_questions(): array
 {
+    static $questions = null;
+
+    if ($questions !== null) {
+        return $questions;
+    }
+
     $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
     $flavorAnswers = [];
     foreach ($flavorChoices as $name) {
@@ -117,7 +134,7 @@ function brewski_recommendation_questions(): array
     }
     $flavorAnswers['No preference'] = ['flavor:any'];
 
-    return [
+    return $questions = [
         'mood' => [
             'question' => 'What kind of drink are you in the mood for?',
             'answers' => [
@@ -190,8 +207,10 @@ function brewski_preference_definitions(): array
         'avoid:nuts' => 'Avoid nuts',
         'avoid:gluten' => 'Avoid gluten',
     ];
+    $questions = brewski_choice_questions();
+
     foreach (['bean', 'milk', 'flavor', 'caffeine', 'dietary'] as $group) {
-        foreach (brewski_choice_questions()[$group]['answers'] as $answers) {
+        foreach ($questions[$group]['answers'] as $answers) {
             foreach ($answers as $answer) {
                 if (!str_ends_with($answer, ':any')) {
                     $definitions[$answer] = ucfirst(str_replace(':', ' ', $answer));
@@ -246,7 +265,7 @@ function brewski_preferences_ensure_tables(mysqli $connection): void
 {
     static $done = false;
 
-    if ($done) {
+    if ($done || !empty($_SESSION['brewski_pref_tables_ready'])) {
         return;
     }
 
@@ -326,6 +345,7 @@ function brewski_preferences_ensure_tables(mysqli $connection): void
     );
 
     $done = true;
+    $_SESSION['brewski_pref_tables_ready'] = true;
 }
 
 function brewski_preference_definitions_write(mysqli $connection): void

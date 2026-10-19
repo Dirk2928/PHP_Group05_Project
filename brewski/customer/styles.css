@@ -200,6 +200,24 @@ html, body {
     gap: 1.5rem;
 }
 
+.see-more {
+    margin-top: 1.25rem;
+    padding: 0.7rem 1.4rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--espresso);
+    background: transparent;
+    border: 1px solid var(--mocha);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.see-more:hover {
+    background: var(--latte);
+}
+
 .product-card {
     background-color: var(--latte);
     border-radius: 1rem;
