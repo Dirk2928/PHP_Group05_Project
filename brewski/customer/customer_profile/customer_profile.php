@@ -1128,7 +1128,8 @@ require __DIR__ . '/../partials/header.php';
                                     </span>
 
                                     <span class="choice-summary__answer">
-                                        <?= e($choiceAnswers[$questionKey] ?? 'Not answered') ?>
+                                        <?php $answerLabel = $choiceAnswers[$questionKey] ?? 'Not answered'; ?>
+                                        <?= e(is_array($answerLabel) ? implode(', ', $answerLabel) : $answerLabel) ?>
                                     </span>
 
                                 </li>

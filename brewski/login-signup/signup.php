@@ -147,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "INSERT INTO users
                         (first_name, last_name, email, password, role, is_active,
                          is_first_timer, email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 0, ?, ?)"
+                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 1, ?, ?)"
                 );
 
                 if (!$insert) {

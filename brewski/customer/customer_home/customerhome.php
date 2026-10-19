@@ -79,15 +79,19 @@ if ($choiceUserId > 0) {
 $choiceValues = is_array($choicePreferences)
     ? brewski_answers_from_preferences($choicePreferences)
     : [];
+$choiceFirstTimer = (int) $choiceFirstTimer === 1
+    || (empty($choiceAssessmentCompleted)
+        && is_array($choicePreferences)
+        && count($choicePreferences) === 0);
 $choiceAutoOpen = $choiceUserId > 0
-    && (int) $choiceFirstTimer === 1
+    && $choiceFirstTimer
     && empty($choiceAssessmentCompleted)
     && is_array($choicePreferences)
     && count($choicePreferences) === 0
     && empty($_SESSION['choice_skipped']);
 $choiceMode = $choiceAutoOpen ? 'first-timer' : 'recommendation';
 $choiceRanking = $choiceRanking ?? [];
-$renderProductCard = static function (array $product) use ($choiceRanking): void {
+$renderProductCard = static function (array $product, bool $showMatch = false) use ($choiceRanking): void {
     $image = !empty($product['image_mime_type'])
         ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
         : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
@@ -105,7 +109,7 @@ $renderProductCard = static function (array $product) use ($choiceRanking): void
         data-options="<?= e($customizations) ?>"
     >
 
-        <?php if (($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
+        <?php if ($showMatch && ($choiceRanking[(int) $product['product_id']]['status'] ?? '') === 'recommended'): ?>
             <span class="product-card__match">Best match</span>
         <?php endif; ?>
 
@@ -196,7 +200,7 @@ require __DIR__ . '/../partials/header.php';
             <section class="category category--best-match">
                 <h2 class="category__title">Your best match</h2>
                 <div class="product-grid">
-                    <?php $renderProductCard($bestMatchProduct); ?>
+                    <?php $renderProductCard($bestMatchProduct, true); ?>
                 </div>
             </section>
         <?php endif; ?>

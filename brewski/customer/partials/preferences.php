@@ -128,11 +128,17 @@ function brewski_recommendation_questions(): array
     }
 
     $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
+    $caffeineChoices = brewski_custom_option_values('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
     $flavorAnswers = [];
     foreach ($flavorChoices as $name) {
         $flavorAnswers[$name] = ['flavor:' . $name];
     }
     $flavorAnswers['No preference'] = ['flavor:any'];
+    $caffeineAnswers = [];
+    foreach ($caffeineChoices as $name) {
+        $caffeineAnswers[$name] = ['caffeine:' . $name];
+    }
+    $caffeineAnswers['No preference'] = ['caffeine:any'];
 
     return $questions = [
         'mood' => [
@@ -166,12 +172,7 @@ function brewski_recommendation_questions(): array
         ],
         'caffeine' => [
             'question' => 'How much caffeine do you want?',
-            'answers' => [
-                'Regular' => ['caffeine:Regular'],
-                'Decaf' => ['caffeine:Decaf'],
-                'Caffeine-free' => ['caffeine:Caffeine-free'],
-                'No preference' => ['caffeine:any'],
-            ],
+            'answers' => $caffeineAnswers,
         ],
     ];
 }
@@ -195,6 +196,8 @@ function brewski_preference_definitions(): array
         'flavor:Nutty' => 'Nutty flavor',
         'flavor:Fruity' => 'Fruity flavor',
         'flavor:Creamy' => 'Creamy flavor',
+        'flavor:any' => 'Any flavor',
+        'caffeine:any' => 'Any caffeine level',
         'caffeine:Regular' => 'Regular caffeine',
         'caffeine:Decaf' => 'Decaffeinated',
         'caffeine:Caffeine-free' => 'Caffeine-free',
@@ -483,24 +486,11 @@ function brewski_preference_links(array $catalog): array
                 ['coffee', 'espresso', 'latte', 'macchiato', 'americano', 'mocha', 'cappuccino']
             );
         $keys[] = $isCoffee ? 'coffee' : 'non-coffee';
-        if (brewski_matches_any([$haystack], ['chocolate', 'cocoa', 'mocha'])) {
-            $keys[] = 'flavor:Chocolate';
-        }
-        if (brewski_matches_any([$haystack], ['nutty', 'hazelnut', 'almond'])) {
-            $keys[] = 'flavor:Nutty';
-        }
-        if (brewski_matches_any([$haystack], ['fruit', 'berry', 'mango', 'juice'])) {
-            $keys[] = 'flavor:Fruity';
-        }
-        if (brewski_matches_any([$haystack], ['cream', 'creamy', 'vanilla', 'latte'])) {
-            $keys[] = 'flavor:Creamy';
-        }
-        $isCaffeinated = $isCoffee
-            || brewski_matches_any([$text], ['matcha', 'tea']);
-        $keys[] = $isCaffeinated ? 'caffeine:Regular' : 'caffeine:Decaf';
 
         $temperatures = [];
         $sugarLevels = [];
+        $hasFlavorOptions = false;
+        $hasCaffeineOptions = false;
 
         foreach ($product['customizations'] as $customization) {
             $name = mb_strtolower($customization['name']);
@@ -511,6 +501,11 @@ function brewski_preference_links(array $catalog): array
             }
             if ($group === 'flavor' || $group === 'caffeine') {
                 $keys[] = $group . ':' . $customization['name'];
+                if ($group === 'flavor') {
+                    $hasFlavorOptions = true;
+                } else {
+                    $hasCaffeineOptions = true;
+                }
             }
 
             if ($group === 'allergen' && $name !== '') {
@@ -527,6 +522,27 @@ function brewski_preference_links(array $catalog): array
                     $sugarLevels[] = $percent;
                 }
             }
+        }
+
+        if (!$hasFlavorOptions) {
+            if (brewski_matches_any([$haystack], ['chocolate', 'cocoa', 'mocha'])) {
+                $keys[] = 'flavor:Chocolate';
+            }
+            if (brewski_matches_any([$haystack], ['nutty', 'hazelnut', 'almond'])) {
+                $keys[] = 'flavor:Nutty';
+            }
+            if (brewski_matches_any([$haystack], ['fruit', 'berry', 'mango', 'juice'])) {
+                $keys[] = 'flavor:Fruity';
+            }
+            if (brewski_matches_any([$haystack], ['cream', 'creamy', 'vanilla', 'latte'])) {
+                $keys[] = 'flavor:Creamy';
+            }
+        }
+
+        if (!$hasCaffeineOptions) {
+            $isCaffeinated = $isCoffee
+                || brewski_matches_any([$text], ['matcha', 'tea']);
+            $keys[] = $isCaffeinated ? 'caffeine:Regular' : 'caffeine:Decaf';
         }
 
         if (brewski_matches_any($temperatures, ['iced', 'cold'])) {
@@ -554,20 +570,34 @@ function brewski_preference_links(array $catalog): array
 }
 
 const BREWSKI_RANK_WEIGHTS = [
-    'temperature' => 25,
-    'caffeine' => 25,
-    'sweetness' => 20,
+    'temperature' => 20,
+    'caffeine' => 20,
+    'sweetness' => 15,
     'flavor' => 20,
+    'bean' => 5,
+    'milk' => 10,
     'base' => 10,
 ];
 
 function brewski_rank_products(array $userPreferences, array $productTags): array
 {
+    $beanChoices = brewski_custom_option_values('bean', ['Arabica', 'Robusta', 'Blend']);
+    $milkChoices = brewski_custom_option_values('milk', ['Dairy milk', 'Oat milk', 'Almond milk', 'Soy milk', 'No milk']);
+    $flavorChoices = brewski_custom_option_values('flavor', ['Chocolate', 'Nutty', 'Fruity', 'Creamy']);
+    $caffeineChoices = brewski_custom_option_values('caffeine', ['Regular', 'Decaf', 'Caffeine-free']);
+    $groupTags = static function (string $prefix, array $names): array {
+        return array_map(
+            static fn (string $name): string => $prefix . ':' . $name,
+            $names
+        );
+    };
     $groups = [
         'temperature' => ['temp:hot', 'temp:iced'],
-        'caffeine' => ['caffeine:Regular', 'caffeine:Decaf', 'caffeine:Caffeine-free'],
+        'caffeine' => $groupTags('caffeine', $caffeineChoices),
         'sweetness' => ['sugar:sweet', 'sugar:light', 'sugar:none'],
-        'flavor' => ['flavor:Chocolate', 'flavor:Nutty', 'flavor:Fruity', 'flavor:Creamy'],
+        'flavor' => $groupTags('flavor', $flavorChoices),
+        'bean' => $groupTags('bean', $beanChoices),
+        'milk' => $groupTags('milk', $milkChoices),
         'base' => ['coffee', 'non-coffee'],
     ];
     $ranked = [];
@@ -614,10 +644,8 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
             if ($productMatches) {
                 $earned += BREWSKI_RANK_WEIGHTS[$group];
                 foreach ($productMatches as $match) {
-                    $matched[] = ucfirst(str_replace(['temp:', 'sugar:', 'flavor:', 'caffeine:'], '', $match));
+                    $matched[] = ucfirst(str_replace(['temp:', 'sugar:', 'flavor:', 'caffeine:', 'bean:', 'milk:'], '', $match));
                 }
-            } elseif (!array_intersect($options, $tags)) {
-                $earned += (int) round(BREWSKI_RANK_WEIGHTS[$group] / 2);
             }
         }
         $percent = $excludedFor ? 0 : ($possible > 0 ? (int) round(100 * $earned / $possible) : 0);
@@ -983,9 +1011,6 @@ function brewski_answers_to_preferences(array $answers, ?array $questions = null
                     continue;
                 }
                 foreach ($question['answers'][$label] as $preference) {
-                    if (str_ends_with($preference, ':any')) {
-                        continue;
-                    }
                     $preferences[$preference] = true;
                 }
             }
@@ -994,9 +1019,6 @@ function brewski_answers_to_preferences(array $answers, ?array $questions = null
                 continue;
             }
             foreach ($question['answers'][$value] as $preference) {
-                if (str_ends_with($preference, ':any')) {
-                    continue;
-                }
                 $preferences[$preference] = true;
             }
         }
@@ -1022,6 +1044,9 @@ function brewski_answers_from_preferences(array $stored): array
         $reached = array_values(array_intersect($stored, array_keys($universe)));
 
         if (!$reached) {
+            if ($isMulti && isset($question['answers']['None'])) {
+                $selected[$questionKey] = ['None'];
+            }
             continue;
         }
 
@@ -1033,9 +1058,7 @@ function brewski_answers_from_preferences(array $stored): array
                 if (empty($preferences)) {
                     continue;
                 }
-                $candidate = $preferences;
-                sort($candidate);
-                if ($candidate === $reached) {
+                if (!array_diff($preferences, $reached)) {
                     $matchedLabels[] = $label;
                 }
             }
