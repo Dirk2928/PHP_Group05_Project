@@ -433,6 +433,7 @@ body {
     position: relative;
     width: 100%;
     max-width: 26rem;
+    height: 35rem;
     max-height: calc(100vh - 2.5rem);
     max-height: calc(100svh - 2.5rem);
     overflow-y: auto;
