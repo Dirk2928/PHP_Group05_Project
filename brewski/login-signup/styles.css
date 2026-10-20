@@ -507,6 +507,15 @@ body {
     background: #fff;
 }
 
+.auth--content-sized .auth__content,
+.auth--compact .auth__content {
+    height: auto;
+}
+
+.auth--compact .auth__content {
+    max-width: 24rem;
+}
+
 .auth__legal {
     margin-top: 1rem;
     padding-top: 0.75rem;

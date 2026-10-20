@@ -139,7 +139,7 @@ $escape = static function (string $value): string {
 
 <body>
 
-<main class="auth auth--portal auth--centered">
+<main class="auth auth--portal auth--centered auth--content-sized">
 
     <section class="auth__panel">
 
