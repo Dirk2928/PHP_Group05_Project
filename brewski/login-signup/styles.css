@@ -17,7 +17,7 @@ html, body { height: 100%; margin: 0; }
 body {
     font-family: var(--font-body);
     color: var(--espresso);
-    background: var(--cream);
+    background: radial-gradient(ellipse at 85% 12%, #fffdf8 0, var(--cream) 62%);
 }
 
 
@@ -37,6 +37,18 @@ body {
     text-align: left;
     padding: 3rem 4rem;
     position: relative;
+    overflow: hidden;
+}
+
+.side::after {
+    content: "☕";
+    position: absolute;
+    right: 5%;
+    bottom: 4%;
+    color: rgb(241 226 202 / 7%);
+    font-size: clamp(9rem, 22vw, 19rem);
+    line-height: 1;
+    pointer-events: none;
 }
 
 .side__word {
@@ -57,6 +69,7 @@ body {
 }
 
 .side__word span { color: var(--mocha); }
+.side__word, .side__line { position: relative; z-index: 1; }
 
 .auth__panel {
     flex: 1;
@@ -69,8 +82,9 @@ body {
 
 .auth__content {
     width: 100%;
-    max-width: 19.5rem;
+    max-width: 21rem;
     text-align: center;
+    padding: 1rem 0;
 }
 
 
@@ -116,8 +130,23 @@ body {
     display: block;
     margin-bottom: 0.3rem;
     font-size: 0.85rem;
-    opacity: 20.8;
+    color: #624832;
+    font-weight: 600;
 }
+
+.field label::before {
+    display: inline-block;
+    width: 1.2rem;
+    color: var(--mocha);
+    font-size: 0.9rem;
+    text-align: left;
+}
+
+.field label[for="first_name"]::before,
+.field label[for="last_name"]::before { content: "♙"; }
+.field label[for="email"]::before { content: "✉"; }
+.field label[for="password"]::before,
+.field label[for="confirm_password"]::before { content: "▣"; }
 
 .field input {
     width: 100%;
@@ -127,9 +156,22 @@ body {
     font-size: 0.95rem;
     color: var(--espresso);
     background: #fff;
-    border: 1px solid transparent;
+    border: 1px solid #e7dac8;
     border-radius: 0.5rem;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.field input:hover { border-color: #cbb69a; }
+
+.field input:focus {
+    border-color: var(--mocha);
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(113 73 42 / 12%);
+}
+
+.field input[aria-invalid="true"] {
+    border-color: #b42318;
+    box-shadow: 0 0 0 3px rgb(180 35 24 / 9%);
 }
 
 .otp-inputs {
@@ -237,6 +279,10 @@ body {
 
 .btn:hover { background: var(--mocha); }
 
+.btn:active { transform: translateY(1px); }
+
+.btn:disabled { opacity: 0.7; cursor: wait; }
+
 .btn:focus-visible {
     outline: 3px solid var(--mocha);
     outline-offset: 2px;
@@ -250,14 +296,25 @@ body {
 
 .auth__switch a {
     color: var(--espresso);
-    text-decoration: underline;
+    font-weight: 700;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
 }
 
 .auth__switch a:hover { color: var(--mocha); }
 
 
 @media (max-width: 800px) {
-    .auth__image { display: none; }
+    .side { display: none; }
+    .auth__content { max-width: 23rem; }
+    .auth__panel { min-height: 100vh; }
+}
+
+@media (max-width: 520px) {
+    .auth__panel { padding: 1.25rem; }
+    .brand__logo { width: 4.75rem; }
+    .brand__name { margin-bottom: 1.3rem; }
+    .auth__title { margin-bottom: 1.35rem; }
 }
 
 .password-hint {
