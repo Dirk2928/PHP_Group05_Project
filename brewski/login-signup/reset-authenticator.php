@@ -8,6 +8,7 @@ $portalKey = brewski_auth_active_portal();
 $loginUrl = brewski_portal_login_url($portalKey);
 $setupUrl = brewski_auth_step_url($portalKey, 'setup-authenticator.php');
 $resetUrl = brewski_auth_step_url($portalKey, 'reset-authenticator.php');
+$otpScript = $portalKey === 'portal' ? '../login-signup/otp.js' : 'otp.js';
 if (empty($_SESSION['user_id'])) {
     header('Location: ' . $loginUrl);
     exit;
@@ -241,6 +242,12 @@ $escape = static function (string $value): string {
         .notice--success { color: #14532d; background: #f0fdf4; border: 1px solid #bbf7d0; }
         label { display: block; margin: 1.2rem 0 0.4rem; font-weight: 700; }
         input { width: 100%; box-sizing: border-box; padding: 0.8rem; border: 1px solid #b8a58e; border-radius: 0.6rem; font: inherit; }
+        .otp-inputs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: min(100%, 19.5rem); margin-top: 0.55rem; }
+        .otp-inputs .otp-input { min-width: 0; height: 3rem; padding: 0; border-radius: 0; font-size: 1.25rem; font-weight: 700; text-align: center; }
+        .otp-inputs .otp-input + .otp-input { margin-left: -1px; }
+        .otp-inputs .otp-input:first-child { border-radius: 0.6rem 0 0 0.6rem; }
+        .otp-inputs .otp-input:last-child { border-radius: 0 0.6rem 0.6rem 0; }
+        .otp-inputs .otp-input:focus { position: relative; z-index: 1; outline: 2px solid rgb(113 73 42 / 20%); border-color: #71492a; }
         .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
         button, .button { display: inline-block; padding: 0.75rem 1rem; border: 1px solid #1a0f0a; border-radius: 0.6rem; background: #1a0f0a; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
         button.secondary, .button.secondary { background: #fff; color: #1a0f0a; }
@@ -272,7 +279,7 @@ $escape = static function (string $value): string {
             <a class="button secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
         </form>
     <?php elseif ($canReset): ?>
-        <form method="post" action="<?= $escape($resetUrl) ?>">
+        <form id="otp-form" method="post" action="<?= $escape($resetUrl) ?>">
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
 
             <label for="current-password">Current password</label>
@@ -285,16 +292,22 @@ $escape = static function (string $value): string {
             >
 
             <label for="verification-code">Email verification code</label>
-            <input
-                type="text"
-                id="verification-code"
-                name="otp"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxlength="6"
-                required
-            >
+            <div class="otp-inputs" role="group" aria-label="Six-digit email verification code">
+                <?php for ($digit = 0; $digit < 6; $digit++): ?>
+                    <input
+                        class="otp-input"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        pattern="[0-9]"
+                        maxlength="1"
+                        aria-label="Digit <?= $digit + 1 ?>"
+                        <?= $digit === 0 ? 'id="verification-code" autofocus' : '' ?>
+                        required
+                    >
+                <?php endfor; ?>
+            </div>
+            <input id="otp" name="otp" type="hidden" value="">
 
             <div class="actions">
                 <button type="submit">Verify and reset</button>
@@ -306,5 +319,6 @@ $escape = static function (string $value): string {
         <a class="button secondary" href="<?= $escape($setupUrl) ?>">Return to Brewski</a>
     <?php endif; ?>
 </main>
+<script src="<?= $escape($otpScript) ?>"></script>
 </body>
 </html>
