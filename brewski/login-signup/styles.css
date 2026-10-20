@@ -413,34 +413,13 @@ body {
     justify-content: center;
     padding: 1.25rem;
     overflow: hidden;
-    background: var(--espresso);
-}
-
-.auth--centered::before,
-.auth--centered::after {
-    content: "";
-    position: absolute;
-    z-index: 0;
-    border: 1px solid rgb(241 226 202 / 12%);
-    pointer-events: none;
-}
-
-.auth--centered::before {
-    width: 18rem;
-    height: 18rem;
-    top: -8rem;
-    left: -6rem;
-    border-radius: 42% 58% 64% 36% / 47% 42% 58% 53%;
-    background: rgb(241 226 202 / 3%);
-    transform: rotate(18deg);
-}
-
-.auth--centered::after {
-    width: 13rem;
-    height: 13rem;
-    right: -4rem;
-    bottom: -5rem;
-    border-radius: 50%;
+    background-color: var(--espresso);
+    background-image:
+        linear-gradient(rgb(30 17 10 / 24%), rgb(30 17 10 / 36%)),
+        url("../images/login-coffee-background.jpg");
+    background-position: center, center 54%;
+    background-size: cover, cover;
+    background-repeat: no-repeat;
 }
 
 .auth--centered .side { display: none; }
@@ -462,10 +441,11 @@ body {
     max-height: calc(100svh - 2.5rem);
     overflow-y: auto;
     padding: 1.8rem 2rem;
-    background: #faf6ee;
-    border: 1px solid rgb(255 255 255 / 72%);
+    background: rgb(250 246 238 / 56%);
+    border: 2px solid rgb(255 255 255 / 74%);
     border-radius: 1.1rem;
-    box-shadow: 0 1.5rem 3.5rem rgb(0 0 0 / 32%), 0 0.25rem 0.8rem rgb(0 0 0 / 16%), inset 0 1px 0 rgb(255 255 255 / 85%);
+    box-shadow: 0 1.5rem 3.5rem rgb(0 0 0 / 34%), 0 0.25rem 0.8rem rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 80%);
+    backdrop-filter: blur(14px) saturate(120%);
     scrollbar-color: #b99a76 transparent;
     scrollbar-width: thin;
 }
@@ -510,12 +490,12 @@ body {
 }
 
 .auth--centered .field input {
-    background: #fffdf9;
-    border-color: #dfcfb9;
+    background: rgb(255 253 249 / 42%);
+    border-color: rgb(30 17 10 / 38%);
 }
 
 .auth--centered .field input:hover {
-    background: #fff;
+    background: rgb(255 253 249 / 62%);
 }
 
 .auth__legal {
