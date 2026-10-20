@@ -8,11 +8,6 @@ $portalKey = brewski_auth_active_portal();
 $loginUrl = brewski_portal_login_url($portalKey);
 $setupUrl = brewski_auth_step_url($portalKey, 'setup-authenticator.php');
 $resetUrl = brewski_auth_step_url($portalKey, 'reset-authenticator.php');
-$authStylesheet = $portalKey === 'portal'
-    ? '../login-signup/styles.css'
-    : 'styles.css';
-$portalStylesheet = $portalKey === 'portal' ? '../portal/portal.css' : '';
-
 if (empty($_SESSION['user_id'])) {
     header('Location: ' . $loginUrl);
     exit;
@@ -88,7 +83,6 @@ $sendOtp = static function () use (
         return;
     }
 
-    $_SESSION['totp_reset_otp_last_sent_at'] = time();
     $otp = (string) random_int(100000, 999999);
 
     if (!email_service_send('send-authenticator-reset-otp', [
@@ -101,6 +95,7 @@ $sendOtp = static function () use (
         return;
     }
 
+    $_SESSION['totp_reset_otp_last_sent_at'] = time();
     $_SESSION['totp_reset_otp'] = [
         'user_id' => $userId,
         'code_hash' => password_hash($otp, PASSWORD_DEFAULT),
@@ -200,14 +195,13 @@ if ($requestMethod === 'POST') {
             }
         }
     }
-} elseif ($canReset && !$otpIsActive) {
+} elseif ($canReset && !$otpIsActive && isset($_SESSION['totp_reset_otp'])) {
     $lastSentAt = (int) ($_SESSION['totp_reset_otp_last_sent_at'] ?? 0);
-    if ($lastSentAt === 0) {
-        $sendOtp();
-    } elseif ((time() - $lastSentAt) >= $otpResendDelay) {
-        $error = 'Your verification code has expired. Request a new code to continue.';
+    unset($_SESSION['totp_reset_otp']);
+    if ($lastSentAt > 0 && (time() - $lastSentAt) < $otpResendDelay) {
+        $error = 'Please wait before requesting another code.';
     } else {
-        $error = 'A verification code could not be sent yet. Please try again shortly.';
+        $error = 'Your verification code has expired. Request a new code to continue.';
     }
 }
 
@@ -227,86 +221,90 @@ $escape = static function (string $value): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset authenticator | Brewski</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $escape($authStylesheet) ?>">
-    <?php if ($portalStylesheet !== ''): ?>
-        <link rel="stylesheet" href="<?= $escape($portalStylesheet) ?>">
-    <?php endif; ?>
+    <style>
+        :root {
+            color-scheme: light;
+            --font-brand: "Fredoka", "Century Gothic", sans-serif;
+            --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
+            font-family: var(--font-body);
+            color: #1a0f0a;
+            background: #faf5ee;
+        }
+        h1, h2 { font-family: var(--font-brand); font-weight: 600; }
+        body { margin: 0; padding: 2rem 1rem; }
+        main { width: min(100%, 38rem); margin: 2rem auto; padding: 2rem; box-sizing: border-box; background: #fff; border: 1px solid #e8dac4; border-radius: 1rem; }
+        h1 { margin-top: 0; }
+        p { line-height: 1.5; }
+        .notice { padding: 0.9rem 1rem; border-radius: 0.65rem; line-height: 1.5; }
+        .notice--error { color: #7f1d1d; background: #fef2f2; border: 1px solid #fecaca; }
+        .notice--success { color: #14532d; background: #f0fdf4; border: 1px solid #bbf7d0; }
+        label { display: block; margin: 1.2rem 0 0.4rem; font-weight: 700; }
+        input { width: 100%; box-sizing: border-box; padding: 0.8rem; border: 1px solid #b8a58e; border-radius: 0.6rem; font: inherit; }
+        .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+        button, .button { display: inline-block; padding: 0.75rem 1rem; border: 1px solid #1a0f0a; border-radius: 0.6rem; background: #1a0f0a; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+        button.secondary, .button.secondary { background: #fff; color: #1a0f0a; }
+        @media (max-width: 480px) { main { padding: 1.25rem; } }
+    </style>
 </head>
 <body>
-<main class="auth auth--centered auth--compact<?= $portalKey === 'portal' ? ' auth--portal' : '' ?>">
-    <section class="auth__panel">
-        <div class="auth__content">
-            <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski Logo">
-            <p class="brand__name">brew<span>ski</span></p>
+<main>
+    <h1>Reset authenticator</h1>
+    <p>
+        Enter your current password and the verification code sent to your email.
+        The code expires in 10 minutes. Resetting will invalidate your existing recovery codes
+        and require authenticator setup again.
+    </p>
 
-            <h1 class="auth__title">Reset authenticator</h1>
-            <p class="auth__intro">
-                Enter your current password and the verification code sent to your email.
-                The code expires in 10 minutes. Resetting will invalidate your existing recovery codes and require
-                authenticator setup again.
-            </p>
+    <?php if ($error !== ''): ?>
+        <p class="notice notice--error" role="alert"><?= $escape($error) ?></p>
+    <?php endif; ?>
 
-            <?php if ($error !== ''): ?>
-                <p class="field__error" role="alert"><?= $escape($error) ?></p>
-            <?php endif; ?>
+    <?php if ($success !== ''): ?>
+        <p class="notice notice--success" role="status"><?= $escape($success) ?></p>
+    <?php endif; ?>
 
-            <?php if ($success !== ''): ?>
-                <p class="auth__intro" role="status"><?= $escape($success) ?></p>
-            <?php endif; ?>
+    <?php if ($canReset && !$otpIsActive): ?>
+        <form method="post" action="<?= $escape($resetUrl) ?>" class="actions">
+            <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+            <input type="hidden" name="action" value="send_code">
+            <button type="submit">Send verification code</button>
+            <a class="button secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
+        </form>
+    <?php elseif ($canReset): ?>
+        <form method="post" action="<?= $escape($resetUrl) ?>">
+            <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
 
-            <?php if ($canReset && !$otpIsActive): ?>
-                <form class="form" method="post" action="<?= $escape($resetUrl) ?>">
-                    <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
-                    <input type="hidden" name="action" value="send_code">
-                    <button type="submit" class="btn">Send verification code</button>
-                </form>
-            <?php elseif ($canReset): ?>
-                <form class="form" method="post" action="<?= $escape($resetUrl) ?>">
-                    <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+            <label for="current-password">Current password</label>
+            <input
+                type="password"
+                id="current-password"
+                name="password"
+                autocomplete="current-password"
+                required
+            >
 
-                    <div class="field">
-                        <label for="current-password">Current password</label>
-                        <input
-                            type="password"
-                            id="current-password"
-                            name="password"
-                            autocomplete="current-password"
-                            required
-                        >
-                    </div>
+            <label for="verification-code">Email verification code</label>
+            <input
+                type="text"
+                id="verification-code"
+                name="otp"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                required
+            >
 
-                    <div class="field">
-                        <label for="verification-code">Email verification code</label>
-                        <input
-                            type="text"
-                            id="verification-code"
-                            name="otp"
-                            inputmode="numeric"
-                            autocomplete="one-time-code"
-                            pattern="[0-9]{6}"
-                            maxlength="6"
-                            required
-                        >
-                    </div>
-
-                    <button type="submit" class="btn">Verify and reset</button>
-                </form>
-
-                <form class="form" method="post" action="<?= $escape($resetUrl) ?>">
-                    <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
-                    <input type="hidden" name="action" value="send_code">
-                    <button type="submit" class="auth__switch-button">Send a new code</button>
-                </form>
-            <?php endif; ?>
-
-            <p class="auth__switch">
-                <a href="<?= $escape($setupUrl) ?>">Cancel</a>
-            </p>
-        </div>
-    </section>
+            <div class="actions">
+                <button type="submit">Verify and reset</button>
+                <button class="secondary" type="submit" name="action" value="send_code" formnovalidate>Send a new code</button>
+                <a class="button secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
+            </div>
+        </form>
+    <?php else: ?>
+        <a class="button secondary" href="<?= $escape($setupUrl) ?>">Return to Brewski</a>
+    <?php endif; ?>
 </main>
 </body>
 </html>
