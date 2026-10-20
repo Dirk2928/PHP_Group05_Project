@@ -66,7 +66,7 @@ if ($currentChoice === 'accept') {
 
         body {
             margin: 0;
-            background: var(--cream);
+            background: linear-gradient(180deg, var(--latte) 0, var(--cream) 26rem);
             color: var(--espresso);
             font-family: var(--font-body);
             line-height: 1.65;
@@ -85,9 +85,11 @@ if ($currentChoice === 'accept') {
             position: sticky;
             top: 0;
             z-index: 50;
+            box-shadow: 0 4px 18px rgba(30, 17, 10, 0.14);
         }
 
         .legal-topbar__brand {
+            margin: 0;
             font-family: var(--font-brand);
             font-size: 1.4rem;
             font-weight: 600;
@@ -99,48 +101,73 @@ if ($currentChoice === 'accept') {
             color: var(--latte);
             font-size: 0.85rem;
             text-decoration: none;
-            border: 1px solid rgba(241, 226, 202, 0.5);
-            border-radius: 999px;
-            padding: 0.45rem 1.1rem;
+            border: 1px solid rgba(241, 226, 202, 0.4);
+            border-radius: 0.65rem;
+            padding: 0.5rem 0.9rem;
+            transition: background-color 0.18s ease, border-color 0.18s ease;
         }
 
-        .legal-topbar__link:hover { background: rgba(241, 226, 202, 0.14); }
+        .legal-topbar__link:hover {
+            background: rgba(241, 226, 202, 0.14);
+            border-color: rgba(241, 226, 202, 0.7);
+        }
 
         .legal {
-            max-width: 46rem;
-            margin: 0 auto;
-            padding: 3rem 1.5rem 5rem;
+            max-width: 54rem;
+            margin: 2.5rem auto 4rem;
+            padding: clamp(1.5rem, 5vw, 3.5rem);
+            background: #fff;
+            border: 1px solid rgba(113, 73, 42, 0.12);
+            border-radius: 1.25rem;
+            box-shadow: 0 18px 50px rgba(30, 17, 10, 0.1);
         }
 
         .legal__title {
             font-family: var(--font-brand);
-            font-size: clamp(1.8rem, 4vw, 2.4rem);
-            margin: 0 0 0.4rem;
+            font-size: clamp(2rem, 4vw, 2.65rem);
+            line-height: 1.1;
+            margin: 0 0 0.6rem;
+            letter-spacing: -0.025em;
+        }
+
+        .legal__title::after {
+            content: "";
+            display: block;
+            width: 3rem;
+            height: 0.2rem;
+            margin-top: 0.9rem;
+            border-radius: 99px;
+            background: var(--mocha);
         }
 
         .legal__meta {
-            margin: 0 0 2rem;
-            font-size: 0.85rem;
+            margin: 0 0 1.75rem;
+            font-size: 0.8rem;
             color: var(--mocha);
+            letter-spacing: 0.015em;
         }
 
         .legal__status {
             margin: 0 0 2rem;
-            padding: 0.9rem 1.1rem;
-            border-left: 3px solid var(--mocha);
+            padding: 1rem 1.2rem;
+            border-left: 4px solid var(--mocha);
+            border-radius: 0 0.75rem 0.75rem 0;
             background: var(--latte);
             font-size: 0.9rem;
         }
 
         .legal h2 {
             font-family: var(--font-brand);
-            font-size: 1.15rem;
-            margin: 2.4rem 0 0.6rem;
+            font-size: 1.2rem;
+            margin: 2.5rem 0 0.7rem;
+            padding-top: 1.1rem;
+            border-top: 1px solid rgba(113, 73, 42, 0.14);
         }
 
         .legal h3 {
             font-size: 0.95rem;
             margin: 1.4rem 0 0.3rem;
+            color: var(--mocha);
         }
 
         .legal p { margin: 0.6rem 0; }
@@ -159,7 +186,12 @@ if ($currentChoice === 'accept') {
             font-size: 0.85em;
         }
 
-        .legal a { color: var(--mocha); }
+        .legal a {
+            color: var(--mocha);
+            text-underline-offset: 3px;
+        }
+
+        .legal a:hover { color: var(--espresso); }
 
         .legal__note {
             margin-top: 2.5rem;
@@ -167,6 +199,14 @@ if ($currentChoice === 'accept') {
             border-top: 1px solid rgba(113, 73, 42, 0.25);
             font-size: 0.85rem;
             color: var(--mocha);
+        }
+
+        @media (max-width: 640px) {
+            .legal-topbar { height: 4rem; padding: 0 1rem; }
+            .legal-topbar__brand { font-size: 1.2rem; }
+            .legal-topbar__link { font-size: 0.78rem; padding: 0.45rem 0.7rem; }
+            .legal { margin: 1rem 0.75rem 2rem; padding: 1.35rem 1.15rem; border-radius: 0.95rem; }
+            .legal__status { padding: 0.85rem 0.95rem; }
         }
     </style>
 
