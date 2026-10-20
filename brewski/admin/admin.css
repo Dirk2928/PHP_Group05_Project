@@ -296,7 +296,7 @@ body {
 
 /* Shared admin shell */
 :root {
-    --sidebar-width: 264px;
+    --sidebar-width: 280px;
     --shell-shadow: 0 8px 24px rgba(30, 17, 10, 0.08);
 }
 
@@ -415,6 +415,9 @@ body {
 
 .nav-parent {
     margin-top: 3px;
+    display: grid;
+    grid-template-columns: 17px minmax(0, 1fr) 12px;
+    justify-content: initial;
 }
 
 .nav-parent::after {
@@ -462,7 +465,7 @@ body {
 
 @media (max-width: 768px) {
     :root {
-        --sidebar-width: 216px;
+        --sidebar-width: 228px;
     }
 
     .topbar {
@@ -494,7 +497,7 @@ body {
 
 @media (max-width: 480px) {
     :root {
-        --sidebar-width: 188px;
+        --sidebar-width: 208px;
     }
 
     .topbar {

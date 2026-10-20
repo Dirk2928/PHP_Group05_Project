@@ -507,39 +507,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderOrdersPagination(orders, pageCount);
     }
 
-    function renderStock(items, count) {
-        var container = document.getElementById('lowStockList');
-        container.replaceChildren();
-        setText('lowStockCount', count + ' items');
-        if (items.length === 0) {
-            showEmpty(container, 'No products are at or below the low-stock threshold.');
-            return;
-        }
-
-        items.forEach(function (item) {
-            var row = document.createElement('div');
-            row.className = 'stock-row';
-
-            var name = document.createElement('span');
-            name.className = 'stock-name';
-            name.textContent = item.name;
-
-            var quantity = document.createElement('span');
-            quantity.className = 'stock-quantity';
-            quantity.textContent = item.quantity + ' left';
-
-            var track = document.createElement('div');
-            track.className = 'stock-track';
-            var fill = document.createElement('div');
-            fill.className = 'stock-fill';
-            fill.style.width = Math.min(100, (item.quantity / 10) * 100) + '%';
-            track.appendChild(fill);
-
-            row.append(name, quantity, track);
-            container.appendChild(row);
-        });
-    }
-
     function render(data) {
         renderOverview(data.overview);
         renderTrend(data);
@@ -548,7 +515,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderBestSellers(data.bestSellers);
         renderAlerts(data.alerts);
         renderOrders(data.orders);
-        renderStock(data.lowStock, data.lowStockCount);
     }
 
     function clearDashboard() {
@@ -558,9 +524,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         setText('trendTotal', 'Unavailable');
         setText('peakHours', 'Unavailable');
-        setText('lowStockCount', 'Unavailable');
         setText('alertCount', '0');
-        ['categoryBreakdown', 'bestSellers', 'alertsList', 'lowStockList'].forEach(function (id) {
+        ['categoryBreakdown', 'bestSellers', 'alertsList'].forEach(function (id) {
             showEmpty(document.getElementById(id), 'Dashboard data is unavailable.');
         });
         document.getElementById('ordersTable').replaceChildren();
@@ -639,9 +604,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         dashboardData.bestSellers.forEach(function (item) {
             rows.push(['Best seller', item.name, item.units + ' units', item.revenue.toFixed(2), '']);
-        });
-        dashboardData.lowStock.forEach(function (item) {
-            rows.push(['Low stock', item.name, item.quantity + ' remaining', '', '']);
         });
         dashboardData.alerts.forEach(function (alert) {
             rows.push(['Alert', alert.title, alert.type, '', alert.time]);

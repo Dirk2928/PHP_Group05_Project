@@ -364,11 +364,7 @@ try {
     }
     unset($order);
 
-    $lowStockCount = (int) dashboard_fetch_rows(
-        $connection,
-        'SELECT COUNT(*) AS item_count FROM products WHERE stock <= 10'
-    )[0]['item_count'];
-    $lowStock = dashboard_fetch_rows(
+    $lowStockItems = dashboard_fetch_rows(
         $connection,
         'SELECT product_name AS name, stock AS quantity
          FROM products
@@ -376,13 +372,13 @@ try {
          ORDER BY stock ASC, product_name ASC
          LIMIT 10'
     );
-    foreach ($lowStock as &$item) {
+    foreach ($lowStockItems as &$item) {
         $item['quantity'] = (int) $item['quantity'];
     }
     unset($item);
 
     $alerts = [];
-    foreach ($lowStock as $item) {
+    foreach ($lowStockItems as $item) {
         $alerts[] = [
             'type' => $item['quantity'] === 0 ? 'critical' : 'warning',
             'title' => $item['name'] . ' — '
@@ -424,8 +420,6 @@ try {
         'heatmap' => $heatmap,
         'peakHours' => $peakHours,
         'orders' => $orders,
-        'lowStock' => $lowStock,
-        'lowStockCount' => $lowStockCount,
         'alerts' => $alerts,
         'range' => ['from' => $startDate, 'to' => $endDate],
         'comparison' => $comparison,

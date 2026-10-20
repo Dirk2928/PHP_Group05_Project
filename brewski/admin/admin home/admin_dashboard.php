@@ -224,13 +224,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                         <div class="pagination-nav" id="ordersPagination"></div>
                     </div>
                 </section>
-                <section class="dashboard-section stock-section" aria-labelledby="stockHeading">
-                    <div class="section-heading">
-                        <div><h2 id="stockHeading">Low stock</h2><p>Products with 10 or fewer in stock</p></div>
-                        <span id="lowStockCount" class="section-tag section-tag-warning">— items</span>
-                    </div>
-                    <div id="lowStockList" class="stock-list"></div>
-                </section>
             </div>
         </section>
 

@@ -511,8 +511,7 @@
 
 .category-breakdown,
 .seller-list,
-.alerts-list,
-.stock-list {
+.alerts-list {
     display: grid;
     gap: 10px;
 }
@@ -759,48 +758,6 @@
 .order-status[data-status="READY"] { background: #eaf3e9; color: #47734d; }
 .order-status[data-status="PENDING"] { background: #f4e9eb; color: #96535c; }
 
-.section-tag-warning {
-    background: #fff0e9;
-    color: #a35038;
-}
-
-.stock-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 4px 10px;
-}
-
-.stock-name {
-    overflow: hidden;
-    color: var(--text-body);
-    font-size: 10px;
-    font-weight: 600;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.stock-quantity {
-    color: #a35038;
-    font-size: 9px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.stock-track {
-    grid-column: 1 / -1;
-    height: 5px;
-    overflow: hidden;
-    border-radius: 5px;
-    background: #f3eee8;
-}
-
-.stock-fill {
-    height: 100%;
-    border-radius: inherit;
-    background: #d17b5b;
-}
-
 .visually-hidden {
     position: absolute;
     width: 1px;
@@ -1016,7 +973,6 @@
 .seller-name,
 .seller-revenue,
 .alert-title,
-.stock-name,
 .dashboard-table td {
     font-size: var(--type-supporting);
 }
@@ -1036,8 +992,7 @@
 .alert-dismiss,
 .live-indicator,
 .dashboard-table th,
-.order-status,
-.stock-quantity {
+.order-status {
     font-size: 0.75rem;
 }
 
