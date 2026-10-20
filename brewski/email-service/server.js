@@ -400,6 +400,64 @@ If you did not try to place an order, you can ignore this email.`,
     }
 });
 
+app.post("/send-authenticator-reset-otp", async (req, res) => {
+    try {
+        const { email, firstName, otp } = req.body;
+
+        if (
+            !hasValidEmail(email) ||
+            !hasText(firstName, 100) ||
+            typeof otp !== "string" ||
+            !/^\d{6}$/.test(otp)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing or invalid authenticator reset information."
+            });
+        }
+
+        const safeName = escapeHtml(firstName);
+
+        const info = await deliver({
+            from: `"Brewski" <${fromAddress}>`,
+            to: email,
+            subject: "Your Brewski authenticator reset code",
+            text: `Hello ${firstName},
+
+Your Brewski authenticator reset code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
+
+If you did not request an authenticator reset, you can ignore this email.`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
+                    <h2>Reset your Brewski authenticator</h2>
+                    <p>Hello ${safeName}, enter this code to reset your authenticator:</p>
+                    <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;padding:14px 20px;display:inline-block">
+                        ${otp}
+                    </p>
+                    <p>This code expires in 10 minutes. You have up to 5 attempts.</p>
+                    <p style="font-size:12px;color:#71492a">
+                        If you did not request an authenticator reset, you can ignore this email.
+                    </p>
+                </div>
+            `
+        });
+
+        console.log("Authenticator reset email sent:", info.messageId);
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error(
+            "Authenticator reset email error:",
+            error instanceof Error ? error.message : error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to send authenticator reset code."
+        });
+    }
+});
+
 app.post("/send-activation", async (req, res) => {
     try {
         const { email, firstName, activationUrl } = req.body;

@@ -321,6 +321,28 @@ body {
 
 .auth__switch a:hover { color: var(--mocha); }
 
+.auth__switch-button {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: var(--espresso);
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.auth__switch-button:hover { color: var(--mocha); }
+
+.auth__switch-button:focus-visible {
+    outline: 2px solid var(--mocha);
+    outline-offset: 2px;
+}
+
 
 @media (max-width: 800px) {
     .side { display: none; }
