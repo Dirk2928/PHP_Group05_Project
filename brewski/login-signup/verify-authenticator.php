@@ -137,7 +137,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="../login-signup/styles.css">
 </head>
 <body>
 <main class="auth auth--centered">
