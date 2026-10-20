@@ -56,6 +56,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var productCards = document.querySelectorAll('.product-card');
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (productCards.length && 'IntersectionObserver' in window && !reduceMotion) {
+        document.documentElement.classList.add('has-scroll-reveal');
+
+        var revealObserver = new IntersectionObserver(function (entries, observer) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+        productCards.forEach(function (card) {
+            revealObserver.observe(card);
+        });
+    }
+
     var noResults = document.getElementById('no-results');
     var menuPageInfo = document.getElementById('menuPageInfo');
     var menuPagination = document.getElementById('menuPagination');
