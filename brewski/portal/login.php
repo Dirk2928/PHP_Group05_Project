@@ -139,19 +139,7 @@ $escape = static function (string $value): string {
 
 <body>
 
-<main class="auth auth--portal">
-
-    <aside class="side side--portal">
-
-        <p class="side__word">
-            brew<span>ski</span>
-        </p>
-
-        <p class="side__line">
-            Staff &amp; administrator console.
-        </p>
-
-    </aside>
+<main class="auth auth--portal auth--centered">
 
     <section class="auth__panel">
 
@@ -201,6 +189,8 @@ $escape = static function (string $value): string {
                 <h1 class="auth__title">
                     Staff &amp; admin sign-in
                 </h1>
+
+                <p class="auth__intro">Authorized staff and administrators only.</p>
 
                 <?php if ($error !== ''): ?>
 
@@ -262,6 +252,7 @@ $escape = static function (string $value): string {
                     <div class="field">
 
                         <label for="email">
+                            <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
                             Work email
                         </label>
 
@@ -285,6 +276,7 @@ $escape = static function (string $value): string {
                     <div class="field">
 
                         <label for="password">
+                            <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                             Password
                         </label>
 
@@ -335,17 +327,9 @@ $escape = static function (string $value): string {
 
             <?php endif; ?>
 
-            <p class="auth__switch">
-
-                How we handle your data:
-
-                <a
-                    href="<?php echo $escape(BREWSKI_BASE_URL . '/cookie-consent/privacy.php'); ?>"
-                >
-                    Privacy Policy
-                </a>
-
-            </p>
+            <div class="auth__legal">
+                <a href="<?php echo $escape(BREWSKI_BASE_URL . '/cookie-consent/privacy.php'); ?>">Privacy &amp; cookie policy</a>
+            </div>
 
         </div>
 

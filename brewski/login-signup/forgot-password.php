@@ -104,18 +104,14 @@ $csrfToken = (string) $_SESSION['csrf_token'];
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="auth">
-    <aside class="side">
-        <p class="side__word">brew<span>ski</span></p>
-        <p class="side__line">Reset access to your favorite coffee moments.</p>
-    </aside>
-
+<main class="auth auth--centered">
     <section class="auth__panel">
         <div class="auth__content">
             <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski Logo">
             <p class="brand__name">brew<span>ski</span></p>
 
             <h1 class="auth__title">Forgot password</h1>
+            <p class="auth__intro">Enter your email and we’ll send you a secure reset link.</p>
 
             <?php if ($error !== ''): ?>
                 <p id="reset-error" class="field__error" style="text-align: center; margin-bottom: 1rem;">
@@ -124,7 +120,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
             <?php endif; ?>
 
             <?php if ($success !== ''): ?>
-                <p id="reset-success" style="text-align: center; margin-bottom: 1rem; color: green;">
+                <p id="reset-success" style="text-align: center; margin-bottom: 1rem; color: var(--mocha);">
                     <?php echo htmlspecialchars($success, ENT_QUOTES, 'UTF-8'); ?>
                 </p>
             <?php endif; ?>
@@ -134,7 +130,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 
                     <div class="field">
-                        <label for="email">Email</label>
+                        <label for="email"><svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>Email</label>
                         <input type="email" id="email" name="email" autocomplete="email" required>
                     </div>
 
