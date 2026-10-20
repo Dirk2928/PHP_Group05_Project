@@ -317,6 +317,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="first_name">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                         First name
                     </label>
 
@@ -335,6 +336,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="last_name">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                         Last name
                     </label>
 
@@ -353,6 +355,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="email">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
                         Email
                     </label>
 
@@ -370,6 +373,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="password">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         Password
                     </label>
 
@@ -426,6 +430,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="confirm_password">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         Confirm password
                     </label>
 
