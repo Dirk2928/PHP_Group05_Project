@@ -41,13 +41,28 @@ body {
 }
 
 .side::after {
-    content: "☕";
+    content: "";
     position: absolute;
-    right: 5%;
-    bottom: 4%;
-    color: rgb(241 226 202 / 7%);
-    font-size: clamp(9rem, 22vw, 19rem);
-    line-height: 1;
+    width: clamp(10rem, 20vw, 17rem);
+    aspect-ratio: 1;
+    right: 6%;
+    bottom: -24%;
+    border: 1px solid rgb(241 226 202 / 9%);
+    border-radius: 42% 58% 62% 38% / 44% 42% 58% 56%;
+    background: rgb(241 226 202 / 2%);
+    transform: rotate(-18deg);
+    pointer-events: none;
+}
+
+.side::before {
+    content: "";
+    position: absolute;
+    width: clamp(5rem, 9vw, 8rem);
+    aspect-ratio: 1;
+    right: 28%;
+    bottom: 12%;
+    border: 1px solid rgb(241 226 202 / 7%);
+    border-radius: 50%;
     pointer-events: none;
 }
 
