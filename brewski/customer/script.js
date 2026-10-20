@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var menuPageInfo = document.getElementById('menuPageInfo');
     var menuPagination = document.getElementById('menuPagination');
     var filterState = { category: 'all' };
-    var menuPageSize = 6;
+    var menuPageSize = 5;
     var menuPage = 1;
 
     function matchingCards() {
