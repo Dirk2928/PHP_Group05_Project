@@ -140,7 +140,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
     <link rel="stylesheet" href="../login-signup/styles.css">
 </head>
 <body>
-<main class="auth auth--centered">
+<main class="auth auth--centered auth--compact">
     <section class="auth__panel">
       <div class="auth__content">
         <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski Logo">
