@@ -306,7 +306,7 @@ body {
 
 .auth__switch {
     margin: 1.4rem 0 0;
-    font-size: 0.72rem;
+    font-size: 10px;
 }
 
 .auth__switch a {
