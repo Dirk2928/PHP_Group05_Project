@@ -136,56 +136,37 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            color-scheme: light;
-            --font-brand: "Fredoka", "Century Gothic", sans-serif;
-            --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
-            font-family: var(--font-body);
-            color: #1a0f0a;
-            background: #faf5ee;
-        }
-        h1, h2 { font-family: var(--font-brand); font-weight: 600; }
-        body { margin: 0; padding: 2rem 1rem; }
-        main { width: min(100%, 26rem); margin: 3rem auto; padding: 2rem; box-sizing: border-box; background: #fff; border: 1px solid #e8dac4; border-radius: 1rem; }
-        h1 { margin-top: 0; }
-        p { line-height: 1.5; }
-        .error { padding: 0.9rem 1rem; border: 1px solid #fecaca; border-radius: 0.65rem; color: #7f1d1d; background: #fef2f2; }
-        label { display: block; margin: 1.5rem 0 0.4rem; font-weight: 700; }
-        input { width: 100%; box-sizing: border-box; padding: 0.8rem; border: 1px solid #b8a58e; border-radius: 0.6rem; font: inherit; font-size: 1.2rem; letter-spacing: 0.25rem; text-align: center; }
-        button, a { display: inline-block; margin-top: 1rem; padding: 0.75rem 1rem; border: 1px solid #1a0f0a; border-radius: 0.6rem; background: #1a0f0a; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
-        a { margin-left: 0.5rem; background: #fff; color: #1a0f0a; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main>
-    <h1>Verify your sign-in</h1>
-    <p>Enter the current six-digit code from your authenticator app, or use one of your recovery codes. This sign-in attempt expires in 10 minutes.</p>
+<main class="auth auth--centered">
+    <section class="auth__panel">
+      <div class="auth__content">
+        <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski Logo">
+        <p class="brand__name">brew<span>ski</span></p>
+        <h1 class="auth__title">Verify your sign-in</h1>
+        <p class="auth__intro">Enter a current authenticator code or one of your saved recovery codes. This sign-in expires in 10 minutes.</p>
 
     <?php if ($error !== ''): ?>
-        <p class="error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+        <p class="field__error" role="alert" style="text-align:center;margin-bottom:1rem;"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
     <?php endif; ?>
 
-    <form method="post" action="<?= htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8') ?>">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
-        <label for="totp-code">Authenticator or recovery code</label>
-        <input
-            type="text"
-            id="totp-code"
-            name="code"
-            inputmode="numeric"
-            autocomplete="one-time-code"
-            maxlength="30"
-            required
-            autofocus
-            aria-describedby="totp-code-help"
-        >
-        <small id="totp-code-help">Authenticator codes have 6 digits. Recovery codes have four groups of 6 letters or numbers.</small>
-        <button type="submit">Verify and sign in</button>
-        <a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>">Cancel</a>
-    </form>
+        <form class="form" method="post" action="<?= htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+            <div class="field">
+                <label for="totp-code">
+                    <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                    Authenticator or recovery code
+                </label>
+                <input class="auth__code-input" type="text" id="totp-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="30" required autofocus aria-describedby="totp-code-help">
+                <small class="auth__code-help" id="totp-code-help">Authenticator codes have 6 digits. Recovery codes use four groups of 6 letters or numbers.</small>
+            </div>
+            <button class="btn" type="submit">Verify and sign in</button>
+        </form>
+        <p class="auth__switch"><a href="<?= htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8') ?>">Cancel and return to sign in</a></p>
+      </div>
+    </section>
 </main>
 </body>
 </html>

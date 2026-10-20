@@ -160,11 +160,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<main class="auth">
-    <aside class="side">
-        <p class="side__word">brew<span>ski</span></p>
-        <p class="side__line">Your favorite cup, ready when you are.</p>
-    </aside>
+<main class="auth auth--centered">
     <section class="auth__panel">
         <div class="auth__content">
             <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski Logo">

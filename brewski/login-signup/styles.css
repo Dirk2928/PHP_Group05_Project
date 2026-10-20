@@ -507,6 +507,23 @@ body {
     background: #fff;
 }
 
+.auth--centered .auth__code-input {
+    height: 3rem;
+    font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-align: center;
+}
+
+.auth__code-help {
+    display: block;
+    margin-top: 0.45rem;
+    color: #755b43;
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
 .auth--content-sized .auth__content,
 .auth--compact .auth__content {
     height: auto;
