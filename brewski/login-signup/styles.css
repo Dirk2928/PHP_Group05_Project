@@ -432,15 +432,15 @@ body {
 .auth--centered .auth__content {
     position: relative;
     width: 100%;
-    max-width: 25rem;
+    max-width: 26rem;
     max-height: calc(100vh - 2.5rem);
     max-height: calc(100svh - 2.5rem);
     overflow-y: auto;
     padding: 1.8rem 2rem;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+    background: var(--cream);
+    border: 1px solid rgb(255 255 255 / 78%);
+    border-radius: 1.15rem;
+    box-shadow: 0 1.5rem 3.5rem rgb(0 0 0 / 34%), 0 0.25rem 0.8rem rgb(0 0 0 / 18%), inset 0 1px 0 rgb(255 255 255 / 88%);
     scrollbar-color: #b99a76 transparent;
     scrollbar-width: thin;
 }
@@ -453,49 +453,48 @@ body {
 .auth--centered .brand__name {
     margin-bottom: 1rem;
     font-size: 1.25rem;
-    color: var(--cream);
+    color: var(--espresso);
 }
 
-.auth--centered .brand__name span { color: var(--latte); }
+.auth--centered .brand__name span { color: var(--mocha); }
 
 .auth--centered .auth__title {
     margin-bottom: 0.35rem;
     font-size: 1.38rem;
     letter-spacing: -0.025em;
-    color: var(--cream);
-    text-shadow: 0 1px 2px rgb(0 0 0 / 28%);
+    color: var(--espresso);
 }
 
 .auth__intro {
     margin: 0 0 1.1rem;
-    color: var(--latte);
+    color: #755b43;
     font-size: 0.82rem;
     line-height: 1.45;
 }
 
 .auth--centered .field { margin-bottom: 0.8rem; }
 .auth--centered .field input { height: 2.25rem; font-size: 0.9rem; }
-.auth--centered .field label { font-size: 0.8rem; color: var(--latte); }
-.auth--centered .field__icon { stroke: var(--latte); }
-.auth--centered .field__error { color: var(--latte); }
+.auth--centered .field label { font-size: 0.8rem; color: #624832; }
+.auth--centered .field__icon { stroke: var(--mocha); }
+.auth--centered .field__error { color: #b91c1c; }
 .auth--centered .btn { height: 2.3rem; }
 .auth--centered .auth__switch {
     margin-top: 0.8rem;
     font-size: 0.66rem;
     line-height: 1.45;
-    color: var(--cream);
+    color: var(--espresso);
 }
 
 .auth--centered .auth__switch a {
     display: inline;
     margin: 0;
     font-size: 0.66rem;
-    color: var(--latte);
+    color: var(--espresso);
 }
 
 .auth--centered .auth__switch a:hover,
 .auth--centered .auth__legal a:hover {
-    color: var(--cream);
+    color: var(--mocha);
 }
 
 .auth--centered .field input {
@@ -510,11 +509,11 @@ body {
 .auth__legal {
     margin-top: 1rem;
     padding-top: 0.75rem;
-    border-top: 1px solid rgb(241 226 202 / 24%);
+    border-top: 1px solid rgb(113 73 42 / 18%);
     font-size: 0.68rem;
 }
 
-.auth__legal a { color: var(--latte); text-underline-offset: 2px; }
+.auth__legal a { color: #755b43; text-underline-offset: 2px; }
 
 @media (max-width: 520px) {
     .auth--centered { padding: 0.75rem; }
