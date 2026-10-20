@@ -129,19 +129,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
 <body>
 
-<main class="auth">
-
-    <aside class="side">
-
-        <p class="side__word">
-            brew<span>ski</span>
-        </p>
-
-        <p class="side__line">
-            Your favorite cup, ready when you are.
-        </p>
-
-    </aside>
+<main class="auth auth--centered">
 
     <section class="auth__panel">
 
@@ -160,6 +148,8 @@ $csrfToken = (string) $_SESSION['csrf_token'];
             <h1 class="auth__title">
                 Welcome back
             </h1>
+
+            <p class="auth__intro">Sign in to your Brewski account to continue.</p>
 
             <?php if ($success !== ''): ?>
 
@@ -338,17 +328,9 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 </a>
             </p>
 
-            <p class="auth__switch">
-
-                How we handle your data:
-
-                <a
-                    href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>"
-                >
-                    Privacy Policy
-                </a>
-
-            </p>
+            <div class="auth__legal">
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>">Privacy &amp; cookie policy</a>
+            </div>
 
         </div>
 

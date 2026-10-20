@@ -402,3 +402,118 @@ body {
     line-height: 1.4;
     color: #b91c1c;
 }
+
+/* Compact centered login and signup cards */
+.auth--centered {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    min-height: 100svh;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    overflow: hidden;
+    background: var(--espresso);
+}
+
+.auth--centered::before,
+.auth--centered::after {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    border: 1px solid rgb(241 226 202 / 12%);
+    pointer-events: none;
+}
+
+.auth--centered::before {
+    width: 18rem;
+    height: 18rem;
+    top: -8rem;
+    left: -6rem;
+    border-radius: 42% 58% 64% 36% / 47% 42% 58% 53%;
+    background: rgb(241 226 202 / 3%);
+    transform: rotate(18deg);
+}
+
+.auth--centered::after {
+    width: 13rem;
+    height: 13rem;
+    right: -4rem;
+    bottom: -5rem;
+    border-radius: 50%;
+}
+
+.auth--centered .side { display: none; }
+
+.auth--centered .auth__panel {
+    position: relative;
+    z-index: 1;
+    flex: 0 1 auto;
+    width: 100%;
+    padding: 0;
+    background: transparent;
+}
+
+.auth--centered .auth__content {
+    position: relative;
+    width: 100%;
+    max-width: 26rem;
+    max-height: calc(100vh - 2.5rem);
+    max-height: calc(100svh - 2.5rem);
+    overflow-y: auto;
+    padding: 1.65rem 2rem;
+    background: #f1e2ca;
+    border: 1px solid rgb(255 255 255 / 34%);
+    border-radius: 1.1rem;
+    box-shadow: 0 1.2rem 3rem rgb(0 0 0 / 28%);
+    scrollbar-color: #b99a76 transparent;
+    scrollbar-width: thin;
+}
+
+.auth--centered .brand__logo {
+    width: 3.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.auth--centered .brand__name {
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.auth--centered .auth__title {
+    margin-bottom: 0.35rem;
+    font-size: 1.55rem;
+    letter-spacing: -0.025em;
+}
+
+.auth__intro {
+    margin: 0 0 1.1rem;
+    color: #755b43;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.auth--centered .field { margin-bottom: 0.8rem; }
+.auth--centered .field input { height: 2.25rem; font-size: 0.9rem; }
+.auth--centered .field label { font-size: 0.8rem; }
+.auth--centered .btn { height: 2.3rem; }
+.auth--centered .auth__switch { margin-top: 0.85rem; font-size: 0.74rem; }
+
+.auth__legal {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgb(113 73 42 / 18%);
+    font-size: 0.68rem;
+}
+
+.auth__legal a { color: #755b43; text-underline-offset: 2px; }
+.auth__legal a:hover { color: var(--espresso); }
+
+@media (max-width: 520px) {
+    .auth--centered { padding: 0.75rem; }
+    .auth--centered .auth__content {
+        max-height: calc(100svh - 1.5rem);
+        padding: 1.35rem 1.15rem;
+        border-radius: 0.95rem;
+    }
+}
