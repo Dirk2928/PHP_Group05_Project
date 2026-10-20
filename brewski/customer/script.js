@@ -61,11 +61,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (productCards.length && 'IntersectionObserver' in window && !reduceMotion) {
         document.documentElement.classList.add('has-scroll-reveal');
 
-        var revealObserver = new IntersectionObserver(function (entries, observer) {
+        var revealObserver = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('is-revealed');
-                    observer.unobserve(entry.target);
+                } else {
+                    entry.target.classList.remove('is-revealed');
                 }
             });
         }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
@@ -552,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!menuPagination) {
         document.querySelectorAll('.category .product-grid').forEach(function (grid) {
             var cards = Array.prototype.slice.call(grid.querySelectorAll('.product-card'));
-            var shown = 6;
+            var shown = 5;
 
             if (cards.length <= shown) {
                 return;
@@ -572,7 +573,7 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             more.addEventListener('click', function () {
-                shown += 6;
+                shown += 5;
                 render();
             });
 
