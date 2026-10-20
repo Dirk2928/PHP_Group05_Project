@@ -113,13 +113,9 @@ if ($currentChoice === 'accept') {
         }
 
         .legal {
-            max-width: 54rem;
-            margin: 2.5rem auto 4rem;
-            padding: clamp(1.5rem, 5vw, 3.5rem);
-            background: #fff;
-            border: 1px solid rgba(113, 73, 42, 0.12);
-            border-radius: 1.25rem;
-            box-shadow: 0 18px 50px rgba(30, 17, 10, 0.1);
+            max-width: 68rem;
+            margin: 2rem auto 3rem;
+            padding: 1rem 1.5rem;
         }
 
         .legal__title {
@@ -205,7 +201,7 @@ if ($currentChoice === 'accept') {
             .legal-topbar { height: 4rem; padding: 0 1rem; }
             .legal-topbar__brand { font-size: 1.2rem; }
             .legal-topbar__link { font-size: 0.78rem; padding: 0.45rem 0.7rem; }
-            .legal { margin: 1rem 0.75rem 2rem; padding: 1.35rem 1.15rem; border-radius: 0.95rem; }
+            .legal { margin: 1rem 0.25rem 2rem; padding: 1rem 0.85rem; }
             .legal__status { padding: 0.85rem 0.95rem; }
         }
     </style>
