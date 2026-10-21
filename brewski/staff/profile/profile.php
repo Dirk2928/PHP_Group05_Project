@@ -687,3 +687,4 @@ $escape = static function (string $value): string {
     }
 })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

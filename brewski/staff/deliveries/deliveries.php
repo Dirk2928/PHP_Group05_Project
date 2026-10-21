@@ -211,5 +211,6 @@ async function setStatus(deliveryId, status) {
 }
 </script>
 
+<?= brewski_session_timeout_markup() ?>
 </body>
 </html>

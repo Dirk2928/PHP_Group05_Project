@@ -232,5 +232,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
 
     <script src="admin.js?v=<?= filemtime(__DIR__ . '/admin.js') ?>" defer></script>
     <script src="dashboard.js?v=<?= filemtime(__DIR__ . '/dashboard.js') ?>" defer></script>
+    <?= brewski_session_timeout_markup() ?>
 </body>
 </html>

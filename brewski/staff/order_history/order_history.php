@@ -219,4 +219,4 @@ unset($transaction);
 	});
 	render();
 })();
-</script>
+</script><?php echo brewski_session_timeout_markup(); ?>

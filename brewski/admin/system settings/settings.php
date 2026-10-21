@@ -481,3 +481,4 @@ unset($record);
     });
 })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

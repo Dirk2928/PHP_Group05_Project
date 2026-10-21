@@ -571,3 +571,4 @@ function admin_transaction_badge(string $status): string
         render();
     })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

@@ -285,6 +285,7 @@ $csrf_token = $_SESSION['csrf_token'];
     ></script>
 
     <script src="orders.js?v=<?= filemtime(__DIR__ . '/orders.js') ?>" defer></script>
+    <?= brewski_session_timeout_markup() ?>
 
 </body>
 
