@@ -20,9 +20,34 @@ document.addEventListener('DOMContentLoaded', function () {
     var timeoutSeconds = sessionTimeout ? Number(sessionTimeout.content) : 0;
 
     if (timeoutSeconds > 0 && logoutUrl && logoutUrl.content) {
-        window.setTimeout(function () {
+        var timeoutId;
+        var lastActivityAt = Date.now();
+
+        function redirectAfterTimeout() {
             window.location.assign(logoutUrl.content);
-        }, timeoutSeconds * 1000);
+        }
+
+        function resetSessionTimeout() {
+            lastActivityAt = Date.now();
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(redirectAfterTimeout, timeoutSeconds * 1000);
+        }
+
+        ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) {
+            document.addEventListener(eventName, resetSessionTimeout, { passive: true });
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                if (Date.now() - lastActivityAt >= timeoutSeconds * 1000) {
+                    redirectAfterTimeout();
+                } else {
+                    resetSessionTimeout();
+                }
+            }
+        });
+
+        resetSessionTimeout();
     }
 
     if (window.lucide) {
