@@ -107,7 +107,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $_SESSION['created_at'] = time();
                     $_SESSION['last_activity'] = time();
                     unset($_SESSION['totp_login_pending']);
-                    brewski_record_activity($pdo, 'authentication', 'Signed in', 'Signed in successfully.');
+                    
+                    // FORCE LOG DIRECTLY TO DATABASE
+                    try {
+                        $logStmt = $pdo->prepare("INSERT INTO system_activity_logs (actor_user_id, actor_name, actor_role, category, action, description) VALUES (?, ?, ?, ?, ?, ?)");
+                        $logStmt->execute([
+                            $userId,
+                            $user['first_name'] . ' ' . $user['last_name'],
+                            strtoupper(trim((string) $user['role'])),
+                            'authentication',
+                            'Signed in',
+                            'Signed in successfully.'
+                        ]);
+                    } catch (Throwable $e) {
+                        error_log('Manual log fail: ' . $e->getMessage());
+                    }
+
                     session_write_close();
 
                     header('Location: ' . brewski_home_for_role((string) $user['role']));
