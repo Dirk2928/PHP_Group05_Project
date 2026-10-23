@@ -182,16 +182,6 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- SYNC PRICE TO OUR CUSTOM FOOTER ---
-    // The menu updates #modal-total-price, so we copy it to our footer every 50ms
-    setInterval(function() {
-        var nativePrice = document.getElementById('modal-total-price');
-        var customPrice = document.getElementById('custom-modal-total-price');
-        if (nativePrice && customPrice && nativePrice.textContent !== customPrice.textContent) {
-            customPrice.textContent = nativePrice.textContent;
-        }
-    }, 50);
-
     // --- EDIT INTERCEPTOR ---
     window.openEditModal = function(key) {
         var items = load();
@@ -208,9 +198,12 @@
 
             document.getElementById('modal-edit-key').value = key;
 
-            // Swap our custom buttons
-            document.getElementById('custom-btn-add').style.display = 'none';
-            document.getElementById('custom-btn-save').style.display = 'flex';
+            // Change the button text
+            var confirmBtn = document.getElementById('btn-confirm-add');
+            if (confirmBtn) {
+                confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
+                if (window.lucide) window.lucide.createIcons();
+            }
 
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
@@ -219,12 +212,17 @@
         }
     };
 
-    // 1. Handle Save Changes (Custom Button)
-    document.getElementById('custom-btn-save')?.addEventListener('click', function(e) {
+    // 1. Handle Save Changes
+    document.addEventListener('click', function(e) {
+        var confirmBtn = e.target.closest('#btn-confirm-add');
+        if (!confirmBtn) return;
+
+        var editKeyInput = document.getElementById('modal-edit-key');
+        if (!editKeyInput || editKeyInput.value === '') return; 
+
         e.preventDefault();
         e.stopPropagation();
 
-        var editKeyInput = document.getElementById('modal-edit-key');
         var oldKey = editKeyInput.value;
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
@@ -233,7 +231,7 @@
         if (!productCard) return;
 
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
-        var priceText = document.getElementById('custom-modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
+        var priceText = document.getElementById('modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
         var totalPrice = parseFloat(priceText) || 0;
         var unitPrice = totalPrice / qty;
 
@@ -272,33 +270,24 @@
         modal.classList.remove('active');
         editKeyInput.value = '';
         
-        // Reset our custom buttons
-        document.getElementById('custom-btn-save').style.display = 'none';
-        document.getElementById('custom-btn-add').style.display = 'flex';
+        // Reset button text
+        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
         document.getElementById('modal-product-name').textContent = 'Customize your drink';
 
-    });
+    }, true);
 
-    // 2. Handle Add to Cart (Custom Button)
-    document.getElementById('custom-btn-add')?.addEventListener('click', function(e) {
-        // If we are NOT editing, we let the menu handle it by clicking the hidden native button
-        var editKeyInput = document.getElementById('modal-edit-key');
-        if (editKeyInput && editKeyInput.value !== '') return; // If editing, do nothing here
-
-        e.preventDefault();
-        var nativeBtn = document.getElementById('btn-confirm-add');
-        if (nativeBtn) nativeBtn.click();
-    });
-
-    // 3. Reset on close
+    // 2. Reset on close
     document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput && editKeyInput.value !== '') {
                 setTimeout(function() {
                     editKeyInput.value = '';
-                    document.getElementById('custom-btn-save').style.display = 'none';
-                    document.getElementById('custom-btn-add').style.display = 'flex';
+                    var confirmBtn = document.getElementById('btn-confirm-add');
+                    if (confirmBtn) {
+                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
                     document.getElementById('modal-product-name').textContent = 'Customize your drink';
                 }, 50);
             }

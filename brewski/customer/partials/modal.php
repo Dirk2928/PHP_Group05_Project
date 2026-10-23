@@ -74,36 +74,33 @@
 
         </div>
 
-        <!-- Menu's native footer (HIDDEN completely) -->
-        <div class="modal__footer" id="native-modal-footer" style="display: none !important;">
-            <div class="modal__total">
-                <span class="modal__total-label">Total</span>
-                <span id="modal-total-price">₱0</span>
-            </div>
-            <button type="button" class="btn-confirm" id="btn-confirm-add">
-                <span>Add to Cart</span>
-                <i data-lucide="arrow-right"></i>
-            </button>
-        </div>
+        <div class="modal__footer">
 
-        <!-- Our custom footer (ALWAYS SHOWN) -->
-        <div class="modal__footer" id="custom-modal-footer">
             <div class="modal__total">
-                <span class="modal__total-label">Total</span>
-                <span id="custom-modal-total-price">₱0</span>
+
+                <span class="modal__total-label">
+                    Total
+                </span>
+
+                <span id="modal-total-price">
+                    ₱0
+                </span>
+
             </div>
-            
-            <!-- Add to Cart Button (Shown by default) -->
-            <button type="button" class="btn-confirm" id="custom-btn-add">
+
+            <!-- The ONE and ONLY button -->
+            <button
+                type="button"
+                class="btn-confirm"
+                id="btn-confirm-add"
+            >
+
                 <span>Add to Cart</span>
+
                 <i data-lucide="arrow-right"></i>
+
             </button>
 
-            <!-- Save Changes Button (Hidden by default) -->
-            <button type="button" class="btn-confirm" id="custom-btn-save" style="display: none;">
-                <span>Save Changes</span>
-                <i data-lucide="check"></i>
-            </button>
         </div>
 
     </div>
