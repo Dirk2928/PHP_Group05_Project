@@ -13,14 +13,8 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
-    // Modal elements
-    var modal = document.getElementById('cart-edit-modal');
-    var editForm = document.getElementById('cart-edit-form');
-    var editKeyInput = document.getElementById('cart-edit-key');
-    var editCustomInput = document.getElementById('cart-edit-custom');
-    var editQtyInput = document.getElementById('cart-edit-qty');
-    var editNameDisplay = document.getElementById('cart-edit-name');
-    var cancelBtn = document.getElementById('cart-edit-cancel');
+    // We will store the item key we are editing here
+    var itemToEditKey = null;
 
     function load() {
         try {
@@ -91,6 +85,14 @@
 
     function add(item) {
         var items = load();
+        
+        // If we are editing, remove the old item first
+        if (itemToEditKey !== null) {
+            items = items.filter(function(entry) {
+                return entry.key !== itemToEditKey;
+            });
+        }
+
         var key = makeKey(item.name, item.size || '', item.customization || '');
         var quantity = Math.max(1, Math.min(MAX_QTY, parseInt(item.quantity, 10) || 1));
         var existing = null;
@@ -119,6 +121,8 @@
                 quantity: quantity
             });
         }
+        
+        itemToEditKey = null; // Reset edit mode
         save(items);
     }
 
@@ -187,7 +191,7 @@
                 ? 'Per drink: ' + item.customization
                 : 'No extras per drink';
 
-            // FIX: Group Price and Buttons in a flex container to prevent overlap
+            // The edit button now calls the custom function
             html +=
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
                     '<div class="cart-drink">' +
@@ -203,7 +207,7 @@
                     '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; grid-column: span 2; width: 100%;">' +
                         '<div class="cart-price" style="margin: 0;">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
                         '<div style="display: flex; gap: 8px; align-items: center;">' +
-                            '<button type="button" class="cart-remove__btn" data-action="edit" aria-label="Edit item" style="background:none; border:none; cursor:pointer; color:#5c4033;"><i data-lucide="pencil"></i></button>' +
+                            '<button type="button" class="cart-edit__btn" data-action="edit" aria-label="Edit item" style="background:none; border:none; cursor:pointer; color:#5c4033;"><i data-lucide="pencil"></i></button>' +
                             '<button type="button" class="cart-remove__btn" data-action="remove" aria-label="Remove item" style="background:none; border:none; cursor:pointer; color:#5c4033;"><i data-lucide="trash-2"></i></button>' +
                         '</div>' +
                     '</div>' +
@@ -226,74 +230,56 @@
     }
 
     function setOpen(open) {
-        if (!menu || !button) {
-            return;
-        }
-
+        if (!menu || !button) return;
         menu.classList.toggle('open', open);
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- Modal Logic ---
+    // --- HIJACK THE MENU MODAL FOR EDITING ---
     function openEditModal(key) {
-        if (!modal) return;
-        
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
         if (!item) return;
 
-        editKeyInput.value = item.key;
-        editNameDisplay.textContent = item.name + (item.size ? ' (' + item.size + ')' : '');
+        itemToEditKey = key;
+        setOpen(false); // Close cart dropdown
+
+        // 1. Open the customization modal
+        var modal = document.getElementById('customization-modal');
+        if (modal) modal.classList.add('active');
+
+        // 2. Fill in the product details
+        var nameEl = document.getElementById('modal-product-name');
+        if (nameEl) nameEl.textContent = 'Customize: ' + item.name;
+
+        // 3. Change the "Add to Cart" button text to "Save Changes"
+        var confirmBtn = document.getElementById('btn-confirm-add');
+        if (confirmBtn) {
+            confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
+            if (window.lucide) window.lucide.createIcons();
+        }
         
-        var rawCustom = item.customization || '';
-        editCustomInput.value = rawCustom;
-
-        editQtyInput.value = item.quantity;
-
-        modal.hidden = false;
-        editQtyInput.focus();
+        // Note: The actual pre-filling of Size, Sugar, Temp, and total price 
+        // is handled by customermenu.php's script.js when it detects the modal is open.
+        // We are relying on the fact that the modal reads from the product card on the page.
+        // To pre-fill, we need to find the product card and trigger a click, but 
+        // without overriding the existing customization logic, we can just let them re-choose.
     }
 
-    function closeEditModal() {
-        if (modal) modal.hidden = true;
-    }
-
-    if (modal && editForm && cancelBtn) {
-        cancelBtn.addEventListener('click', closeEditModal);
-        
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeEditModal();
-        });
-
-        editForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            var key = editKeyInput.value;
-            var newQty = Math.max(1, Math.min(MAX_QTY, parseInt(editQtyInput.value, 10) || 1));
-            var newCustom = editCustomInput.value.trim();
-
-            var items = load();
-            var updated = false;
-
-            items = items.map(function(entry) {
-                if (entry.key === key) {
-                    updated = true;
-                    var newKey = makeKey(entry.name, entry.size, newCustom);
-                    
-                    return Object.assign({}, entry, {
-                        key: newKey,
-                        quantity: newQty,
-                        customization: newCustom
-                    });
+    // Reset button when modal closes
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
+            // Only reset if we were editing
+            if (itemToEditKey !== null) {
+                itemToEditKey = null;
+                var confirmBtn = document.getElementById('btn-confirm-add');
+                if (confirmBtn) {
+                    confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+                    if (window.lucide) window.lucide.createIcons();
                 }
-                return entry;
-            });
-
-            if (updated) {
-                save(items);
             }
-            closeEditModal();
-        });
-    }
+        }
+    });
 
     if (menu && button && body) {
 
@@ -311,7 +297,6 @@
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 setOpen(false);
-                closeEditModal();
             }
         });
 
