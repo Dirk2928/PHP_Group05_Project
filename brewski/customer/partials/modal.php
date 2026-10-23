@@ -88,7 +88,7 @@
 
             </div>
 
-            <!-- Menu's native button (Hidden when editing) -->
+            <!-- Menu's native button (Forces hide when editing) -->
             <button
                 type="button"
                 class="btn-confirm"
@@ -101,12 +101,11 @@
 
             </button>
 
-            <!-- Our custom edit button (Hidden when adding) -->
+            <!-- Our custom edit button (Forces show when editing) -->
             <button
                 type="button"
                 class="btn-confirm"
                 id="btn-save-edit"
-                style="display: none;"
             >
 
                 <span>Save Changes</span>

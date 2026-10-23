@@ -198,9 +198,9 @@
 
             document.getElementById('modal-edit-key').value = key;
 
-            // Swap buttons
-            document.getElementById('btn-confirm-add').style.display = 'none';
-            document.getElementById('btn-save-edit').style.display = 'flex';
+            // Force the buttons to swap using !important so the menu can't override it
+            document.getElementById('btn-confirm-add').style.setProperty('display', 'none', 'important');
+            document.getElementById('btn-save-edit').style.setProperty('display', 'flex', 'important');
 
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
@@ -266,8 +266,8 @@
         editKeyInput.value = '';
         
         // Reset buttons
-        saveBtn.style.display = 'none';
-        document.getElementById('btn-confirm-add').style.display = 'flex';
+        document.getElementById('btn-save-edit').style.setProperty('display', 'none', 'important');
+        document.getElementById('btn-confirm-add').style.setProperty('display', 'flex', 'important');
         document.getElementById('modal-product-name').textContent = 'Customize your drink';
 
     }, true);
@@ -279,8 +279,8 @@
             if (editKeyInput && editKeyInput.value !== '') {
                 setTimeout(function() {
                     editKeyInput.value = '';
-                    document.getElementById('btn-save-edit').style.display = 'none';
-                    document.getElementById('btn-confirm-add').style.display = 'flex';
+                    document.getElementById('btn-save-edit').style.setProperty('display', 'none', 'important');
+                    document.getElementById('btn-confirm-add').style.setProperty('display', 'flex', 'important');
                     document.getElementById('modal-product-name').textContent = 'Customize your drink';
                 }, 50);
             }
