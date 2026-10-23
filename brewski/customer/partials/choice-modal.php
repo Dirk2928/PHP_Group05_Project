@@ -4,8 +4,8 @@ $choiceQuestions = brewski_choice_questions();
 $recommendationQuestions = brewski_recommendation_questions();
 $choiceValues = $choiceValues ?? [];
 $choiceAutoOpen = $choiceAutoOpen ?? false;
-$choiceMode = $choiceMode ?? 'recommendation';
-$initialMode = $choiceMode === 'first-timer' ? 'first-timer' : 'recommendation';
+$choiceMode = $choiceMode ?? 'first-timer';
+$initialMode = $choiceMode === 'recommendation' ? 'recommendation' : 'first-timer';
 $renderQuestions = static function (array $questionSet, array $values): void {
     foreach ($questionSet as $questionKey => $question) {
         $isMulti = !empty($question['multi']);
@@ -58,13 +58,13 @@ $renderQuestions = static function (array $questionSet, array $values): void {
             <div>
 
                 <h2 id="choice-modal-title">
-                    <?= $initialMode === 'first-timer' ? 'Set up your drink preferences' : 'Get a drink recommendation' ?>
+                    <?= $initialMode === 'recommendation' ? 'Set up your drink preferences' : 'Get a drink recommendation' ?>
                 </h2>
 
                 <p class="modal__subtitle" id="choice-modal-subtitle">
-                    <?= $initialMode === 'first-timer'
-                        ? 'Answer a few questions to sort your menu by compatibility.'
-                        : 'Answer a few quick questions and we will pick one drink for you.' ?>
+                    <?= $initialMode === 'recommendation'
+                        ? 'Answer a few questions to find and rank your best matches.'
+                        : 'Answer a few questions and we will pick one exact match for you.' ?>
                 </p>
 
             </div>
@@ -85,11 +85,11 @@ $renderQuestions = static function (array $questionSet, array $values): void {
         <div class="modal__body">
 
             <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($choiceQuestions, $choiceValues); ?>
+                <?php $renderQuestions($recommendationQuestions, []); ?>
             </div>
 
             <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($recommendationQuestions, []); ?>
+                <?php $renderQuestions($choiceQuestions, $choiceValues); ?>
             </div>
 
             <p
@@ -103,7 +103,7 @@ $renderQuestions = static function (array $questionSet, array $values): void {
 
         <div class="modal__footer">
 
-            <button type="button" class="modal__close" id="choice-skip">Skip for now</button>
+            <button type="button" class="modal__close" id="choice-skip"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>Skip for now</button>
 
             <button
                 type="button"
@@ -111,7 +111,7 @@ $renderQuestions = static function (array $questionSet, array $values): void {
                 id="choice-save"
             >
 
-                <span id="choice-save-label"><?= $initialMode === 'first-timer' ? 'Sort my menu' : 'Recommend a drink' ?></span>
+                <span id="choice-save-label"><?= $initialMode === 'recommendation' ? 'Find my best matches' : 'Recommend a drink' ?></span>
 
                 <i data-lucide="arrow-right"></i>
 

@@ -307,7 +307,7 @@ $choiceAnswers = is_array($choicePreferences)
     : [];
 $choiceValues = $choiceAnswers;
 $choiceAutoOpen = false;
-$choiceMode = 'first-timer';
+$choiceMode = 'recommendation';
 
 require __DIR__ . '/../partials/header.php';
 
@@ -1152,7 +1152,7 @@ require __DIR__ . '/../partials/header.php';
                         type="button"
                         class="btn btn--dark btn--block"
                         id="choice-open"
-                        data-choice-mode="first-timer"
+                        data-choice-mode="recommendation"
                     >
 
                         <i data-lucide="sparkles"></i>

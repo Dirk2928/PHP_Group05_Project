@@ -9,7 +9,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $cartSessionUrl = BREWSKI_BASE_URL . '/customer/customer_cart/cart_session.php';
-$btnBrewskiLogo = BREWSKI_BASE_URL . '/Start-screen/start.php';
+$btnBrewskiLogo = BREWSKI_BASE_URL . '/customer/customer_home/customerhome.php';
 
 $navItems = [
     'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
@@ -242,15 +242,7 @@ if ($headerInitials === '') {
 
                     <div id="cart-body"></div>
 
-                    <div class="cart-dropdown__footer" id="cart-footer">
-                        <a
-                            href="<?= e($checkoutHref) ?>"
-                            class="cart-checkout-btn"
-                        >
-                            <i data-lucide="shopping-bag"></i>
-                            Proceed to Checkout
-                        </a>
-                    </div>
+                    <div class="cart-dropdown__footer" id="cart-footer"></div>
 
                 </div>
 

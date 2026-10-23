@@ -97,7 +97,7 @@ $choiceAutoOpen = $choiceUserId > 0
     && is_array($choicePreferences)
     && count($choicePreferences) === 0
     && empty($_SESSION['choice_skipped']);
-$choiceMode = $choiceAutoOpen ? 'first-timer' : 'recommendation';
+$choiceMode = $choiceAutoOpen ? 'recommendation' : 'first-timer';
 $choiceRanking = $choiceRanking ?? [];
 $renderProductCard = static function (array $product, bool $showMatch = false) use ($choiceRanking): void {
     $image = !empty($product['image_mime_type'])
@@ -174,8 +174,7 @@ require __DIR__ . '/../partials/header.php';
                 </h1>
 
                 <p>
-                    New to Brewski? Let our platform recommend
-                    drinks that match your preferences.
+                    Find one exact drink match or set up your profile to see ranked best matches.
                 </p>
 
             </div>
@@ -184,7 +183,7 @@ require __DIR__ . '/../partials/header.php';
                 type="button"
                 class="greeting__help"
                 id="choice-open"
-                data-choice-mode="recommendation"
+                data-choice-mode="first-timer"
                 aria-label="Get a drink recommendation"
             >
                 <i data-lucide="help-circle"></i>
@@ -195,7 +194,7 @@ require __DIR__ . '/../partials/header.php';
         <?php if ($choiceFirstTimer && empty($choiceAssessmentCompleted) && !empty($_SESSION['choice_skipped'])): ?>
             <p class="catalog-notice" role="status">
                 Finish your taste profile to organize your menu.
-                <button type="button" class="btn-link" id="choice-open-notice" data-choice-mode="first-timer">Finish your taste profile</button>
+                <button type="button" class="btn-link" id="choice-open-notice" data-choice-mode="recommendation">Find your best matches</button>
             </p>
         <?php endif; ?>
 

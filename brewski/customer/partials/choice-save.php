@@ -13,11 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$mode = ($_POST['mode'] ?? 'first-timer') === 'recommendation'
-    ? 'recommendation'
-    : 'first-timer';
+$mode = ($_POST['mode'] ?? 'recommendation') === 'first-timer'
+    ? 'first-timer'
+    : 'recommendation';
 
-if ($mode === 'first-timer') {
+if ($mode === 'recommendation') {
     $submittedToken = $_POST['csrf_token'] ?? '';
     $sessionToken = $_SESSION['csrf_token'] ?? '';
 
@@ -31,7 +31,7 @@ if ($mode === 'first-timer') {
 
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
-if ($mode === 'first-timer' && $userId <= 0) {
+if ($mode === 'recommendation' && $userId <= 0) {
     http_response_code(401);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Please log in to use drink features';
@@ -43,7 +43,7 @@ $questions = $mode === 'recommendation'
     : brewski_choice_questions();
 
 if (($_POST['action'] ?? '') === 'skip') {
-    if ($mode === 'first-timer') {
+    if ($mode === 'recommendation') {
         $_SESSION['choice_skipped'] = true;
     }
     header('Content-Type: text/plain; charset=UTF-8');
@@ -120,7 +120,7 @@ $productImage = static function (array $product): string {
         : '../../images/' . ($product['image_path'] ?: 'brewskilogo.png');
 };
 
-if ($mode === 'recommendation') {
+if ($mode === 'first-timer') {
     try {
         $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
         $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));

@@ -24,20 +24,20 @@ document.addEventListener('DOMContentLoaded', function () {
             panels[panel.dataset.choicePanel] = panel;
         }
     );
-    var currentMode = modal.dataset.choiceMode === 'first-timer'
-        ? 'first-timer'
-        : 'recommendation';
+    var currentMode = modal.dataset.choiceMode === 'recommendation'
+        ? 'recommendation'
+        : 'first-timer';
 
     var copy = {
         'first-timer': {
-            title: 'Set up your drink preferences',
-            subtitle: 'Answer a few questions to sort your menu by compatibility.',
-            button: 'Sort my menu'
+            title: 'Get a drink recommendation',
+            subtitle: 'Answer a few questions and we will pick one exact match for you.',
+            button: 'Recommend a drink'
         },
         recommendation: {
-            title: 'Get a drink recommendation',
-            subtitle: 'Answer a few quick questions and we will pick one drink for you.',
-            button: 'Recommend a drink'
+            title: 'Set up your drink preferences',
+            subtitle: 'Answer a few questions to find and rank your best matches.',
+            button: 'Find my best matches'
         }
     };
 
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setMode(mode) {
-        currentMode = mode === 'first-timer' ? 'first-timer' : 'recommendation';
+        currentMode = mode === 'recommendation' ? 'recommendation' : 'first-timer';
 
         Object.keys(panels).forEach(function (key) {
             panels[key].hidden = key !== currentMode;
@@ -89,13 +89,13 @@ document.addEventListener('DOMContentLoaded', function () {
         saveLabel.textContent = copy[currentMode].button;
 
         if (skipButton) {
-            skipButton.hidden = currentMode !== 'first-timer';
+            skipButton.hidden = currentMode !== 'recommendation';
         }
     }
 
     function open(mode) {
         setMode(mode || currentMode);
-        if (currentMode === 'recommendation') {
+        if (currentMode === 'first-timer') {
             resetRecommendationAnswers();
         }
         setStatus('', '');
@@ -191,12 +191,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (openButton) {
         openButton.addEventListener('click', function () {
-            open(triggerMode(openButton, 'recommendation'));
+            open(triggerMode(openButton, 'first-timer'));
         });
     }
     if (noticeButton) {
         noticeButton.addEventListener('click', function () {
-            open(triggerMode(noticeButton, 'first-timer'));
+            open(triggerMode(noticeButton, 'recommendation'));
         });
     }
 
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(function (result) {
                     if (result.ok && result.data && result.data.ok) {
-                        if (submittedMode === 'recommendation') {
+                        if (submittedMode === 'first-timer') {
                             var match = result.data.best_match;
 
                             if (match && match.product_id) {
@@ -322,6 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
     setMode(currentMode);
 
     if (modal.dataset.autoOpen === '1') {
-        open('first-timer');
+        open('recommendation');
     }
 });
