@@ -283,6 +283,8 @@ require __DIR__ . '/../partials/header.php';
 
 <script>
 (function () {
+    window.brewskiCheckoutCartSync = Promise.resolve();
+
     var placeOrderButton = document.getElementById('place-order-btn');
     var checkoutMessage = document.getElementById('checkout-msg');
     var checkoutForm = document.getElementById('checkout-form');
@@ -362,6 +364,7 @@ require __DIR__ . '/../partials/header.php';
         confirmationMessage.style.color = '#5c4033';
 
         try {
+            await window.brewskiCheckoutCartSync;
             var call = await postPlaceOrder('create_payment');
             var result = call.result;
 
@@ -415,7 +418,7 @@ require __DIR__ . '/../partials/header.php';
     status.hidden = false;
     status.textContent = 'Updating your cart before checkout...';
 
-    fetch(syncUrl.content, {
+    window.brewskiCheckoutCartSync = fetch(syncUrl.content, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -430,7 +433,8 @@ require __DIR__ . '/../partials/header.php';
         });
     }).then(function () {
         params.set('cart_synced', '1');
-        window.location.replace(window.location.pathname + '?' + params.toString());
+        window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+        status.hidden = true;
     }).catch(function (error) {
         console.error('Could not sync the cart on checkout:', error);
         status.style.background = '#f8e3e0';
