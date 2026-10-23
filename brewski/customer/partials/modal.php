@@ -88,7 +88,7 @@
 
             </div>
 
-            <!-- The ONE and ONLY button -->
+            <!-- The single button -->
             <button
                 type="button"
                 class="btn-confirm"

@@ -182,6 +182,26 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
+    // --- THE MAGIC FIX: MUTATION OBSERVER ---
+    // This watches the modal for changes. If the menu script redraws the button,
+    // we instantly change it back to "Save Changes" before you even see it.
+    var editBtnObserver = new MutationObserver(function(mutations) {
+        var editKeyInput = document.getElementById('modal-edit-key');
+        if (!editKeyInput || editKeyInput.value === '') return; // Not editing, ignore
+
+        var btn = document.getElementById('btn-confirm-add');
+        if (btn && btn.textContent.indexOf('Add to Cart') !== -1) {
+            btn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
+            if (window.lucide) window.lucide.createIcons();
+        }
+    });
+
+    // Start watching when the modal is on the page
+    var modal = document.getElementById('customization-modal');
+    if (modal) {
+        editBtnObserver.observe(modal, { childList: true, subtree: true, characterData: true });
+    }
+
     // --- EDIT INTERCEPTOR ---
     window.openEditModal = function(key) {
         var items = load();
@@ -198,7 +218,7 @@
 
             document.getElementById('modal-edit-key').value = key;
 
-            // Change the button text
+            // Immediately change the text
             var confirmBtn = document.getElementById('btn-confirm-add');
             if (confirmBtn) {
                 confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
