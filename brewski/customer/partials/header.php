@@ -4,6 +4,11 @@ $pageTitle   = $pageTitle   ?? 'brewski';
 $active      = $active      ?? '';
 $extraStyles = $extraStyles ?? [];
 
+// Token used by cart.js to sync the cart to the server (checked in cart_session.php)
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $navItems = [
     'home'    => ['label' => 'Home',    'icon' => 'home',          'href' => '../customer_home/customerhome.php'],
     'menu'    => ['label' => 'Menu',    'icon' => 'coffee',        'href' => '../customer_menu/customermenu.php'],
@@ -47,6 +52,13 @@ if ($headerInitials === '') {
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Cart sync settings used by customer_cart/cart.js -->
+    <meta name="csrf-token" content="<?= e($_SESSION['csrf_token']) ?>">
+    <meta name="cart-session-url" content="../customer_cart/cart_session.php">
+    <meta name="checkout-url" content="../checkout/checkout.php">
+    <meta name="cart-sync-enabled" content="1">
+
     <title><?= e($pageTitle) ?></title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
