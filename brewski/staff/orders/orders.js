@@ -12,8 +12,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var productsEmpty = document.getElementById('productsEmpty');
     var productsPageInfo = document.getElementById('productsPageInfo');
     var productsPagination = document.getElementById('productsPagination');
-    var ordersPageInfo = document.getElementById('ordersPageInfo');
-    var ordersPagination = document.getElementById('ordersPagination');
 
     if (!ordersBoard || !ordersEmpty || !productList) {
         return;
@@ -50,8 +48,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var orders = [];
     var products = [];
-    var ordersPage = 1;
-    var ordersPageSize = 5;
+    var orderLanePages = {};
+    var orderLanePageSize = 4;
     var productsPage = 1;
     var productsPageSize = 6;
     var autoRefreshInterval = null;
@@ -202,37 +200,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return item;
     }
 
-    function renderOrdersPagination(pageCount) {
-        if (!ordersPagination) {
-            return;
-        }
-
-        ordersPagination.innerHTML = '';
-
-        ordersPagination.appendChild(pageButton('Previous', ordersPage === 1, false, function () {
-            if (ordersPage > 1) {
-                ordersPage--;
-                renderOrders();
-            }
-        }));
-
-        for (var page = 1; page <= pageCount; page++) {
-            (function (target) {
-                ordersPagination.appendChild(pageButton(String(target), false, target === ordersPage, function () {
-                    ordersPage = target;
-                    renderOrders();
-                }));
-            })(page);
-        }
-
-        ordersPagination.appendChild(pageButton('Next', ordersPage === pageCount, false, function () {
-            if (ordersPage < pageCount) {
-                ordersPage++;
-                renderOrders();
-            }
-        }));
-    }
-
     function renderOrders() {
         var query = orderSearch.value.trim().toLowerCase();
         var status = statusFilter.value;
@@ -243,18 +210,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 (status === 'ALL' || order.status === status);
         });
 
-        var pageCount = Math.max(1, Math.ceil(visibleOrders.length / ordersPageSize));
-        if (ordersPage > pageCount) ordersPage = pageCount;
-
-        var start = (ordersPage - 1) * ordersPageSize;
-        var pageOrders = visibleOrders.slice(start, start + ordersPageSize);
-
         var lanes = orderStatuses.map(function (orderStatus) {
-            var laneOrders = pageOrders.filter(function (order) {
+            var laneOrders = visibleOrders.filter(function (order) {
                 return order.status === orderStatus.key;
             });
+            var pageCount = Math.max(1, Math.ceil(laneOrders.length / orderLanePageSize));
+            var page = Math.min(orderLanePages[orderStatus.key] || 1, pageCount);
+            orderLanePages[orderStatus.key] = page;
+            var start = (page - 1) * orderLanePageSize;
+            var pageOrders = laneOrders.slice(start, start + orderLanePageSize);
 
-            var cards = laneOrders.map(function (order) {
+            var cards = pageOrders.map(function (order) {
                 var items = order.items.map(function (item) {
                     return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
                 }).join('');
@@ -289,9 +255,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 '" aria-label="' + escapeHtml(orderStatus.label) + ' orders">' +
                 '<div class="order-lane-heading">' +
                     '<h2>' + escapeHtml(orderStatus.label) + '</h2>' +
-                    '<span>' + laneOrders.length + '</span>' +
+                    '<span aria-label="' + laneOrders.length + ' orders">' + laneOrders.length + '</span>' +
                 '</div>' +
                 '<div class="order-lane-cards">' + (cards || '<p class="order-lane-empty">No orders</p>') + '</div>' +
+                (laneOrders.length > orderLanePageSize
+                    ? '<div class="order-lane-pagination">' +
+                        '<span>' + (start + 1) + '–' + Math.min(start + orderLanePageSize, laneOrders.length) +
+                            ' of ' + laneOrders.length + '</span>' +
+                        '<div class="order-lane-pagination-controls">' +
+                            '<button type="button" class="page-link" data-lane-status="' + orderStatus.key +
+                                '" data-lane-page="' + (page - 1) + '"' + (page === 1 ? ' disabled' : '') +
+                                ' aria-label="Previous ' + escapeHtml(orderStatus.label) + ' orders">‹</button>' +
+                            '<span>Page ' + page + ' of ' + pageCount + '</span>' +
+                            '<button type="button" class="page-link" data-lane-status="' + orderStatus.key +
+                                '" data-lane-page="' + (page + 1) + '"' + (page === pageCount ? ' disabled' : '') +
+                                ' aria-label="Next ' + escapeHtml(orderStatus.label) + ' orders">›</button>' +
+                        '</div>' +
+                    '</div>'
+                    : '') +
                 '</section>';
         }).join('');
 
@@ -301,14 +282,6 @@ document.addEventListener('DOMContentLoaded', function () {
         ordersEmpty.classList.toggle('hidden', visibleOrders.length > 0);
         orderCount.textContent = visibleOrders.length + (visibleOrders.length === 1 ? ' order' : ' orders');
 
-        if (ordersPageInfo) {
-            ordersPageInfo.textContent = visibleOrders.length === 0
-                ? 'No results'
-                : 'Showing ' + (start + 1) + ' to ' + Math.min(start + ordersPageSize, visibleOrders.length) +
-                  ' of ' + visibleOrders.length + ' orders';
-        }
-
-        renderOrdersPagination(pageCount);
         updateOrderSummary();
     }
 
@@ -511,6 +484,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     ordersBoard.addEventListener('click', function (event) {
+        var pageButton = event.target.closest('button[data-lane-status][data-lane-page]');
+        if (pageButton) {
+            orderLanePages[pageButton.dataset.laneStatus] = Number(pageButton.dataset.lanePage);
+            renderOrders();
+            return;
+        }
+
         var button = event.target.closest('button[data-order-id]');
         if (!button) {
             return;
@@ -588,12 +568,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     orderSearch.addEventListener('input', function () {
-        ordersPage = 1;
+        orderLanePages = {};
         renderOrders();
     });
     
     statusFilter.addEventListener('change', function () {
-        ordersPage = 1;
+        orderLanePages = {};
         renderOrders();
     });
     

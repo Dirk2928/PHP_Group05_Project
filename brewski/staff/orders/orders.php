@@ -188,10 +188,6 @@ $csrf_token = $_SESSION['csrf_token'];
                         <p class="empty-hint">Try changing your search or status filter.</p>
                     </div>
 
-                    <div class="pagination-footer">
-                        <p class="pagination-info" id="ordersPageInfo"></p>
-                        <div class="pagination-nav" id="ordersPagination"></div>
-                    </div>
                 </div>
                 <p class="demo-feedback" id="orderFeedback" role="status" aria-live="polite"></p>
             </div>
