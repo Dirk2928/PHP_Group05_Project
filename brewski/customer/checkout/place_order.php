@@ -98,6 +98,7 @@ if ($notes !== '' && !customer_has_deliveries_table($pdo)) {
 $userId = (int) $_SESSION['user_id'];
 $publicBase = brewski_app_public_url();
 if ($publicBase === null) {
+    error_log('place_order: brewski_app_public_url() returned null (check APP_URL / env config on Render).');
     customer_place_order_respond(503, [
         'ok' => false,
         'error' => 'Secure checkout is not configured for this site yet.',
@@ -135,38 +136,86 @@ try {
     );
     $pendingStatement->execute([$userId]);
     $pendingPayment = $pendingStatement->fetch();
+    $stalePaymentResolved = false;
     if ($pendingPayment) {
-        $sessionResponse = customer_paymongo_request(
-            'GET',
-            'checkout_sessions/' . rawurlencode((string) $pendingPayment['provider_session_id'])
-        );
-        $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
-        $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
-        $existingCheckoutUrl = (string) ($sessionAttributes['checkout_url'] ?? '');
-        if ($sessionStatus === 'active') {
-            if (
-                !filter_var($existingCheckoutUrl, FILTER_VALIDATE_URL)
-                || parse_url($existingCheckoutUrl, PHP_URL_SCHEME) !== 'https'
-                || parse_url($existingCheckoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
-            ) {
-                throw new RuntimeException('The payment provider returned an invalid checkout link.');
-            }
-            $pdo->commit();
-            customer_place_order_respond(200, [
-                'ok' => true,
-                'redirect' => $existingCheckoutUrl,
-            ]);
-        }
-        if (in_array($sessionStatus, ['completed', 'paid'], true)) {
-            throw new RuntimeException('Payment is being confirmed. Please check My orders shortly.');
-        }
-        if (!in_array($sessionStatus, ['expired', 'failed'], true)) {
-            throw new RuntimeException('Could not verify your current payment. Please try again shortly.');
+        // FIX: a failed lookup of an old session (wrong key/mode, deleted
+        // session, network blip) used to abort checkout permanently for this
+        // customer. Now we log it and treat the old session as stale.
+        $sessionLookupFailed = false;
+        $sessionResponse = [];
+        try {
+            $sessionResponse = customer_paymongo_request(
+                'GET',
+                'checkout_sessions/' . rawurlencode((string) $pendingPayment['provider_session_id'])
+            );
+        } catch (Throwable $lookupError) {
+            $sessionLookupFailed = true;
+            error_log(sprintf(
+                'place_order: could not look up pending PayMongo session %s for user %d (payment_id %d): %s',
+                (string) $pendingPayment['provider_session_id'],
+                $userId,
+                (int) $pendingPayment['payment_id'],
+                $lookupError->getMessage()
+            ));
         }
 
-        $pdo->prepare(
-            "UPDATE order_payments SET payment_status = 'FAILED' WHERE payment_id = ?"
-        )->execute([(int) $pendingPayment['payment_id']]);
+        if ($sessionLookupFailed) {
+            customer_mark_payment_failed(
+                $pdo,
+                (int) $pendingPayment['payment_id'],
+                (int) $pendingPayment['order_id']
+            );
+            $stalePaymentResolved = true;
+        } else {
+            $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
+            $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
+            $existingCheckoutUrl = (string) ($sessionAttributes['checkout_url'] ?? '');
+            if (
+                customer_paymongo_session_is_paid($sessionAttributes)
+                || in_array($sessionStatus, ['completed', 'paid'], true)
+            ) {
+                throw new RuntimeException('Payment is being confirmed. Please check My orders shortly.');
+            }
+            if ($sessionStatus === 'active') {
+                if (
+                    !filter_var($existingCheckoutUrl, FILTER_VALIDATE_URL)
+                    || parse_url($existingCheckoutUrl, PHP_URL_SCHEME) !== 'https'
+                    || parse_url($existingCheckoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
+                ) {
+                    throw new RuntimeException('The payment provider returned an invalid checkout link.');
+                }
+                $pdo->commit();
+                customer_place_order_respond(200, [
+                    'ok' => true,
+                    'redirect' => $existingCheckoutUrl,
+                ]);
+            }
+            if (!in_array($sessionStatus, ['expired', 'failed'], true)) {
+                error_log('place_order: pending session returned unexpected status "' . $sessionStatus . '"');
+                throw new RuntimeException('Could not verify your current payment. Please try again shortly.');
+            }
+
+            customer_mark_payment_failed(
+                $pdo,
+                (int) $pendingPayment['payment_id'],
+                (int) $pendingPayment['order_id']
+            );
+            $stalePaymentResolved = true;
+        }
+    }
+
+    if ($stalePaymentResolved) {
+        // Persist the failed session even if creating the replacement session fails.
+        $pdo->commit();
+        $pdo->beginTransaction();
+        $cartStatement = $pdo->prepare(
+            'SELECT cart_id FROM carts WHERE user_id = ? ORDER BY cart_id ASC LIMIT 1 FOR UPDATE'
+        );
+        $cartStatement->execute([$userId]);
+        $cartId = $cartStatement->fetchColumn();
+        if (!$cartId) {
+            throw new RuntimeException('Your cart is empty.');
+        }
     }
 
     $itemsStatement = $pdo->prepare(
@@ -241,7 +290,24 @@ try {
     }
 
     $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
-    $cancelUrl = $publicBase . '/customer/checkout/checkout.php?payment=cancelled';
+    $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
+
+    // DEBUG: set to true to try only the safest methods. If checkout then works,
+    // one of the methods in the full list is not activated on your PayMongo account.
+    $debugMinimalMethods = false;
+    $paymentMethodTypes = $debugMinimalMethods
+        ? ['card', 'gcash', 'paymaya']
+        : [
+            'card',
+            'gcash',
+            'paymaya',
+            'grab_pay',
+            'billease',
+            'dob',
+            'brankas',
+            'qrph',
+        ];
+
     $sessionResponse = customer_paymongo_request('POST', 'checkout_sessions', [
         'data' => [
             'attributes' => [
@@ -251,16 +317,7 @@ try {
                     'currency' => 'PHP',
                     'quantity' => 1,
                 ]],
-                'payment_method_types' => [
-                    'card',
-                    'gcash',
-                    'paymaya',
-                    'grab_pay',
-                    'billease',
-                    'dob',
-                    'brankas',
-                    'qrph',
-                ],
+                'payment_method_types' => $paymentMethodTypes,
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
                 'reference_number' => 'BRW-' . $orderId,
@@ -285,6 +342,8 @@ try {
         || parse_url($checkoutUrl, PHP_URL_SCHEME) !== 'https'
         || parse_url($checkoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
     ) {
+        error_log('place_order: PayMongo returned no usable checkout session: '
+            . substr((string) json_encode($sessionResponse), 0, 1000));
         throw new RuntimeException('The payment provider returned an invalid checkout link.');
     }
 
@@ -304,6 +363,14 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+    // Logging added so the real reason shows up in the Render logs.
+    error_log(sprintf(
+        'place_order RuntimeException (user %d): %s at %s:%d',
+        $userId,
+        $error->getMessage(),
+        basename($error->getFile()),
+        $error->getLine()
+    ));
     customer_place_order_respond(422, [
         'ok' => false,
         'error' => $error->getMessage(),
@@ -312,7 +379,14 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    error_log('PayMongo checkout creation failed: ' . $error->getMessage());
+    error_log(sprintf(
+        'PayMongo checkout creation failed (user %d): %s: %s at %s:%d',
+        $userId,
+        get_class($error),
+        $error->getMessage(),
+        basename($error->getFile()),
+        $error->getLine()
+    ));
     customer_place_order_respond(500, [
         'ok' => false,
         'error' => 'We could not start secure checkout. Please try again.',

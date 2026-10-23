@@ -18,6 +18,43 @@ function customer_has_deliveries_table(PDO $pdo): bool
     return $exists;
 }
 
+function customer_paymongo_session_is_paid(array $attributes): bool
+{
+    $payments = $attributes['payments'] ?? [];
+    if (!is_array($payments)) {
+        return false;
+    }
+
+    foreach ($payments as $payment) {
+        if (($payment['attributes']['status'] ?? '') === 'paid') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function customer_mark_payment_failed(PDO $pdo, int $paymentId, int $orderId): bool
+{
+    $paymentStatement = $pdo->prepare(
+        "UPDATE order_payments
+            SET payment_status = 'FAILED'
+          WHERE payment_id = ? AND order_id = ? AND payment_status = 'PENDING'"
+    );
+    $paymentStatement->execute([$paymentId, $orderId]);
+    if ($paymentStatement->rowCount() !== 1) {
+        return false;
+    }
+
+    $orderStatement = $pdo->prepare(
+        "UPDATE orders SET order_status = 'CANCELLED'
+          WHERE order_id = ? AND order_status = 'PENDING'"
+    );
+    $orderStatement->execute([$orderId]);
+
+    return true;
+}
+
 function customer_send_order_receipt(PDO $pdo, int $orderId): bool
 {
     require_once __DIR__ . '/../../login-signup/email-service-client.php';
@@ -141,7 +178,7 @@ function customer_paymongo_request(string $method, string $path, ?array $payload
     curl_close($curl);
 
     if (!is_string($responseBody)) {
-        error_log('PayMongo API request failed: ' . $curlError);
+        error_log('PayMongo API request failed; cURL error: ' . $curlError);
         throw new RuntimeException('The payment provider could not be reached. Please try again.');
     }
 
@@ -152,10 +189,10 @@ function customer_paymongo_request(string $method, string $path, ?array $payload
     }
 
     if ($status < 200 || $status >= 300) {
-        $message = $response['errors'][0]['detail']
-            ?? $response['errors'][0]['code']
-            ?? 'unknown provider error';
-        error_log('PayMongo API rejected a request (HTTP ' . $status . '): ' . $message);
+        error_log(
+            'PayMongo API rejected a request (HTTP ' . $status . '): '
+            . substr($responseBody, 0, 1500)
+        );
         throw new RuntimeException('Could not start secure checkout. Please try again.');
     }
 

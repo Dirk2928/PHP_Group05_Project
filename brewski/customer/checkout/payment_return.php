@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../partials/order_support.php';
 
 if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
@@ -22,17 +23,49 @@ if ($orderId === false) {
     exit;
 }
 
+$userId = (int) $_SESSION['user_id'];
 $statement = $pdo->prepare(
-    'SELECT op.payment_status
+    'SELECT op.payment_id, op.provider_session_id, op.payment_status
        FROM order_payments op
        INNER JOIN orders o ON o.order_id = op.order_id
       WHERE o.order_id = ? AND o.user_id = ?
       LIMIT 1'
 );
-$statement->execute([(int) $orderId, (int) $_SESSION['user_id']]);
-if ($statement->fetchColumn() === false) {
+$statement->execute([(int) $orderId, $userId]);
+$payment = $statement->fetch();
+if (!$payment) {
     header('Location: checkout.php');
     exit;
+}
+
+if ($payment['payment_status'] === 'PENDING') {
+    try {
+        $sessionResponse = customer_paymongo_request(
+            'GET',
+            'checkout_sessions/' . rawurlencode((string) $payment['provider_session_id'])
+        );
+        $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
+        $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
+        $sessionIsPaid = customer_paymongo_session_is_paid($sessionAttributes)
+            || in_array($sessionStatus, ['paid', 'completed'], true);
+
+        if (!$sessionIsPaid) {
+            $pdo->beginTransaction();
+            customer_mark_payment_failed($pdo, (int) $payment['payment_id'], (int) $orderId);
+            $pdo->commit();
+        }
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log(sprintf(
+            'payment_return: could not reconcile PayMongo session %s for order %d, user %d: %s',
+            (string) $payment['provider_session_id'],
+            (int) $orderId,
+            $userId,
+            $error->getMessage()
+        ));
+    }
 }
 
 $pageTitle = 'Confirming payment | brewski';
