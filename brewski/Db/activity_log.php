@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * Record an action without interrupting the action being logged.
+ */
 function brewski_record_activity(
     PDO|mysqli $database,
     string $category,
@@ -11,7 +14,7 @@ function brewski_record_activity(
     $role = strtoupper(trim((string) ($_SESSION['role'] ?? '')));
     $actorId = (int) ($_SESSION['user_id'] ?? 0);
 
-    // Block if no user_id exists in the session
+    // Only block if there is no user ID at all
     if ($actorId <= 0) {
         return;
     }
