@@ -63,32 +63,6 @@ if ($headerInitials === '') {
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Checkout button inside the cart dropdown */
-        .cart-dropdown__footer {
-            padding: 0.75rem 1rem 1rem;
-            border-top: 1px solid #e8dac4;
-            margin-top: 0.5rem;
-        }
-
-        .cart-checkout-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            padding: 0.85rem 1rem;
-            background: #1a0f0a;
-            color: #faf5ee !important;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-decoration: none;
-            transition: background 0.2s ease;
-        }
-
-        .cart-checkout-btn:hover { background: #3b2218; }
-        .cart-checkout-btn i, .cart-checkout-btn svg { width: 18px; height: 18px; stroke: #faf5ee !important; }
-
         /* Cart Actions (Edit + Remove) */
         .cart-actions {
             display: flex;
@@ -211,7 +185,7 @@ if ($headerInitials === '') {
                     <div id="cart-body"></div>
 
                     <div class="cart-dropdown__footer" id="cart-footer">
-                        <a href="<?= e(BREWSKI_BASE_URL . '/customer/checkout/checkout.php') ?>" class="cart-checkout-btn">
+                        <a href="<?= e(BREWSKI_BASE_URL . '/customer/checkout/checkout.php') ?>" class="cart-checkout">
                             <i data-lucide="shopping-bag"></i> Proceed to Checkout
                         </a>
                     </div>
