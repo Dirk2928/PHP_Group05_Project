@@ -242,7 +242,15 @@ if ($headerInitials === '') {
 
                     <div id="cart-body"></div>
 
-                    <div class="cart-dropdown__footer" id="cart-footer"></div>
+                    <div class="cart-dropdown__footer" id="cart-footer" hidden>
+                        <a
+                            href="<?= e($checkoutHref) ?>"
+                            class="cart-checkout-btn cart-checkout"
+                        >
+                            <i data-lucide="shopping-bag"></i>
+                            Proceed to checkout
+                        </a>
+                    </div>
 
                 </div>
 

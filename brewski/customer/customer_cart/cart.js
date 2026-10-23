@@ -12,6 +12,7 @@
     var menu = document.getElementById('cart-menu');
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
+    var footer = document.getElementById('cart-footer');
 
     function load() {
         try {
@@ -151,6 +152,10 @@
 
         renderBadge(total);
 
+        if (footer) {
+            footer.hidden = total < 1;
+        }
+
         if (!body) {
             return;
         }
@@ -200,7 +205,6 @@
             '<div class="cart-summary">' +
                 '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
                 '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
-                '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
         body.innerHTML = html;
@@ -277,7 +281,7 @@
             save(items);
         });
 
-        body.addEventListener('click', function (event) {
+        menu.addEventListener('click', function (event) {
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') {
                 return;
