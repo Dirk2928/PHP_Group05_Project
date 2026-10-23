@@ -185,6 +185,7 @@
                 ? 'Per drink: ' + item.customization
                 : 'No extras per drink';
 
+            // FIXED LAYOUT: Removed the div that caused the price text to overlap the icon
             html +=
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
                     '<div class="cart-drink">' +
@@ -198,8 +199,8 @@
                         '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Add one identical drink"><i data-lucide="plus"></i></button>' +
                     '</div>' +
                     '<div class="cart-price">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
-                    '<div class="cart-actions">' +
-                        '<button type="button" class="cart-edit__btn" data-action="edit" aria-label="Edit item"><i data-lucide="pencil"></i></button>' +
+                    '<div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">' +
+                        '<button type="button" class="cart-remove__btn" data-action="edit" aria-label="Edit item"><i data-lucide="pencil"></i></button>' +
                         '<button type="button" class="cart-remove__btn" data-action="remove" aria-label="Remove item"><i data-lucide="trash-2"></i></button>' +
                     '</div>' +
                 '</div>';

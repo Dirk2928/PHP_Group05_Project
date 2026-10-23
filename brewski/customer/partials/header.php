@@ -63,6 +63,26 @@ if ($headerInitials === '') {
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        /* Checkout button inside the cart dropdown (For JS fallback) */
+        .cart-checkout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: #1a0f0a;
+            color: #faf5ee !important;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: background 0.2s ease;
+        }
+
+        .cart-checkout-btn:hover { background: #3b2218; }
+        .cart-checkout-btn i, .cart-checkout-btn svg { width: 18px; height: 18px; stroke: #faf5ee !important; }
+
         /* Cart Actions (Edit + Remove) */
         .cart-actions {
             display: flex;
@@ -183,12 +203,7 @@ if ($headerInitials === '') {
                 <div class="cart-dropdown" id="cart-dropdown">
                     <h3 class="cart-dropdown__title">Your cart</h3>
                     <div id="cart-body"></div>
-
-                    <div class="cart-dropdown__footer" id="cart-footer">
-                        <a href="<?= e(BREWSKI_BASE_URL . '/customer/checkout/checkout.php') ?>" class="cart-checkout">
-                            <i data-lucide="shopping-bag"></i> Proceed to Checkout
-                        </a>
-                    </div>
+                    <!-- NOTE: The duplicate <a href="..." class="cart-checkout"> has been removed. cart.js handles this now. -->
                 </div>
             </div>
 
