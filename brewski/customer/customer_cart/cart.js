@@ -384,6 +384,19 @@
         }
     }
 
+    // Close the popup the same way the X button does (so the menu script also
+    // cleans up its own state), and remove any "open" class as a backup.
+    function closeCustomizationModal() {
+        var modalEl = document.getElementById('customization-modal');
+        var closeBtn = document.getElementById('modal-close');
+        if (closeBtn) closeBtn.click();
+        if (modalEl) {
+            ['active', 'show', 'open', 'is-open', 'is-active', 'visible'].forEach(function (cls) {
+                modalEl.classList.remove(cls);
+            });
+        }
+    }
+
     window.openEditModal = function (key) {
         var items = load();
         var item = items.find(function (i) { return i.key === key; });
@@ -493,10 +506,10 @@
 
         save(items);
 
-        // Close modal and leave edit mode
-        modal.classList.remove('active');
+        // Leave edit mode, then close the popup
         stopEditing();
         if (titleEl) titleEl.textContent = 'Customize your drink';
+        closeCustomizationModal();
 
     }, true);
 
