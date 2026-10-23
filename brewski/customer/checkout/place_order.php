@@ -251,13 +251,6 @@ try {
                     'currency' => 'PHP',
                     'quantity' => 1,
                 ]],
-                'payment_method_types' => [
-                    'card',
-                    'gcash',
-                    'paymaya',
-                    'grab_pay',
-                    'billease',
-                ],
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
                 'reference_number' => 'BRW-' . $orderId,
