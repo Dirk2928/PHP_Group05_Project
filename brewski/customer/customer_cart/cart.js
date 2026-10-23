@@ -13,6 +13,15 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
+    // Modal elements
+    var modal = document.getElementById('cart-edit-modal');
+    var editForm = document.getElementById('cart-edit-form');
+    var editKeyInput = document.getElementById('cart-edit-key');
+    var editCustomInput = document.getElementById('cart-edit-custom');
+    var editQtyInput = document.getElementById('cart-edit-qty');
+    var editNameDisplay = document.getElementById('cart-edit-name');
+    var cancelBtn = document.getElementById('cart-edit-cancel');
+
     function load() {
         try {
             var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -189,7 +198,8 @@
                         '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Add one identical drink"><i data-lucide="plus"></i></button>' +
                     '</div>' +
                     '<div class="cart-price">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
-                    '<div class="cart-remove">' +
+                    '<div class="cart-actions">' +
+                        '<button type="button" class="cart-edit__btn" data-action="edit" aria-label="Edit item"><i data-lucide="pencil"></i></button>' +
                         '<button type="button" class="cart-remove__btn" data-action="remove" aria-label="Remove item"><i data-lucide="trash-2"></i></button>' +
                     '</div>' +
                 '</div>';
@@ -200,7 +210,6 @@
             '<div class="cart-summary">' +
                 '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
                 '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
-
                 '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
@@ -220,6 +229,67 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
+    // --- Modal Logic ---
+    function openEditModal(key) {
+        if (!modal) return;
+        
+        var items = load();
+        var item = items.find(function(i) { return i.key === key; });
+        if (!item) return;
+
+        editKeyInput.value = item.key;
+        editNameDisplay.textContent = item.name + (item.size ? ' (' + item.size + ')' : '');
+        
+        var rawCustom = item.customization || '';
+        editCustomInput.value = rawCustom;
+
+        editQtyInput.value = item.quantity;
+
+        modal.hidden = false;
+        editQtyInput.focus();
+    }
+
+    function closeEditModal() {
+        if (modal) modal.hidden = true;
+    }
+
+    if (modal && editForm && cancelBtn) {
+        cancelBtn.addEventListener('click', closeEditModal);
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeEditModal();
+        });
+
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var key = editKeyInput.value;
+            var newQty = Math.max(1, Math.min(MAX_QTY, parseInt(editQtyInput.value, 10) || 1));
+            var newCustom = editCustomInput.value.trim();
+
+            var items = load();
+            var updated = false;
+
+            items = items.map(function(entry) {
+                if (entry.key === key) {
+                    updated = true;
+                    var newKey = makeKey(entry.name, entry.size, newCustom);
+                    
+                    return Object.assign({}, entry, {
+                        key: newKey,
+                        quantity: newQty,
+                        customization: newCustom
+                    });
+                }
+                return entry;
+            });
+
+            if (updated) {
+                save(items);
+            }
+            closeEditModal();
+        });
+    }
+
     if (menu && button && body) {
 
         button.addEventListener('click', function (event) {
@@ -236,6 +306,7 @@
         document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 setOpen(false);
+                closeEditModal();
             }
         });
 
@@ -243,19 +314,18 @@
             event.stopPropagation();
 
             var target = event.target.closest('[data-action]');
-
-            if (!target) {
-                return;
-            }
+            if (!target) return;
 
             var row = target.closest('[data-key]');
-
-            if (!row) {
-                return;
-            }
+            if (!row) return;
 
             var items = load();
             var action = target.dataset.action;
+
+            if (action === 'edit') {
+                openEditModal(row.dataset.key);
+                return;
+            }
 
             if (action === 'remove') {
                 items = items.filter(function (entry) {
@@ -263,9 +333,7 @@
                 });
             } else {
                 items.forEach(function (entry) {
-                    if (entry.key !== row.dataset.key) {
-                        return;
-                    }
+                    if (entry.key !== row.dataset.key) return;
 
                     if (action === 'increase') {
                         entry.quantity = Math.min(MAX_QTY, (Number(entry.quantity) || 0) + 1);
@@ -274,15 +342,12 @@
                     }
                 });
             }
-
             save(items);
         });
 
         body.addEventListener('click', function (event) {
             var checkoutLink = event.target.closest('.cart-checkout');
-            if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') {
-                return;
-            }
+            if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') return;
 
             event.preventDefault();
             checkoutLink.setAttribute('aria-disabled', 'true');

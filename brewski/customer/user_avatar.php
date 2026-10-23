@@ -34,7 +34,6 @@ if (!in_array($mime, $safeTypes, true)) {
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . strlen($data));
 header('X-Content-Type-Options: nosniff');
-header('Content-Security-Policy: default-src \'none\'; img-src \'self\'');
 header('Cache-Control: public, max-age=86400');
 
 echo $data;
