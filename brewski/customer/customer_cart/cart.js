@@ -13,12 +13,29 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
+    /* ------------------------------------------------------------------ */
+    /* Storage                                                             */
+    /* ------------------------------------------------------------------ */
+
+    function makeKey(name, size, customization) {
+        return [name, size, customization].join('|');
+    }
+
+    // Every item must have a key, otherwise edit / delete / quantity cannot find it
+    function normalizeItem(item) {
+        if (item && typeof item === 'object' && !item.key) {
+            item.key = makeKey(item.name || '', item.size || '', item.customization || '');
+        }
+        return item;
+    }
+
     // Identical drinks (same key) become one row with a combined quantity
     function mergeDuplicates(items) {
         var merged = [];
         var byKey = {};
         items.forEach(function (item) {
             if (!item || typeof item !== 'object') return;
+            normalizeItem(item);
             var existing = byKey[item.key];
             if (existing) {
                 existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + (Number(item.quantity) || 0));
@@ -94,16 +111,16 @@
         return pendingSync;
     }
 
-    function makeKey(name, size, customization) {
-        return [name, size, customization].join('|');
-    }
+    /* ------------------------------------------------------------------ */
+    /* Rendering                                                           */
+    /* ------------------------------------------------------------------ */
 
     function money(amount) {
         return '₱' + Number(amount).toLocaleString('en-PH');
     }
 
     function escapeHtml(value) {
-        return String(value)
+        return String(value === undefined || value === null ? '' : value)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
@@ -130,12 +147,13 @@
 
         renderBadge(total);
 
-        if (!body) {
+        var cartBody = document.getElementById('cart-body');
+        if (!cartBody) {
             return;
         }
 
         if (!items.length) {
-            body.innerHTML = '<p class="cart-empty">Your cart is empty.</p>';
+            cartBody.innerHTML = '<p class="cart-empty">Your cart is empty.</p>';
             return;
         }
 
@@ -151,14 +169,14 @@
             '</div>' +
             '<div class="cart-list">';
 
-        items.forEach(function (item) {
+        items.forEach(function (item, index) {
             var label = item.name + (item.size ? ' (' + item.size + ')' : '');
             var customization = item.customization
                 ? 'Per drink: ' + item.customization
                 : 'No extras per drink';
 
             html +=
-                '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
+                '<div class="cart-row" data-index="' + index + '" data-key="' + escapeHtml(item.key) + '">' +
                     '<div class="cart-drink">' +
                         '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '" onerror="brewskiImageFallback(this)">' +
                         '<span>' + escapeHtml(label) + '</span>' +
@@ -187,7 +205,7 @@
                 '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
-        body.innerHTML = html;
+        cartBody.innerHTML = html;
 
         if (window.lucide) {
             window.lucide.createIcons();
@@ -195,18 +213,75 @@
     }
 
     function setOpen(open) {
-        if (!menu || !button) return;
-        menu.classList.toggle('open', open);
-        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var m = document.getElementById('cart-menu');
+        var b = document.getElementById('cart-button');
+        if (!m || !b) return;
+        m.classList.toggle('open', open);
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- EDIT MODE ---
-    // The "Save Changes" label is forced with CSS while the modal is in edit mode,
-    // so it no longer matters when another script rewrites the button text.
+    /* ------------------------------------------------------------------ */
+    /* Cart row actions: edit / delete / quantity                          */
+    /* Delegated on the document so it works no matter when the cart is    */
+    /* drawn, and it finds the item by position, not only by its key.      */
+    /* ------------------------------------------------------------------ */
+
+    document.addEventListener('click', function (event) {
+        var target = event.target.closest ? event.target.closest('#cart-body [data-action]') : null;
+        if (!target) return;
+
+        var row = target.closest('[data-key]');
+        if (!row) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var items = load();
+        var action = target.getAttribute('data-action');
+        var rowKey = row.getAttribute('data-key');
+        var index = parseInt(row.getAttribute('data-index'), 10);
+
+        if (isNaN(index) || !items[index] || items[index].key !== rowKey) {
+            index = -1;
+            items.forEach(function (entry, i) {
+                if (index === -1 && entry.key === rowKey) index = i;
+            });
+        }
+        if (index === -1) {
+            render();
+            return;
+        }
+
+        var item = items[index];
+
+        if (action === 'edit') {
+            window.openEditModal(item.key);
+            return;
+        }
+
+        if (action === 'remove') {
+            items.splice(index, 1);
+        } else if (action === 'increase') {
+            item.quantity = Math.min(MAX_QTY, (Number(item.quantity) || 0) + 1);
+        } else if (action === 'decrease') {
+            item.quantity = Math.max(1, (Number(item.quantity) || 0) - 1);
+        } else {
+            return;
+        }
+
+        save(items);
+    }, true);
+
+    /* ------------------------------------------------------------------ */
+    /* Edit mode                                                           */
+    /* ------------------------------------------------------------------ */
+
     var editingKey = '';
-    var editingName = '';
+    var editingItem = null;
     var openingForEdit = false;
 
+    // "Save Changes" is forced with CSS while editing, so it no longer matters
+    // when another script rewrites the button text back to "Add to Cart".
     (function injectEditStyles() {
         var style = document.createElement('style');
         style.textContent =
@@ -218,109 +293,203 @@
         document.head.appendChild(style);
     })();
 
-    function startEditing(key, name) {
-        editingKey = key;
-        editingName = name;
+    function startEditing(item) {
+        editingKey = item.key;
+        editingItem = item;
         var modalEl = document.getElementById('customization-modal');
         var keyInput = document.getElementById('modal-edit-key');
         if (modalEl) modalEl.classList.add('is-editing');
-        if (keyInput) keyInput.value = key;
+        if (keyInput) keyInput.value = item.key;
     }
 
     function stopEditing() {
         editingKey = '';
-        editingName = '';
+        editingItem = null;
         var modalEl = document.getElementById('customization-modal');
         var keyInput = document.getElementById('modal-edit-key');
         if (modalEl) modalEl.classList.remove('is-editing');
         if (keyInput) keyInput.value = '';
     }
 
-    // --- EDIT INTERCEPTOR ---
+    function findProductCard(item) {
+        var card = null;
+        if (item.productId !== undefined && item.productId !== null && item.productId !== '') {
+            card = document.querySelector('.product-card[data-id="' + item.productId + '"]');
+        }
+        if (!card && item.name) {
+            var cards = document.querySelectorAll('.product-card');
+            for (var i = 0; i < cards.length; i++) {
+                if (cards[i].getAttribute('data-name') === item.name) return cards[i];
+            }
+        }
+        return card;
+    }
+
+    function norm(text) {
+        return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function optionMatches(optionText, wanted) {
+        var o = norm(optionText);
+        if (!o) return false;
+        return wanted.some(function (w) {
+            return w && (w === o || w.indexOf(o) === 0 || o.indexOf(w) === 0);
+        });
+    }
+
+    // Pre-select the choices the item was saved with, so editing one thing
+    // does not reset everything else.
+    function applySavedOptions(item, tries) {
+        if (editingKey !== item.key) return;
+
+        var modalEl = document.getElementById('customization-modal');
+        if (!modalEl) return;
+
+        var wanted = String(item.customization || '').split(',').map(norm);
+        if (item.size) wanted.push(norm(item.size));
+        wanted = wanted.filter(function (w) { return w && w !== 'no extras'; });
+
+        var ready = false;
+        ['temperature', 'size', 'sugar'].forEach(function (type) {
+            var group = modalEl.querySelector('[data-option-group="' + type + '"]');
+            if (!group || group.hasAttribute('hidden')) return;
+
+            var buttons = group.querySelectorAll('.option-btn');
+            if (!buttons.length) return;
+            ready = true;
+
+            for (var i = 0; i < buttons.length; i++) {
+                if (optionMatches(buttons[i].textContent, wanted)) {
+                    if (!buttons[i].classList.contains('active')) buttons[i].click();
+                    break;
+                }
+            }
+        });
+
+        if (!ready) {
+            if (tries < 15) {
+                setTimeout(function () { applySavedOptions(item, tries + 1); }, 60);
+            }
+            return;
+        }
+
+        // Drink quantity
+        var qtyEl = document.getElementById('drink-quantity-value');
+        var current = qtyEl ? (parseInt(qtyEl.textContent, 10) || 1) : 1;
+        var target = Math.max(1, Math.min(MAX_QTY, Number(item.quantity) || 1));
+        var action = target > current ? 'increase' : 'decrease';
+        var stepBtn = modalEl.querySelector('[data-drink-action="' + action + '"]');
+        for (var n = Math.abs(target - current); n > 0 && stepBtn; n--) {
+            stepBtn.click();
+        }
+    }
+
     window.openEditModal = function (key) {
         var items = load();
         var item = items.find(function (i) { return i.key === key; });
         if (!item) return;
 
+        var productCard = findProductCard(item);
+
+        if (!productCard) {
+            alert("Please go to the Menu page to edit this drink's customizations.");
+            return;
+        }
+
         setOpen(false);
 
-        var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
+        var addBtn = productCard.querySelector('.btn-add') || productCard.querySelector('button');
 
-        if (productCard) {
-            var addBtn = productCard.querySelector('.btn-add');
+        openingForEdit = true;
+        if (addBtn) addBtn.click();
+        openingForEdit = false;
 
-            openingForEdit = true;
-            if (addBtn) addBtn.click();
-            openingForEdit = false;
+        startEditing(item);
 
-            startEditing(key, item.name);
+        var titleEl = document.getElementById('modal-product-name');
+        if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
 
-            var titleEl = document.getElementById('modal-product-name');
-            if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
-        } else {
-            alert("Please go to the Menu page to edit this drink's customizations.");
-        }
+        applySavedOptions(item, 0);
     };
 
-    // Opening the modal normally (a real "Add to Cart" click) must never be in edit mode
+    // Opening the modal normally (a real "Add to Cart" click) is never edit mode
     document.addEventListener('click', function (e) {
-        if (!openingForEdit && e.target.closest('.btn-add')) {
+        if (!openingForEdit && e.target.closest && e.target.closest('.btn-add')) {
             stopEditing();
         }
     }, true);
 
-    // 1. Handle Save Changes
+    // Save Changes
     document.addEventListener('click', function (e) {
-        var confirmBtn = e.target.closest('#btn-confirm-add');
+        var confirmBtn = e.target.closest ? e.target.closest('#btn-confirm-add') : null;
         if (!confirmBtn) return;
 
         var keyInput = document.getElementById('modal-edit-key');
         var oldKey = editingKey || (keyInput ? keyInput.value : '');
-        if (!oldKey) return; // normal "Add to Cart" flow, let the menu script handle it
+        if (!oldKey) return; // normal "Add to Cart", let the menu script handle it
 
         e.preventDefault();
         e.stopPropagation();
 
         var modal = document.getElementById('customization-modal');
         var titleEl = document.getElementById('modal-product-name');
-        var productName = editingName || (titleEl ? titleEl.textContent.replace('Edit: ', '') : '');
-        var productCard = document.querySelector('.product-card[data-name="' + productName + '"]');
+        var base = editingItem || {};
+        var productName = base.name || (titleEl ? titleEl.textContent.replace('Edit: ', '') : '');
+        if (!productName) return;
 
-        if (!productCard) return;
+        var productCard = findProductCard({ productId: base.productId, name: productName });
 
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
         var priceText = document.getElementById('modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
         var totalPrice = parseFloat(priceText) || 0;
         var unitPrice = totalPrice / qty;
 
-        var selectedOptions = [];
-        var optionGroups = modal.querySelectorAll('[data-option-group]');
-        optionGroups.forEach(function (group) {
+        var size = '';
+        var parts = [];
+        modal.querySelectorAll('[data-option-group]').forEach(function (group) {
             if (group.hasAttribute('hidden')) return;
-            var activeBtn = group.querySelector('.option-btn.active');
-            if (activeBtn) {
-                selectedOptions.push(activeBtn.textContent.trim());
-            }
+            var type = group.getAttribute('data-option-group');
+
+            group.querySelectorAll('.option-btn.active').forEach(function (activeBtn) {
+                var text = activeBtn.textContent.trim();
+                if (!text) return;
+
+                if (type === 'size') {
+                    size = text.replace(/\s*\(.*\)\s*$/, ''); // "Large (+₱20)" -> "Large"
+                    return;
+                }
+                if (type === 'sugar' && /^\d+%$/.test(text)) {
+                    text += ' sugar';
+                }
+                parts.push(text);
+            });
         });
 
-        var customizationString = selectedOptions.join(', ');
-        if (!customizationString) customizationString = 'No extras';
+        var customizationString = parts.join(', ');
 
         var newItem = {
-            key: makeKey(productName, '', customizationString),
-            productId: productCard.dataset.id,
+            key: makeKey(productName, size, customizationString),
+            productId: base.productId || (productCard ? productCard.getAttribute('data-id') : ''),
             name: productName,
-            image: productCard.dataset.image,
-            size: '',
+            image: base.image || (productCard ? productCard.getAttribute('data-image') : ''),
+            size: size,
             customization: customizationString,
             customizationOptions: {},
             price: unitPrice,
             quantity: qty
         };
 
+        // Put the edited item where the old one was
         var items = load();
-        items = items.filter(function (i) { return i.key !== oldKey; });
-        items.push(newItem);
+        var position = -1;
+        items.forEach(function (entry, i) {
+            if (position === -1 && entry.key === oldKey) position = i;
+        });
+        if (position === -1) {
+            items.push(newItem);
+        } else {
+            items.splice(position, 1, newItem);
+        }
 
         save(items);
 
@@ -331,10 +500,10 @@
 
     }, true);
 
-    // 2. Leave edit mode when the modal is closed (X button, overlay, or Escape)
+    // Leave edit mode when the modal is closed (X button, overlay, or Escape)
     document.addEventListener('click', function (e) {
         if (!editingKey) return;
-        if (e.target.closest('#modal-close') || e.target.id === 'customization-modal') {
+        if (e.target.closest && (e.target.closest('#modal-close') || e.target.id === 'customization-modal')) {
             setTimeout(function () {
                 stopEditing();
                 var titleEl = document.getElementById('modal-product-name');
@@ -348,6 +517,10 @@
             setTimeout(stopEditing, 50);
         }
     });
+
+    /* ------------------------------------------------------------------ */
+    /* Cart dropdown open / close, checkout link                           */
+    /* ------------------------------------------------------------------ */
 
     if (menu && button && body) {
 
@@ -369,41 +542,8 @@
         });
 
         body.addEventListener('click', function (event) {
-            event.stopPropagation();
+            event.stopPropagation(); // keep clicks inside the cart from closing it
 
-            var target = event.target.closest('[data-action]');
-            if (!target) return;
-
-            var row = target.closest('[data-key]');
-            if (!row) return;
-
-            var items = load();
-            var action = target.dataset.action;
-
-            if (action === 'edit') {
-                if (window.openEditModal) window.openEditModal(row.dataset.key);
-                return;
-            }
-
-            if (action === 'remove') {
-                items = items.filter(function (entry) {
-                    return entry.key !== row.dataset.key;
-                });
-            } else {
-                items.forEach(function (entry) {
-                    if (entry.key !== row.dataset.key) return;
-
-                    if (action === 'increase') {
-                        entry.quantity = Math.min(MAX_QTY, (Number(entry.quantity) || 0) + 1);
-                    } else if (action === 'decrease') {
-                        entry.quantity = Math.max(1, (Number(entry.quantity) || 0) - 1);
-                    }
-                });
-            }
-            save(items);
-        });
-
-        body.addEventListener('click', function (event) {
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') return;
 
