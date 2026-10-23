@@ -10,6 +10,7 @@ $active = 'profile';
 $extraStyles = ['customer_profile/customer_profile.css', 'partials/choice.css'];
 
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 require_once __DIR__ . '/../../Db/user_avatars.php';
 
 if (!brewski_is_logged_in()) {
@@ -94,6 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $stmt->close();
                     $conn->close();
 
+                    brewski_record_activity(
+                        $pdo,
+                        'profile',
+                        'Updated profile picture',
+                        'Updated the account profile picture.'
+                    );
                     $_SESSION['profile_flash'] = 'Your profile picture has been updated.';
                     header('Location: customer_profile.php');
                     exit;
@@ -114,6 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             $stmt->close();
             $conn->close();
 
+            brewski_record_activity(
+                $pdo,
+                'profile',
+                'Removed profile picture',
+                'Removed the account profile picture.'
+            );
             $_SESSION['profile_flash'] = 'Your profile picture has been removed.';
             header('Location: customer_profile.php');
             exit;
@@ -163,6 +176,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                 $_SESSION['first_name'] = $firstNameInput;
                 $_SESSION['last_name']  = $lastNameInput;
                 $_SESSION['email']      = $emailInput;
+                brewski_record_activity(
+                    $pdo,
+                    'profile',
+                    'Updated profile',
+                    'Updated account profile details.'
+                );
                 $_SESSION['profile_flash'] = 'Your profile has been updated.';
 
                 header('Location: customer_profile.php');
@@ -211,6 +230,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $addressFormValues['province'],
                     $addressFormValues['postal_code'],
                 ]);
+                brewski_record_activity(
+                    $pdo,
+                    'account',
+                    'Added delivery address',
+                    'Added a delivery address to the account.',
+                    'address',
+                    (int) $pdo->lastInsertId()
+                );
 
                 $_SESSION['profile_flash'] = 'Your delivery address has been added.';
                 header('Location: customer_profile.php');
@@ -255,6 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                 $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
 
                 session_regenerate_id(true);
+                brewski_record_activity(
+                    $pdo,
+                    'security',
+                    'Changed password',
+                    'Changed the account password.'
+                );
                 $_SESSION['profile_flash'] = 'Your password has been changed.';
 
                 header('Location: customer_profile.php');

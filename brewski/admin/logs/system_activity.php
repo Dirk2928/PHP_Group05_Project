@@ -42,6 +42,8 @@ $categoryLabels = [
     'team' => 'Team management',
     'profile' => 'Profile',
     'security' => 'Security',
+    'account' => 'Account',
+    'preferences' => 'Preferences',
     'system' => 'System',
 ];
 ?>

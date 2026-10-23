@@ -133,23 +133,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $user !== null) {
                         $_SESSION['created_at'] = time();
                         $_SESSION['last_activity'] = time();
                         unset($_SESSION['totp_enrollment_pending']);
-                        
-                        // FORCE LOG DIRECTLY TO DATABASE
-                        try {
-                            $logStmt = $pdo->prepare("INSERT INTO system_activity_logs (actor_user_id, actor_name, actor_role, category, action, description) VALUES (?, ?, ?, ?, ?, ?)");
-                            $logStmt->execute([
-                                $userId,
-                                $user['first_name'] . ' ' . $user['last_name'],
-                                strtoupper(trim((string) $user['role'])),
-                                'authentication',
-                                'Signed in',
-                                'Signed in after authenticator enrollment.'
-                            ]);
-                        } catch (Throwable $e) {
-                            error_log('Manual log fail: ' . $e->getMessage());
-                        }
-
-                    } elseif (in_array(brewski_current_role(), ['ADMIN', 'STAFF'], true)) {
+                        brewski_record_activity(
+                            $pdo,
+                            'authentication',
+                            'Signed in',
+                            'Signed in after authenticator enrollment.'
+                        );
+                    } elseif (brewski_is_logged_in()) {
                         brewski_record_activity($pdo, 'security', 'Enabled authenticator', 'Enabled authenticator-based sign-in.');
                     }
                     header('Location: ' . $setupUrl . '?enrolled=1');
