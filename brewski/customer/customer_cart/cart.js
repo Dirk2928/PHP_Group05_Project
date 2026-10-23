@@ -38,13 +38,6 @@
         });
     }
 
-    // FIX: this function was missing, which made window.BrewskiCart throw a ReferenceError
-    function count() {
-        return load().reduce(function (sum, item) {
-            return sum + (Number(item.quantity) || 0);
-        }, 0);
-    }
-
     function syncWithDatabase(items) {
         if (!sessionUrl || !csrfToken || !syncEnabled || syncEnabled.content !== '1') {
             return Promise.resolve();
@@ -189,55 +182,39 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- KEEP "Save Changes" LABEL WHILE EDITING ---
-    // Whenever another script flips the button back to "Add to Cart" while we
-    // are editing a cart item, put "Save Changes" back.
-    function enforceEditLabel() {
+    // --- THE MAGIC FIX: MUTATION OBSERVER ---
+    // This watches the modal for changes. If the menu script redraws the button,
+    // we instantly change it back to "Save Changes" before you even see it.
+    var editBtnObserver = new MutationObserver(function(mutations) {
         var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; // not editing
+        if (!editKeyInput || editKeyInput.value === '') return; // Not editing, ignore
 
         var btn = document.getElementById('btn-confirm-add');
         if (btn && btn.textContent.indexOf('Add to Cart') !== -1) {
             btn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
             if (window.lucide) window.lucide.createIcons();
         }
-    }
+    });
 
-    function initEditLabelGuard() {
-        var modalEl = document.getElementById('customization-modal');
-        if (!modalEl) return;
-
-        // 1. Catch any redraw of the button
-        new MutationObserver(enforceEditLabel)
-            .observe(modalEl, { childList: true, subtree: true, characterData: true });
-
-        // 2. Backup: after ANY click inside the modal, re-check once the
-        //    menu script has finished running
-        modalEl.addEventListener('click', function () {
-            setTimeout(enforceEditLabel, 0);
-        });
-    }
-
-    // FIX: wait for the DOM so the modal exists before we attach the observer
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initEditLabelGuard);
-    } else {
-        initEditLabelGuard();
+    // Start watching when the modal is on the page
+    var modal = document.getElementById('customization-modal');
+    if (modal) {
+        editBtnObserver.observe(modal, { childList: true, subtree: true, characterData: true });
     }
 
     // --- EDIT INTERCEPTOR ---
-    window.openEditModal = function (key) {
+    window.openEditModal = function(key) {
         var items = load();
-        var item = items.find(function (i) { return i.key === key; });
+        var item = items.find(function(i) { return i.key === key; });
         if (!item) return;
 
-        setOpen(false);
+        setOpen(false); 
 
         var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
-
+        
         if (productCard) {
             var addBtn = productCard.querySelector('.btn-add');
-            if (addBtn) addBtn.click();
+            if (addBtn) addBtn.click(); 
 
             document.getElementById('modal-edit-key').value = key;
 
@@ -256,12 +233,12 @@
     };
 
     // 1. Handle Save Changes
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
         var confirmBtn = e.target.closest('#btn-confirm-add');
         if (!confirmBtn) return;
 
         var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return;
+        if (!editKeyInput || editKeyInput.value === '') return; 
 
         e.preventDefault();
         e.stopPropagation();
@@ -270,7 +247,7 @@
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
         var productCard = document.querySelector('.product-card[data-name="' + productName + '"]');
-
+        
         if (!productCard) return;
 
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
@@ -280,7 +257,7 @@
 
         var selectedOptions = [];
         var optionGroups = modal.querySelectorAll('[data-option-group]');
-        optionGroups.forEach(function (group) {
+        optionGroups.forEach(function(group) {
             if (group.hasAttribute('hidden')) return;
             var activeBtn = group.querySelector('.option-btn.active');
             if (activeBtn) {
@@ -304,28 +281,27 @@
         };
 
         var items = load();
-        items = items.filter(function (i) { return i.key !== oldKey; });
+        items = items.filter(function(i) { return i.key !== oldKey; });
         items.push(newItem);
-
+        
         save(items);
-
+        
         // Close modal and reset
         modal.classList.remove('active');
         editKeyInput.value = '';
-
+        
         // Reset button text
         confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
         document.getElementById('modal-product-name').textContent = 'Customize your drink';
-        if (window.lucide) window.lucide.createIcons();
 
     }, true);
 
     // 2. Reset on close
-    document.addEventListener('click', function (e) {
+    document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput && editKeyInput.value !== '') {
-                setTimeout(function () {
+                setTimeout(function() {
                     editKeyInput.value = '';
                     var confirmBtn = document.getElementById('btn-confirm-add');
                     if (confirmBtn) {
@@ -434,7 +410,7 @@
         STORAGE_KEY: STORAGE_KEY,
         load: load,
         save: save,
-        add: function (item) { save(load().concat([item])); },
+        add: function(item) { save([...load(), item]); },
         count: count,
         render: render
     };
