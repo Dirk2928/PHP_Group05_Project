@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Record a staff or administrator action without interrupting the action being logged.
+ * Record an action without interrupting the action being logged.
  */
 function brewski_record_activity(
     PDO|mysqli $database,
@@ -9,16 +9,20 @@ function brewski_record_activity(
     string $action,
     string $description,
     ?string $targetType = null,
-    ?int $targetId = null
+    ?int $targetId = null,
+    ?int $overrideActorId = null,
+    ?string $overrideRole = null,
+    ?string $overrideName = null
 ): void {
-    $role = strtoupper(trim((string) ($_SESSION['role'] ?? '')));
-    $actorId = (int) ($_SESSION['user_id'] ?? 0);
+    $role = $overrideRole ?? strtoupper(trim((string) ($_SESSION['role'] ?? '')));
+    $actorId = $overrideActorId ?? (int) ($_SESSION['user_id'] ?? 0);
 
-    if ($actorId <= 0 || !in_array($role, ['ADMIN', 'STAFF'], true)) {
+    // Allow ADMIN, STAFF, and CUSTOMER
+    if ($actorId <= 0 || !in_array($role, ['ADMIN', 'STAFF', 'CUSTOMER'], true)) {
         return;
     }
 
-    $actorName = trim(
+    $actorName = $overrideName ?? trim(
         (string) ($_SESSION['first_name'] ?? '') . ' ' . (string) ($_SESSION['last_name'] ?? '')
     );
     if ($actorName === '') {
