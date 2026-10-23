@@ -182,9 +182,7 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- NEW EDIT INTERCEPTOR ---
-    
-    // 1. Open the modal and set the Edit Key
+    // --- EDIT INTERCEPTOR ---
     window.openEditModal = function(key) {
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
@@ -196,7 +194,7 @@
         
         if (productCard) {
             var addBtn = productCard.querySelector('.btn-add');
-            if (addBtn) addBtn.click(); // Opens the modal
+            if (addBtn) addBtn.click(); 
 
             document.getElementById('modal-edit-key').value = key;
 
@@ -213,40 +211,33 @@
         }
     };
 
-    // 2. Intercept the Save Changes button
+    // 1. Intercept Save Changes button
     document.addEventListener('click', function(e) {
         var confirmBtn = e.target.closest('#btn-confirm-add');
         if (!confirmBtn) return;
 
         var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; // Not editing, let menu handle it
+        if (!editKeyInput || editKeyInput.value === '') return; 
 
         e.preventDefault();
         e.stopPropagation();
 
         var oldKey = editKeyInput.value;
-        
-        // Get current product info from the card
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
         var productCard = document.querySelector('.product-card[data-name="' + productName + '"]');
         
         if (!productCard) return;
 
-        // Read the quantity
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
-        
-        // Read the total price from the modal footer
         var priceText = document.getElementById('modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
         var totalPrice = parseFloat(priceText) || 0;
         var unitPrice = totalPrice / qty;
 
-        // Read the selected options
         var selectedOptions = [];
         var optionGroups = modal.querySelectorAll('[data-option-group]');
         optionGroups.forEach(function(group) {
             if (group.hasAttribute('hidden')) return;
-            var groupName = group.getAttribute('data-option-group');
             var activeBtn = group.querySelector('.option-btn.active');
             if (activeBtn) {
                 selectedOptions.push(activeBtn.textContent.trim());
@@ -269,18 +260,41 @@
         };
 
         var items = load();
-        // Remove old key
         items = items.filter(function(i) { return i.key !== oldKey; });
-        // Add new key
         items.push(newItem);
         
         save(items);
         
-        // Close modal and reset
+        // Close modal cleanly
         modal.classList.remove('active');
         editKeyInput.value = '';
-        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-    }, true); // Use capture to intercept before menu script
+        
+        // The menu might try to re-render it, so we use setTimeout to override it
+        setTimeout(function() {
+            confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+            document.getElementById('modal-product-name').textContent = 'Customize your drink';
+            if (window.lucide) window.lucide.createIcons();
+        }, 10);
+
+    }, true);
+
+    // 2. Intercept Close (X) button
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
+            var editKeyInput = document.getElementById('modal-edit-key');
+            if (editKeyInput && editKeyInput.value !== '') {
+                setTimeout(function() {
+                    editKeyInput.value = '';
+                    var confirmBtn = document.getElementById('btn-confirm-add');
+                    if (confirmBtn) {
+                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                    document.getElementById('modal-product-name').textContent = 'Customize your drink';
+                }, 50);
+            }
+        }
+    }, true);
 
     if (menu && button && body) {
 
@@ -378,7 +392,7 @@
         STORAGE_KEY: STORAGE_KEY,
         load: load,
         save: save,
-        add: function(item) { save([...load(), item]); }, // fallback
+        add: function(item) { save([...load(), item]); },
         count: count,
         render: render
     };
