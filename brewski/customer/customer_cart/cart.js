@@ -13,9 +13,6 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
-    // We will store the item key we are editing here
-    var itemToEditKey = null;
-
     function load() {
         try {
             var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -85,14 +82,6 @@
 
     function add(item) {
         var items = load();
-        
-        // If we are editing, remove the old item first
-        if (itemToEditKey !== null) {
-            items = items.filter(function(entry) {
-                return entry.key !== itemToEditKey;
-            });
-        }
-
         var key = makeKey(item.name, item.size || '', item.customization || '');
         var quantity = Math.max(1, Math.min(MAX_QTY, parseInt(item.quantity, 10) || 1));
         var existing = null;
@@ -121,8 +110,6 @@
                 quantity: quantity
             });
         }
-        
-        itemToEditKey = null; // Reset edit mode
         save(items);
     }
 
@@ -191,7 +178,6 @@
                 ? 'Per drink: ' + item.customization
                 : 'No extras per drink';
 
-            // The edit button now calls the custom function
             html +=
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
                     '<div class="cart-drink">' +
@@ -235,48 +221,71 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- HIJACK THE MENU MODAL FOR EDITING ---
     function openEditModal(key) {
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
         if (!item) return;
 
-        itemToEditKey = key;
         setOpen(false); // Close cart dropdown
 
-        // 1. Open the customization modal
-        var modal = document.getElementById('customization-modal');
-        if (modal) modal.classList.add('active');
-
-        // 2. Fill in the product details
-        var nameEl = document.getElementById('modal-product-name');
-        if (nameEl) nameEl.textContent = 'Customize: ' + item.name;
-
-        // 3. Change the "Add to Cart" button text to "Save Changes"
-        var confirmBtn = document.getElementById('btn-confirm-add');
-        if (confirmBtn) {
-            confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
-            if (window.lucide) window.lucide.createIcons();
-        }
+        // Find the product card on the page that matches this item
+        var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
         
-        // Note: The actual pre-filling of Size, Sugar, Temp, and total price 
-        // is handled by customermenu.php's script.js when it detects the modal is open.
-        // We are relying on the fact that the modal reads from the product card on the page.
-        // To pre-fill, we need to find the product card and trigger a click, but 
-        // without overriding the existing customization logic, we can just let them re-choose.
+        if (productCard) {
+            // 1. Trigger the menu's built-in click event to open the modal and calculate prices
+            var addBtn = productCard.querySelector('.btn-add');
+            if (addBtn) addBtn.click();
+
+            // 2. Save the item key in the hidden field so we know we are editing
+            var editKeyInput = document.getElementById('modal-edit-key');
+            if (editKeyInput) editKeyInput.value = key;
+
+            // 3. Change the "Add to Cart" button text to "Save Changes"
+            var confirmBtn = document.getElementById('btn-confirm-add');
+            if (confirmBtn) {
+                confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // 4. Update the title to say "Edit: Americano"
+            var titleEl = document.getElementById('modal-product-name');
+            if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
+        } else {
+            alert("Please go to the Menu page to edit this drink's customizations.");
+        }
     }
 
-    // Reset button when modal closes
+    // Reset button and hidden input when modal closes
     document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
-            // Only reset if we were editing
-            if (itemToEditKey !== null) {
-                itemToEditKey = null;
+            var editKeyInput = document.getElementById('modal-edit-key');
+            if (editKeyInput && editKeyInput.value !== '') {
+                editKeyInput.value = '';
                 var confirmBtn = document.getElementById('btn-confirm-add');
                 if (confirmBtn) {
                     confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
                     if (window.lucide) window.lucide.createIcons();
                 }
+                var titleEl = document.getElementById('modal-product-name');
+                if (titleEl) titleEl.textContent = 'Customize your drink';
+            }
+        }
+    });
+
+    // Listen for the confirm button to intercept the save if we are editing
+    document.addEventListener('click', function(e) {
+        var confirmBtn = e.target.closest('#btn-confirm-add');
+        if (confirmBtn) {
+            var editKeyInput = document.getElementById('modal-edit-key');
+            if (editKeyInput && editKeyInput.value !== '') {
+                // We are editing! Remove the old item from the cart.
+                var oldKey = editKeyInput.value;
+                var items = load();
+                items = items.filter(function(entry) {
+                    return entry.key !== oldKey;
+                });
+                persist(items); // Save silently before the new item is added by the menu's script
+                editKeyInput.value = '';
             }
         }
     });

@@ -37,6 +37,9 @@
         </div>
 
         <div class="modal__body">
+            
+            <!-- Hidden field to track if we are editing -->
+            <input type="hidden" id="modal-edit-key" value="">
 
             <section class="option-group drink-quantity">
                 <h3>Drink Quantity</h3>
