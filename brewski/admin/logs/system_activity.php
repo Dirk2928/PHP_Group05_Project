@@ -10,6 +10,9 @@ $loadError = '';
 $databaseName = '';
 
 try {
+    // TIMESTAMP values are returned in the connection timezone. Normalize the
+    // result to UTC before converting each row to Philippine time below.
+    $pdo->exec("SET time_zone = '+00:00'");
     $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
     $statement = $pdo->query(
         "SELECT activity_id, actor_name, actor_role, category, action, description,
@@ -102,7 +105,15 @@ $categoryLabels = [
                         <?php
                         $role = strtoupper((string) $log['actor_role']);
                         $roleClass = $role === 'ADMIN' ? 'badge-role-admin' : 'badge-role-staff';
-                        $createdAt = strtotime((string) $log['created_at']);
+                        $createdAt = null;
+                        try {
+                            $createdAt = (new DateTimeImmutable(
+                                (string) $log['created_at'],
+                                new DateTimeZone('UTC')
+                            ))->setTimezone(new DateTimeZone('Asia/Manila'));
+                        } catch (Throwable $error) {
+                            error_log('Could not format system activity timestamp: ' . $error->getMessage());
+                        }
                         $category = strtolower((string) $log['category']);
                         ?>
                         <tr data-id="<?= (int) $log['activity_id'] ?>"
@@ -110,8 +121,8 @@ $categoryLabels = [
                             data-role="<?= $escape($role) ?>"
                             data-category="<?= $escape($category) ?>"
                             data-search="<?= $escape($log['action'] . ' ' . $log['description'] . ' ' . ($log['target_type'] ?? '') . ' ' . ($log['target_id'] ?? '')) ?>"
-                            data-date="<?= $escape(date('Y-m-d', $createdAt ?: time())) ?>">
-                            <td><span class="cell-muted"><?= $escape($createdAt ? date('M j, Y · h:i A', $createdAt) : $log['created_at']) ?></span></td>
+                            data-date="<?= $escape($createdAt ? $createdAt->format('Y-m-d') : '') ?>">
+                            <td><span class="cell-muted"><?= $escape($createdAt ? $createdAt->format('M j, Y · h:i A') : $log['created_at']) ?></span></td>
                             <td><span class="cell-strong"><?= $escape($log['actor_name']) ?></span></td>
                             <td><span class="badge <?= $roleClass ?>"><?= $role === 'ADMIN' ? 'Admin' : 'Staff' ?></span></td>
                             <td>
