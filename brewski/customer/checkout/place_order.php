@@ -139,9 +139,6 @@ try {
     $pendingPayment = $pendingStatement->fetch();
     $stalePaymentResolved = false;
     if ($pendingPayment) {
-        // FIX: a failed lookup of an old session (wrong key/mode, deleted
-        // session, network blip) used to abort checkout permanently for this
-        // customer. Now we log it and treat the old session as stale.
         $sessionLookupFailed = false;
         $sessionResponse = [];
         try {
@@ -206,7 +203,6 @@ try {
     }
 
     if ($stalePaymentResolved) {
-        // Persist the failed session even if creating the replacement session fails.
         $pdo->commit();
         $pdo->beginTransaction();
         $cartStatement = $pdo->prepare(
@@ -293,19 +289,13 @@ try {
     $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
     $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
 
-    // DEBUG: set to true to try only the safest methods. If checkout then works,
-    // one of the methods in the full list is not activated on your PayMongo account.
     $debugMinimalMethods = false;
     $paymentMethodTypes = $debugMinimalMethods
-        ? ['card', 'gcash', 'paymaya']
+        ? ['gcash', 'paymaya']
         : [
-            'card',
             'gcash',
             'paymaya',
             'grab_pay',
-            'billease',
-            'dob',
-            'brankas',
             'qrph',
         ];
 
@@ -364,7 +354,6 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    // Logging added so the real reason shows up in the Render logs.
     error_log(sprintf(
         'place_order RuntimeException (user %d): %s at %s:%d',
         $userId,
