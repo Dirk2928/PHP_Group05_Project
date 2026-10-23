@@ -12,7 +12,6 @@
     var menu = document.getElementById('cart-menu');
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
-    var footer = document.getElementById('cart-footer');
 
     function load() {
         try {
@@ -151,10 +150,6 @@
         });
 
         renderBadge(total);
-
-        if (footer) {
-            footer.hidden = total < 1;
-        }
 
         if (!body) {
             return;
