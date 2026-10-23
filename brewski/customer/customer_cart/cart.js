@@ -182,7 +182,17 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- THE FIX: RACE CONDITION INTERCEPTOR ---
+    // --- SYNC PRICE TO OUR CUSTOM FOOTER ---
+    // The menu updates #modal-total-price, so we copy it to our footer every 50ms
+    setInterval(function() {
+        var nativePrice = document.getElementById('modal-total-price');
+        var customPrice = document.getElementById('custom-modal-total-price');
+        if (nativePrice && customPrice && nativePrice.textContent !== customPrice.textContent) {
+            customPrice.textContent = nativePrice.textContent;
+        }
+    }, 50);
+
+    // --- EDIT INTERCEPTOR ---
     window.openEditModal = function(key) {
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
@@ -198,39 +208,23 @@
 
             document.getElementById('modal-edit-key').value = key;
 
+            // Swap our custom buttons
+            document.getElementById('custom-btn-add').style.display = 'none';
+            document.getElementById('custom-btn-save').style.display = 'flex';
+
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
-
-            // Start a "watcher" loop that forces the button text to stay as "Save Changes"
-            if (window.editModeWatcher) clearInterval(window.editModeWatcher);
-            window.editModeWatcher = setInterval(function() {
-                var btn = document.getElementById('btn-confirm-add');
-                if (btn && document.getElementById('modal-edit-key').value !== '') {
-                    // If the button currently says "Add to Cart", change it to "Save Changes"
-                    if (btn.innerHTML.indexOf('Add to Cart') !== -1) {
-                        btn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
-                        if (window.lucide) window.lucide.createIcons();
-                    }
-                } else {
-                    clearInterval(window.editModeWatcher);
-                }
-            }, 50); // Check every 50ms
         } else {
             alert("Please go to the Menu page to edit this drink's customizations.");
         }
     };
 
-    // 1. Handle Save Changes
-    document.addEventListener('click', function(e) {
-        var confirmBtn = e.target.closest('#btn-confirm-add');
-        if (!confirmBtn) return;
-
-        var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; 
-
+    // 1. Handle Save Changes (Custom Button)
+    document.getElementById('custom-btn-save')?.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
+        var editKeyInput = document.getElementById('modal-edit-key');
         var oldKey = editKeyInput.value;
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
@@ -239,7 +233,7 @@
         if (!productCard) return;
 
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
-        var priceText = document.getElementById('modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
+        var priceText = document.getElementById('custom-modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
         var totalPrice = parseFloat(priceText) || 0;
         var unitPrice = totalPrice / qty;
 
@@ -277,26 +271,34 @@
         // Close modal and reset
         modal.classList.remove('active');
         editKeyInput.value = '';
-        if (window.editModeWatcher) clearInterval(window.editModeWatcher);
         
-        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+        // Reset our custom buttons
+        document.getElementById('custom-btn-save').style.display = 'none';
+        document.getElementById('custom-btn-add').style.display = 'flex';
         document.getElementById('modal-product-name').textContent = 'Customize your drink';
 
-    }, true);
+    });
 
-    // 2. Reset on close
+    // 2. Handle Add to Cart (Custom Button)
+    document.getElementById('custom-btn-add')?.addEventListener('click', function(e) {
+        // If we are NOT editing, we let the menu handle it by clicking the hidden native button
+        var editKeyInput = document.getElementById('modal-edit-key');
+        if (editKeyInput && editKeyInput.value !== '') return; // If editing, do nothing here
+
+        e.preventDefault();
+        var nativeBtn = document.getElementById('btn-confirm-add');
+        if (nativeBtn) nativeBtn.click();
+    });
+
+    // 3. Reset on close
     document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput && editKeyInput.value !== '') {
                 setTimeout(function() {
                     editKeyInput.value = '';
-                    if (window.editModeWatcher) clearInterval(window.editModeWatcher);
-                    var confirmBtn = document.getElementById('btn-confirm-add');
-                    if (confirmBtn) {
-                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-                        if (window.lucide) window.lucide.createIcons();
-                    }
+                    document.getElementById('custom-btn-save').style.display = 'none';
+                    document.getElementById('custom-btn-add').style.display = 'flex';
                     document.getElementById('modal-product-name').textContent = 'Customize your drink';
                 }, 50);
             }
