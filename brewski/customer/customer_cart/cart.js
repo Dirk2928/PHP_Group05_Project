@@ -80,8 +80,16 @@
         return [name, size, customization].join('|');
     }
 
-    function add(item) {
+    function add(item, isEdit) {
         var items = load();
+        
+        // If we are editing, remove the old item first
+        if (isEdit && item.originalKey) {
+            items = items.filter(function (entry) {
+                return entry.key !== item.originalKey;
+            });
+        }
+
         var key = makeKey(item.name, item.size || '', item.customization || '');
         var quantity = Math.max(1, Math.min(MAX_QTY, parseInt(item.quantity, 10) || 1));
         var existing = null;
@@ -92,23 +100,28 @@
             }
         });
 
-        if (existing) {
+        if (existing && !isEdit) {
             existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + quantity);
-            existing.productId = Number(item.productId) || existing.productId || 0;
-            existing.customizationOptions = item.customizationOptions || existing.customizationOptions || {};
-            existing.price = Number(item.price) || existing.price || 0;
         } else {
-            items.push({
-                key: key,
-                productId: Number(item.productId) || 0,
-                name: item.name,
-                image: item.image || '',
-                size: item.size || '',
-                customization: item.customization || '',
-                customizationOptions: item.customizationOptions || {},
-                price: Number(item.price) || 0,
-                quantity: quantity
-            });
+            if (existing) {
+                // If editing and the key hasn't changed, just update it
+                existing.quantity = quantity;
+                existing.price = Number(item.price) || existing.price || 0;
+                existing.customizationOptions = item.customizationOptions || existing.customizationOptions || {};
+            } else {
+                // Otherwise push new
+                items.push({
+                    key: key,
+                    productId: Number(item.productId) || 0,
+                    name: item.name,
+                    image: item.image || '',
+                    size: item.size || '',
+                    customization: item.customization || '',
+                    customizationOptions: item.customizationOptions || {},
+                    price: Number(item.price) || 0,
+                    quantity: quantity
+                });
+            }
         }
         save(items);
     }
@@ -226,17 +239,16 @@
         var item = items.find(function(i) { return i.key === key; });
         if (!item) return;
 
-        setOpen(false); // Close cart dropdown
+        setOpen(false); 
 
-        // Find the product card on the page that matches this item
         var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
         
         if (productCard) {
-            // 1. Trigger the menu's built-in click event to open the modal and calculate prices
+            // 1. Trigger the menu's built-in click event to open the modal
             var addBtn = productCard.querySelector('.btn-add');
             if (addBtn) addBtn.click();
 
-            // 2. Save the item key in the hidden field so we know we are editing
+            // 2. Save the item key in the hidden field
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput) editKeyInput.value = key;
 
@@ -247,7 +259,6 @@
                 if (window.lucide) window.lucide.createIcons();
             }
 
-            // 4. Update the title to say "Edit: Americano"
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
         } else {
@@ -255,7 +266,7 @@
         }
     }
 
-    // Reset button and hidden input when modal closes
+    // Reset modal when closed
     document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
             var editKeyInput = document.getElementById('modal-edit-key');
@@ -272,19 +283,32 @@
         }
     });
 
-    // Listen for the confirm button to intercept the save if we are editing
+    // Intercept the Add to Cart click from the menu
     document.addEventListener('click', function(e) {
         var confirmBtn = e.target.closest('#btn-confirm-add');
         if (confirmBtn) {
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput && editKeyInput.value !== '') {
-                // We are editing! Remove the old item from the cart.
                 var oldKey = editKeyInput.value;
-                var items = load();
-                items = items.filter(function(entry) {
-                    return entry.key !== oldKey;
-                });
-                persist(items); // Save silently before the new item is added by the menu's script
+                
+                // Find the function inside the menu that builds the item payload
+                // Since we can't hook into its internal variables, we wait a tick for it to add the item
+                // then we clean up the duplicate.
+                setTimeout(function() {
+                    var items = load();
+                    // Remove the old item if it's still there
+                    var newItems = items.filter(function(entry) {
+                        return entry.key !== oldKey;
+                    });
+                    // Also need to clean up if the new item was added but old wasn't removed
+                    // Actually, the safest way: if the user hits Save, the new item is pushed by the menu.
+                    // If the new key matches the old key, they just updated quantity.
+                    // If the new key differs, we want ONLY the new one.
+                    // So we just filter out the old key.
+                    persist(newItems);
+                    render();
+                }, 100);
+
                 editKeyInput.value = '';
             }
         }
