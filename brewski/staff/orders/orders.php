@@ -180,23 +180,8 @@ $csrf_token = $_SESSION['csrf_token'];
                     <span class="order-count" id="orderCount"></span>
                 </div>
 
-                <div class="table-card order-table-card">
-                    <div class="order-table-scroll">
-                        <table class="orders-table">
-                            <thead>
-                                <tr>
-                                    <th>Order</th>
-                                    <th>Customer</th>
-                                    <th>Items</th>
-                                    <th>Total</th>
-                                    <th>Placed</th>
-                                    <th>Status</th>
-                                    <th>Next step</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ordersBody"></tbody>
-                        </table>
-                    </div>
+                <div class="table-card order-board-card">
+                    <div class="order-board" id="ordersBoard" aria-label="Orders by status"></div>
                     <div class="orders-empty hidden" id="ordersEmpty">
                         <span class="orders-empty-icon" aria-hidden="true">☕</span>
                         <p class="empty-title">No matching orders</p>

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    var ordersBody = document.getElementById('ordersBody');
+    var ordersBoard = document.getElementById('ordersBoard');
     var ordersEmpty = document.getElementById('ordersEmpty');
     var orderSearch = document.getElementById('orderSearch');
     var statusFilter = document.getElementById('orderStatusFilter');
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var ordersPageInfo = document.getElementById('ordersPageInfo');
     var ordersPagination = document.getElementById('ordersPagination');
 
-    if (!ordersBody || !ordersEmpty || !productList) {
+    if (!ordersBoard || !ordersEmpty || !productList) {
         return;
     }
 
@@ -30,6 +30,15 @@ document.addEventListener('DOMContentLoaded', function () {
         COMPLETED: [],
         CANCELLED: []
     };
+
+    var orderStatuses = [
+        { key: 'PENDING', label: 'Pending' },
+        { key: 'CONFIRMED', label: 'Confirmed' },
+        { key: 'PREPARING', label: 'Preparing' },
+        { key: 'READY', label: 'Ready' },
+        { key: 'COMPLETED', label: 'Completed' },
+        { key: 'CANCELLED', label: 'Cancelled' }
+    ];
 
     var advanceLabels = {
         CONFIRMED: 'Confirm order',
@@ -240,33 +249,54 @@ document.addEventListener('DOMContentLoaded', function () {
         var start = (ordersPage - 1) * ordersPageSize;
         var pageOrders = visibleOrders.slice(start, start + ordersPageSize);
 
-        ordersBody.innerHTML = pageOrders.map(function (order) {
-            var items = order.items.map(function (item) {
-                return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
-            }).join('');
+        var lanes = orderStatuses.map(function (orderStatus) {
+            var laneOrders = pageOrders.filter(function (order) {
+                return order.status === orderStatus.key;
+            });
 
-            if (!items) {
-                items = '<li>No items</li>';
-            }
+            var cards = laneOrders.map(function (order) {
+                var items = order.items.map(function (item) {
+                    return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
+                }).join('');
 
-            return '<tr>' +
-                '<td><span class="order-id">#' + escapeHtml(order.order_id) + '</span></td>' +
-                '<td><div class="order-customer"><span class="customer-avatar">' +
-                    escapeHtml(initialsOf(order.customer || 'Guest')) +
-                    '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong></span></div></td>' +
-                '<td><ul class="order-items">' + items + '</ul>' +
+                if (!items) {
+                    items = '<li>No items</li>';
+                }
+
+                return '<article class="order-card">' +
+                    '<div class="order-card-heading">' +
+                        '<span class="order-id">#' + escapeHtml(order.order_id) + '</span>' +
+                        '<span class="order-status order-status--' + String(order.status).toLowerCase() + '">' +
+                            escapeHtml(orderStatus.label) + '</span>' +
+                    '</div>' +
+                    '<div class="order-customer"><span class="customer-avatar">' +
+                        escapeHtml(initialsOf(order.customer || 'Guest')) +
+                        '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong>' +
+                        '<small>' + escapeHtml(formatPlaced(order.created_at)) + '</small></span></div>' +
+                    '<ul class="order-items">' + items + '</ul>' +
                     (order.delivery_notes
-                        ? '<p class="order-delivery-notes"><strong>Delivery notes:</strong> ' +
+                        ? '<p class="order-delivery-notes"><strong>Notes:</strong> ' +
                             escapeHtml(order.delivery_notes) + '</p>'
                         : '') +
-                    '</td>' +
-                '<td class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</td>' +
-                '<td class="order-placed">' + escapeHtml(formatPlaced(order.created_at)) + '</td>' +
-                '<td><span class="order-status order-status--' + String(order.status).toLowerCase() + '">' +
-                    escapeHtml(order.status) + '</span></td>' +
-                '<td>' + actionCell(order) + '</td>' +
-                '</tr>';
+                    '<div class="order-card-footer">' +
+                        '<strong class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</strong>' +
+                        '<div class="order-card-actions">' + actionCell(order) + '</div>' +
+                    '</div>' +
+                '</article>';
+            }).join('');
+
+            return '<section class="order-lane order-lane--' + orderStatus.key.toLowerCase() +
+                '" aria-label="' + escapeHtml(orderStatus.label) + ' orders">' +
+                '<div class="order-lane-heading">' +
+                    '<h2>' + escapeHtml(orderStatus.label) + '</h2>' +
+                    '<span>' + laneOrders.length + '</span>' +
+                '</div>' +
+                '<div class="order-lane-cards">' + (cards || '<p class="order-lane-empty">No orders</p>') + '</div>' +
+                '</section>';
         }).join('');
+
+        ordersBoard.innerHTML = lanes;
+        ordersBoard.classList.toggle('hidden', visibleOrders.length === 0);
 
         ordersEmpty.classList.toggle('hidden', visibleOrders.length > 0);
         orderCount.textContent = visibleOrders.length + (visibleOrders.length === 1 ? ' order' : ' orders');
@@ -463,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            var busy = ordersBody.querySelector('button[disabled]') || 
+            var busy = ordersBoard.querySelector('button[disabled]') ||
                        productList.querySelector('button[disabled]');
             if (busy) {
                 return;
@@ -480,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    ordersBody.addEventListener('click', function (event) {
+    ordersBoard.addEventListener('click', function (event) {
         var button = event.target.closest('button[data-order-id]');
         if (!button) {
             return;
