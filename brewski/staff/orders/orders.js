@@ -204,13 +204,26 @@ document.addEventListener('DOMContentLoaded', function () {
         var query = orderSearch.value.trim().toLowerCase();
         var status = statusFilter.value;
         var visibleOrders = orders.filter(function (order) {
-            var haystack = (order.order_id + ' ' + order.customer + ' ' + (order.delivery_notes || '')).toLowerCase();
+            var haystack = (
+                order.order_id + ' ' +
+                (order.customer || '') + ' ' +
+                (order.delivery_notes || '') + ' ' +
+                (order.items || []).map(function (item) { return item.name || ''; }).join(' ')
+            ).toLowerCase();
 
             return (!query || haystack.indexOf(query) !== -1) &&
-                (status === 'ALL' || order.status === status);
+                (status === 'ALL' || order.status === status.toUpperCase());
         });
 
-        var lanes = orderStatuses.map(function (orderStatus) {
+        var lanes = orderStatuses.filter(function (orderStatus) {
+            if (status !== 'ALL' && orderStatus.key !== status.toUpperCase()) {
+                return false;
+            }
+
+            return !query || visibleOrders.some(function (order) {
+                return order.status === orderStatus.key;
+            });
+        }).map(function (orderStatus) {
             var laneOrders = visibleOrders.filter(function (order) {
                 return order.status === orderStatus.key;
             });
@@ -435,7 +448,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                orders = payload.orders || [];
+                orders = (payload.orders || []).map(function (order) {
+                    order.status = String(order.status || '').trim().toUpperCase();
+                    return order;
+                });
                 products = payload.products || [];
 
                 renderCategoryOptions();

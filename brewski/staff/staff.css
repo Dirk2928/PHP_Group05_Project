@@ -1287,22 +1287,40 @@ body.sidebar-open::after {
 }
 
 .order-toolbar {
-    padding: 12px 14px;
+    gap: 14px;
+    padding: 12px 16px;
+}
+
+.order-toolbar .toolbar-filters {
+    flex: 1 1 520px;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(170px, 210px);
+    gap: 12px;
 }
 
 .order-search {
-    flex: 1 1 280px;
-    max-width: 380px;
+    min-width: 0;
+    max-width: none;
 }
 
 .order-search .toolbar-input {
     max-width: none;
 }
 
+.order-toolbar .toolbar-select {
+    width: 100%;
+}
+
 .order-count,
 .product-list-count {
     color: var(--text-muted);
     font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .order-toolbar .toolbar-filters {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .order-table-card {
