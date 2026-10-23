@@ -63,16 +63,26 @@ try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'SELECT delivery_id, order_id, staff_id, delivery_status
-         FROM deliveries
-         WHERE delivery_id = ?
-         FOR UPDATE'
+        'SELECT d.delivery_id, d.order_id, d.staff_id, d.delivery_status,
+                (SELECT op.payment_status
+                   FROM order_payments op
+                  WHERE op.order_id = d.order_id
+                  LIMIT 1) AS payment_status
+           FROM deliveries d
+          WHERE d.delivery_id = ?
+          FOR UPDATE'
     );
     $stmt->execute([$deliveryId]);
     $delivery = $stmt->fetch();
 
     if (!$delivery) {
         throw new RuntimeException('Delivery not found.');
+    }
+    if (
+        $delivery['payment_status'] !== null
+        && $delivery['payment_status'] !== 'PAID'
+    ) {
+        throw new RuntimeException('This delivery cannot be processed until payment is confirmed.');
     }
 
     if (!in_array($newStatus, $transitions[$delivery['delivery_status']] ?? [], true)) {

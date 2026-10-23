@@ -56,7 +56,7 @@ if (!$foreignSession && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    $submissionErrors = brewski_auth_submission_errors($_POST, (bool) $portal['recaptcha']);
+    $submissionErrors = brewski_auth_submission_errors($_POST, false);
 
     if ($submissionErrors) {
 
@@ -135,33 +135,11 @@ $escape = static function (string $value): string {
         href="portal.css"
     >
 
-    <?php if (!$foreignSession && !empty($portal['recaptcha'])): ?>
-
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-
-    <?php endif; ?>
-
 </head>
 
 <body>
 
-<main class="auth auth--portal">
-
-    <aside class="side side--portal">
-
-        <p class="side__word">
-            brew<span>ski</span>
-        </p>
-
-        <p class="portal__badge">
-            Internal
-        </p>
-
-        <p class="side__line">
-            Staff &amp; administrator console.
-        </p>
-
-    </aside>
+<main class="auth auth--portal auth--centered auth--content-sized">
 
     <section class="auth__panel">
 
@@ -211,6 +189,8 @@ $escape = static function (string $value): string {
                 <h1 class="auth__title">
                     Staff &amp; admin sign-in
                 </h1>
+
+                <p class="auth__intro">Authorized staff and administrators only.</p>
 
                 <?php if ($error !== ''): ?>
 
@@ -272,6 +252,7 @@ $escape = static function (string $value): string {
                     <div class="field">
 
                         <label for="email">
+                            <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
                             Work email
                         </label>
 
@@ -295,6 +276,7 @@ $escape = static function (string $value): string {
                     <div class="field">
 
                         <label for="password">
+                            <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                             Password
                         </label>
 
@@ -320,6 +302,12 @@ $escape = static function (string $value): string {
 
                         </div>
 
+                        <p class="auth__switch" style="margin: 0.4rem 0 0; text-align: right; font-size: 0.72rem;">
+                            <a href="../login-signup/forgot-password.php" style="color: var(--espresso); text-decoration: underline;">
+                                Forgot your password?
+                            </a>
+                        </p>
+
                         <p
                             class="field__error"
                             id="password-error"
@@ -327,15 +315,6 @@ $escape = static function (string $value): string {
                         ></p>
 
                     </div>
-
-                    <?php if (!empty($portal['recaptcha'])): ?>
-
-                        <div
-                            class="g-recaptcha"
-                            data-sitekey="<?php echo $escape(RECAPTCHA_SITE_KEY); ?>"
-                        ></div>
-
-                    <?php endif; ?>
 
                     <button
                         type="submit"
@@ -348,17 +327,9 @@ $escape = static function (string $value): string {
 
             <?php endif; ?>
 
-            <p class="auth__switch">
-
-                How we handle your data:
-
-                <a
-                    href="<?php echo $escape(BREWSKI_BASE_URL . '/cookie-consent/privacy.php'); ?>"
-                >
-                    Privacy Policy
-                </a>
-
-            </p>
+            <div class="auth__legal">
+                <a href="<?php echo $escape(BREWSKI_BASE_URL . '/cookie-consent/privacy.php'); ?>">Privacy &amp; cookie policy</a>
+            </div>
 
         </div>
 

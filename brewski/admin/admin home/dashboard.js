@@ -396,8 +396,69 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    var openOrdersPage = 1;
+    var openOrdersPageSize = 5;
+
+    function renderOrdersPagination(orders, pageCount) {
+        var pageInfo = document.getElementById('ordersPageInfo');
+        var pagination = document.getElementById('ordersPagination');
+
+        if (!pageInfo || !pagination) {
+            return;
+        }
+
+        var start = (openOrdersPage - 1) * openOrdersPageSize;
+        pageInfo.textContent = orders.length === 0
+            ? 'No open orders'
+            : 'Showing ' + (start + 1) + ' to ' + Math.min(start + openOrdersPageSize, orders.length) +
+              ' of ' + orders.length + ' orders';
+
+        pagination.replaceChildren();
+
+        function addButton(label, disabled, active, onClick) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'page-link' + (active ? ' active' : '');
+            button.textContent = label;
+            button.disabled = disabled;
+            if (active) {
+                button.setAttribute('aria-current', 'page');
+            }
+            button.addEventListener('click', onClick);
+            pagination.appendChild(button);
+        }
+
+        addButton('Previous', openOrdersPage === 1 || orders.length === 0, false, function () {
+            openOrdersPage--;
+            renderOrders(orders);
+        });
+
+        for (var page = 1; page <= pageCount; page++) {
+            (function (target) {
+                addButton(String(target), false, target === openOrdersPage, function () {
+                    openOrdersPage = target;
+                    renderOrders(orders);
+                });
+            })(page);
+        }
+
+        addButton('Next', openOrdersPage === pageCount || orders.length === 0, false, function () {
+            openOrdersPage++;
+            renderOrders(orders);
+        });
+    }
+
     function renderOrders(orders) {
         var tableBody = document.getElementById('ordersTable');
+        var pageCount = Math.max(1, Math.ceil(orders.length / openOrdersPageSize));
+
+        if (openOrdersPage > pageCount) {
+            openOrdersPage = pageCount;
+        }
+
+        var start = (openOrdersPage - 1) * openOrdersPageSize;
+        var visibleOrders = orders.slice(start, start + openOrdersPageSize);
+
         tableBody.replaceChildren();
         if (orders.length === 0) {
             var emptyRow = document.createElement('tr');
@@ -407,10 +468,11 @@ document.addEventListener('DOMContentLoaded', function () {
             emptyCell.className = 'dashboard-empty';
             emptyRow.appendChild(emptyCell);
             tableBody.appendChild(emptyRow);
+            renderOrdersPagination(orders, pageCount);
             return;
         }
 
-        orders.forEach(function (order) {
+        visibleOrders.forEach(function (order) {
             var row = document.createElement('tr');
             var number = document.createElement('td');
             number.className = 'order-number';
@@ -441,39 +503,8 @@ document.addEventListener('DOMContentLoaded', function () {
             row.append(number, time, items, notes, total, statusCell);
             tableBody.appendChild(row);
         });
-    }
 
-    function renderStock(items, count) {
-        var container = document.getElementById('lowStockList');
-        container.replaceChildren();
-        setText('lowStockCount', count + ' items');
-        if (items.length === 0) {
-            showEmpty(container, 'No products are at or below the low-stock threshold.');
-            return;
-        }
-
-        items.forEach(function (item) {
-            var row = document.createElement('div');
-            row.className = 'stock-row';
-
-            var name = document.createElement('span');
-            name.className = 'stock-name';
-            name.textContent = item.name;
-
-            var quantity = document.createElement('span');
-            quantity.className = 'stock-quantity';
-            quantity.textContent = item.quantity + ' left';
-
-            var track = document.createElement('div');
-            track.className = 'stock-track';
-            var fill = document.createElement('div');
-            fill.className = 'stock-fill';
-            fill.style.width = Math.min(100, (item.quantity / 10) * 100) + '%';
-            track.appendChild(fill);
-
-            row.append(name, quantity, track);
-            container.appendChild(row);
-        });
+        renderOrdersPagination(orders, pageCount);
     }
 
     function render(data) {
@@ -484,7 +515,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderBestSellers(data.bestSellers);
         renderAlerts(data.alerts);
         renderOrders(data.orders);
-        renderStock(data.lowStock, data.lowStockCount);
     }
 
     function clearDashboard() {
@@ -494,9 +524,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         setText('trendTotal', 'Unavailable');
         setText('peakHours', 'Unavailable');
-        setText('lowStockCount', 'Unavailable');
         setText('alertCount', '0');
-        ['categoryBreakdown', 'bestSellers', 'alertsList', 'lowStockList'].forEach(function (id) {
+        ['categoryBreakdown', 'bestSellers', 'alertsList'].forEach(function (id) {
             showEmpty(document.getElementById(id), 'Dashboard data is unavailable.');
         });
         document.getElementById('ordersTable').replaceChildren();
@@ -575,9 +604,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         dashboardData.bestSellers.forEach(function (item) {
             rows.push(['Best seller', item.name, item.units + ' units', item.revenue.toFixed(2), '']);
-        });
-        dashboardData.lowStock.forEach(function (item) {
-            rows.push(['Low stock', item.name, item.quantity + ' remaining', '', '']);
         });
         dashboardData.alerts.forEach(function (alert) {
             rows.push(['Alert', alert.title, alert.type, '', alert.time]);

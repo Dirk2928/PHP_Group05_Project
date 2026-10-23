@@ -5,21 +5,47 @@
 }
 
 .profile-button {
-    border: none;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border: 2px solid var(--latte);
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--cream);
+    color: var(--espresso);
     cursor: pointer;
-    background: transparent;
-    color: var(--latte);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.profile-chevron {
-    width: 13px !important;
-    height: 13px !important;
-    transition: transform 0.2s ease;
+.profile-button:hover,
+.profile-menu.open .profile-button {
+    border-color: var(--mocha);
+    box-shadow: 0 0 0 3px rgba(162, 136, 106, 0.22);
 }
 
-.profile-menu.open .profile-chevron {
-    transform: rotate(180deg);
+.profile-button:focus-visible {
+    outline: 3px solid var(--mocha);
+    outline-offset: 3px;
+}
+
+.profile-button__avatar {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-button__avatar--initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--espresso);
+    color: var(--cream);
+    font-size: 0.85rem;
+    font-weight: 700;
 }
 
 .profile-dropdown {

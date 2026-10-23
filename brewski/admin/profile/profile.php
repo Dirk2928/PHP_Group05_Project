@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../../Db/activity_log.php';
+require_once __DIR__ . '/../../Db/user_avatars.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -14,6 +15,10 @@ if (empty($_SESSION['csrf_token'])) {
 
 $csrfToken = (string) $_SESSION['csrf_token'];
 $endpoint  = BREWSKI_BASE_URL . '/admin/profile/profile.php';
+
+$avatarConnection = brewski_db_connection();
+brewski_ensure_user_avatar_columns($avatarConnection);
+$avatarConnection->close();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -37,6 +42,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action = (string) ($_POST['action'] ?? '');
     $errors = [];
+
+    if ($action === 'update_avatar') {
+        if (!isset($_FILES['avatar'])) {
+            echo 'Choose an image to upload.';
+            exit;
+        }
+
+        try {
+            $avatar = brewski_read_avatar_upload($_FILES['avatar']);
+            $update = $pdo->prepare(
+                'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
+            );
+            $update->execute([$avatar['data'], $avatar['mime'], $userId]);
+            echo 'ok';
+        } catch (Throwable $exception) {
+            echo $exception->getMessage();
+        }
+        exit;
+    }
 
     if ($action === 'update_profile') {
 
@@ -145,7 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $statement = $pdo->prepare(
-    'SELECT first_name, last_name, email, role, job_title, totp_enabled_at
+    'SELECT first_name, last_name, email, role, job_title, totp_enabled_at,
+            avatar_mime_type, updated_at
      FROM users
      WHERE user_id = ?
      LIMIT 1'
@@ -163,6 +188,9 @@ $email     = (string) $user['email'];
 $role      = strtoupper(trim((string) $user['role']));
 $jobTitle  = trim((string) ($user['job_title'] ?? ''));
 $hasAuthenticator = !empty($user['totp_enabled_at']);
+$avatarUrl = !empty($user['avatar_mime_type'])
+    ? BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId
+    : '';
 
 $initials = strtoupper(
     mb_substr($firstName, 0, 1) . mb_substr($lastName, 0, 1)
@@ -203,7 +231,27 @@ $escape = static function (string $value): string {
 
         <aside class="profile-card profile-summary">
 
-            <div class="profile-avatar" data-profile-initials><?= $escape($initials) ?></div>
+            <form
+                class="profile-avatar-form"
+                method="post"
+                action="<?= $escape($endpoint) ?>"
+                enctype="multipart/form-data"
+                data-avatar-form
+                data-avatar-url="<?= $escape(BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId) ?>"
+            >
+                <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
+                <input type="hidden" name="action" value="update_avatar">
+                <label class="profile-avatar-label" for="admin-avatar-input">
+                    <span class="profile-avatar">
+                        <img class="profile-avatar__image" data-profile-avatar-image src="<?= $escape($avatarUrl) ?>" alt="Profile picture"<?= $avatarUrl === '' ? ' hidden' : '' ?>>
+                        <span data-profile-initials<?= $avatarUrl !== '' ? ' hidden' : '' ?>><?= $escape($initials) ?></span>
+                    </span>
+                    <span class="profile-avatar-label__text">Change photo</span>
+                </label>
+                <input id="admin-avatar-input" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                <p class="profile-avatar-hint">JPG, PNG, or WebP only. Maximum file size: 5 MB.</p>
+                <p class="profile-status" data-avatar-status role="status" aria-live="polite"></p>
+            </form>
 
             <h2 class="profile-summary__name" data-profile-name>
                 <?= $escape(trim($firstName . ' ' . $lastName)) ?>
@@ -456,6 +504,10 @@ $escape = static function (string $value): string {
             credentials: 'same-origin'
         })
             .then(function (response) {
+                if (response.redirected) {
+                    window.location.assign(response.url);
+                    throw new Error('redirected');
+                }
                 return response.text();
             })
             .then(function (text) {
@@ -467,7 +519,10 @@ $escape = static function (string $value): string {
                     setStatus(status, message || 'Could not save. Please try again.', 'is-error');
                 }
             })
-            .catch(function () {
+            .catch(function (error) {
+                if (error.message === 'redirected') {
+                    return;
+                }
                 setStatus(status, 'Could not save. Please try again.', 'is-error');
             })
             .finally(function () {
@@ -478,6 +533,37 @@ $escape = static function (string $value): string {
     }
 
     var profileForm = document.querySelector('[data-profile-form]');
+
+    var avatarForm = document.querySelector('[data-avatar-form]');
+
+    if (avatarForm) {
+        var avatarInput = avatarForm.querySelector('input[type="file"]');
+        var avatarStatus = avatarForm.querySelector('[data-avatar-status]');
+
+        avatarInput.addEventListener('change', function () {
+            if (!avatarInput.files.length) {
+                return;
+            }
+
+            setStatus(avatarStatus, 'Uploading photo...', '');
+            postForm(avatarForm, avatarStatus, function () {
+                var image = document.querySelector('[data-profile-avatar-image]');
+                var initials = document.querySelector('[data-profile-initials]');
+
+                if (image) {
+                    image.src = avatarForm.dataset.avatarUrl + '&v=' + Date.now();
+                    image.hidden = false;
+                }
+
+                if (initials) {
+                    initials.hidden = true;
+                }
+
+                avatarInput.value = '';
+                setStatus(avatarStatus, 'Your profile picture has been updated.', 'is-saved');
+            });
+        });
+    }
 
     if (profileForm) {
         var profileStatus = document.querySelector('[data-profile-status]');
@@ -596,3 +682,4 @@ $escape = static function (string $value): string {
     }
 })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

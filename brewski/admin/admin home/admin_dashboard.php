@@ -62,9 +62,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                 <button type="button" class="nav-item nav-subitem" data-view="../staff%20information/staff_information.php">
                     <i class="nav-icon" data-lucide="badge-info" aria-hidden="true"></i><span>Staff Information</span>
                 </button>
-                <button type="button" class="nav-item nav-subitem" data-view="../staff%20information/transactions_handled.php">
-                    <i class="nav-icon" data-lucide="clipboard-check" aria-hidden="true"></i><span>Transactions Handled</span>
-                </button>
             </div>
             <button type="button" class="nav-item" data-view="../logs/system_activity.php"><i class="nav-icon" data-lucide="activity" aria-hidden="true"></i><span>System Activity</span></button>
             <button type="button" class="nav-item" data-view="../system settings/settings.php"><i class="nav-icon" data-lucide="settings-2" aria-hidden="true"></i><span>System Settings</span></button>
@@ -222,13 +219,10 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                             <tbody id="ordersTable"></tbody>
                         </table>
                     </div>
-                </section>
-                <section class="dashboard-section stock-section" aria-labelledby="stockHeading">
-                    <div class="section-heading">
-                        <div><h2 id="stockHeading">Low stock</h2><p>Products with 10 or fewer in stock</p></div>
-                        <span id="lowStockCount" class="section-tag section-tag-warning">— items</span>
+                    <div class="pagination-footer dashboard-pagination">
+                        <p class="pagination-info" id="ordersPageInfo"></p>
+                        <div class="pagination-nav" id="ordersPagination"></div>
                     </div>
-                    <div id="lowStockList" class="stock-list"></div>
                 </section>
             </div>
         </section>
@@ -238,5 +232,6 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
 
     <script src="admin.js?v=<?= filemtime(__DIR__ . '/admin.js') ?>" defer></script>
     <script src="dashboard.js?v=<?= filemtime(__DIR__ . '/dashboard.js') ?>" defer></script>
+    <?= brewski_session_timeout_markup() ?>
 </body>
 </html>

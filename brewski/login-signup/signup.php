@@ -4,6 +4,7 @@ require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/settings.php';
 require_once __DIR__ . '/recaptcha.php';
 require_once __DIR__ . '/../Db/db_config.php';
+require_once __DIR__ . '/email-service-client.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -59,7 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name_value  = htmlspecialchars($last_name, ENT_QUOTES, 'UTF-8');
     $email_value      = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    // --- Validation ---
     if (!$tokenValid) {
 
         $error = 'This request could not be verified. Refresh the page and try again.';
@@ -93,9 +93,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Unable to connect to the database. Please make sure MySQL is running.';
 
     } else {
+        $otpTableReady = $conn->query(
+            "CREATE TABLE IF NOT EXISTS otp_codes (
+                otp_id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                code_hash VARCHAR(255) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                attempts TINYINT NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_otp_codes_user_id (user_id),
+                CONSTRAINT fk_otp_codes_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES users(user_id)
+                    ON UPDATE CASCADE
+                    ON DELETE CASCADE
+            )"
+        );
 
-        // --- Check for existing email ---
-        $check = $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1");
+        if (!$otpTableReady) {
+            $error = 'Email verification is temporarily unavailable. Please try again later.';
+        }
+
+        $check = $error === ''
+            ? $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1")
+            : false;
 
         if (!$check) {
 
@@ -114,19 +135,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $check->close();
 
-            // --- Insert the new user ---
             if ($error === '') {
 
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
                 $activationToken = bin2hex(random_bytes(32));
+                $activationTokenHash = hash('sha256', $activationToken);
                 $activationExpires = date('Y-m-d H:i:s', time() + 86400);
 
                 $insert = $conn->prepare(
                     "INSERT INTO users
                         (first_name, last_name, email, password, role, is_active,
-                         email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, ?, ?)"
+                         is_first_timer, email_activation_token, email_activation_expires)
+                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 1, ?, ?)"
                 );
 
                 if (!$insert) {
@@ -141,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $last_name,
                         $email,
                         $passwordHash,
-                        $activationToken,
+                        $activationTokenHash,
                         $activationExpires
                     );
 
@@ -151,47 +172,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     } else {
 
-                        $newUserId = (int) $conn->insert_id;
+                        $otp = (string) random_int(100000, 999999);
+                        $otpHash = password_hash($otp, PASSWORD_DEFAULT);
+                        $otpExpires = date('Y-m-d H:i:s', time() + 600);
+                        $otpInsert = $conn->prepare(
+                            'INSERT INTO otp_codes (user_id, code_hash, expires_at, attempts)
+                             VALUES (?, ?, ?, 0)'
+                        );
 
-                        // Build activation URL
-                        $baseUrl = defined('BREWSKI_BASE_URL')
-                            ? rtrim(BREWSKI_BASE_URL, '/')
-                            : 'http://localhost/Brewski/brewski';
-
-                        $activationUrl = $baseUrl
-                            . '/login-signup/activate.php?token=' . urlencode($activationToken);
-
-                        // Send activation email via email-service
-                        $payload = json_encode([
-                            'email'         => $email,
-                            'firstName'     => $first_name,
-                            'activationUrl' => $activationUrl,
-                        ]);
-
-                        $endpoint = brewski_email_service_url('send-activation');
-
-                        $ch = curl_init($endpoint);
-                        curl_setopt_array($ch, [
-                            CURLOPT_RETURNTRANSFER => true,
-                            CURLOPT_POST           => true,
-                            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-                            CURLOPT_POSTFIELDS     => $payload,
-                            CURLOPT_TIMEOUT        => 15,
-                        ]);
-
-                        $response = curl_exec($ch);
-                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                        curl_close($ch);
-
-                        if ($httpCode !== 200) {
-                            error_log('Activation email failed. HTTP ' . $httpCode . ' — ' . $response);
+                        if (!$otpInsert) {
+                            $error = 'Your account could not be prepared for email verification.';
+                        } else {
+                            $newUserId = (int) $conn->insert_id;
+                            $otpInsert->bind_param('iss', $newUserId, $otpHash, $otpExpires);
+                            $otpSaved = $otpInsert->execute();
+                            $otpInsert->close();
                         }
 
-                        // Redirect to login with success message
-                        $_SESSION['signup_success'] = 'Account created! Check your email to activate it.';
+                        $otpSent = $otpSaved ?? false;
+                        if ($otpSent) {
+                            $otpSent = email_service_send(
+                            'send-signup-otp',
+                            [
+                                'email'         => $email,
+                                'firstName'     => $first_name,
+                                'otp'            => $otp,
+                            ]
+                            );
+                        }
 
-                        header('Location: login.php');
-                        exit;
+                        if ($otpSent) {
+                            $_SESSION['signup_otp_pending'] = [
+                                'user_id' => $newUserId,
+                                'email' => $email,
+                                'first_name' => $first_name,
+                                'activation_token' => $activationToken,
+                                'expires_at' => time() + 600,
+                            ];
+                            header('Location: verify-signup-otp.php');
+                            exit;
+                        }
+
+                        $error = 'Your account was created, but we could not send the verification code. Please contact support.';
                     }
                     $insert->close();
                 }
@@ -243,19 +265,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
 <body>
 
-<main class="auth">
-
-    <aside class="side">
-
-        <p class="side__word">
-            brew<span>ski</span>
-        </p>
-
-        <p class="side__line">
-            Your favorite cup, ready when you are.
-        </p>
-
-    </aside>
+<main class="auth auth--centered">
 
     <section class="auth__panel">
 
@@ -274,6 +284,8 @@ $csrfToken = (string) $_SESSION['csrf_token'];
             <h1 class="auth__title">
                 Create your account
             </h1>
+
+            <p class="auth__intro">Join Brewski to make your next coffee run easier.</p>
 
             <?php if ($error !== ''): ?>
 
@@ -305,6 +317,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="first_name">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                         First name
                     </label>
 
@@ -323,6 +336,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="last_name">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                         Last name
                     </label>
 
@@ -341,6 +355,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="email">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
                         Email
                     </label>
 
@@ -358,6 +373,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="password">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         Password
                     </label>
 
@@ -414,6 +430,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="confirm_password">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         Confirm password
                     </label>
 
@@ -460,6 +477,17 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 </a>
 
             </p>
+
+            <p class="auth__switch">
+                Staff or administrator?
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    Open the staff &amp; admin sign-in.
+                </a>
+            </p>
+
+            <div class="auth__legal">
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>">Privacy &amp; cookie policy</a>
+            </div>
 
         </div>
 

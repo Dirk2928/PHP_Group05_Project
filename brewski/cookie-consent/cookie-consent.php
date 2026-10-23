@@ -84,14 +84,14 @@ $consentReturn = brewski_consent_request_path();
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        padding: 1rem 1.5rem;
-        background: #c8763a;
-        background: linear-gradient(180deg, #dd9247 0%, #c8763a 100%);
-        color: var(--espresso, #1e110a);
+        padding: 1.05rem 1.5rem;
+        background: linear-gradient(145deg, var(--mocha, #71492a) 0%, var(--espresso, #1e110a) 72%);
+        border-top: 1px solid rgba(241, 226, 202, 0.24);
+        color: var(--cream, #faf6ee);
         font-family: var(--font-body, "Century Gothic", "Questrial", "Segoe UI", sans-serif);
         font-size: 0.85rem;
         line-height: 1.5;
-        box-shadow: 0 -8px 28px rgba(30, 17, 10, 0.35);
+        box-shadow: 0 -10px 32px rgba(30, 17, 10, 0.28);
         transition: transform 0.4s ease, opacity 0.4s ease;
         will-change: transform;
     }
@@ -108,44 +108,47 @@ $consentReturn = brewski_consent_request_path();
     }
 
     .brewski-consent__link {
-        color: var(--espresso, #1e110a);
+        color: var(--latte, #f1e2ca);
         text-decoration: underline;
-        text-underline-offset: 2px;
+        text-underline-offset: 3px;
     }
 
     .brewski-consent__actions {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.65rem;
     }
 
     .brewski-consent__button {
         border: 1px solid transparent;
-        border-radius: 999px;
-        padding: 0.55rem 1.4rem;
+        border-radius: 0.65rem;
+        padding: 0.6rem 1.2rem;
         font: inherit;
         font-weight: 600;
         cursor: pointer;
-        background: var(--espresso, #1e110a);
-        color: var(--latte, #f1e2ca);
+        background: var(--cream, #faf6ee);
+        color: var(--espresso, #1e110a);
+        transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
     }
 
     .brewski-consent__button:hover {
-        background: var(--dark-mocha, #3c3027);
+        background: var(--latte, #f1e2ca);
+        transform: translateY(-1px);
     }
 
     .brewski-consent__button--quiet {
         background: transparent;
-        border-color: rgba(30, 17, 10, 0.55);
-        color: var(--espresso, #1e110a);
+        border-color: rgba(241, 226, 202, 0.48);
+        color: var(--cream, #faf6ee);
     }
 
     .brewski-consent__button--quiet:hover {
-        background: rgba(30, 17, 10, 0.12);
+        background: rgba(241, 226, 202, 0.12);
+        border-color: rgba(241, 226, 202, 0.72);
     }
 
     .brewski-consent__button:focus-visible {
-        outline: 2px solid var(--espresso, #1e110a);
+        outline: 2px solid var(--latte, #f1e2ca);
         outline-offset: 2px;
     }
 
@@ -156,11 +159,19 @@ $consentReturn = brewski_consent_request_path();
     @media (max-width: 640px) {
         .brewski-consent {
             padding: 0.9rem 1rem;
+            gap: 0.75rem;
         }
+
+        .brewski-consent__text { font-size: 0.8rem; }
 
         .brewski-consent__actions {
             width: 100%;
-            justify-content: flex-end;
+            justify-content: center;
+        }
+
+        .brewski-consent__button {
+            flex: 1;
+            padding: 0.65rem 0.8rem;
         }
 
         body:has(.brewski-consent) {

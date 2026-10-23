@@ -57,11 +57,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         admin_transactions_respond(false, 'Please choose a valid transaction.');
     }
 
-    $exists = $pdo->prepare('SELECT order_id FROM orders WHERE order_id = ? LIMIT 1');
+    $exists = $pdo->prepare(
+        'SELECT o.order_id, op.payment_status
+           FROM orders o
+           LEFT JOIN order_payments op ON op.order_id = o.order_id
+          WHERE o.order_id = ?
+          LIMIT 1'
+    );
     $exists->execute([(int) $orderId]);
+    $transaction = $exists->fetch();
 
-    if (!$exists->fetch()) {
+    if (!$transaction) {
         admin_transactions_respond(false, 'That transaction no longer exists.', 404);
+    }
+    if (
+        $transaction['payment_status'] !== null
+        && $transaction['payment_status'] !== 'PAID'
+    ) {
+        admin_transactions_respond(
+            false,
+            'This order cannot be changed until PayMongo confirms payment.',
+            422
+        );
     }
 
     if ($action === 'update') {
@@ -124,9 +141,11 @@ $transactions = $pdo->query(
                LEFT JOIN products p ON p.product_id = oi.product_id
               WHERE oi.order_id = o.order_id) AS item_summary
      FROM orders o
+     LEFT JOIN order_payments op ON op.order_id = o.order_id
      LEFT JOIN users cu ON cu.user_id = o.user_id
      LEFT JOIN deliveries d ON d.order_id = o.order_id
      LEFT JOIN users su ON su.user_id = d.staff_id
+     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
      ORDER BY o.order_date DESC, o.order_id DESC"
 )->fetchAll();
 
@@ -420,9 +439,28 @@ function admin_transaction_badge(string $status): string
             return fetch(ENDPOINT, {
                 method: 'POST',
                 body: body,
-                credentials: 'same-origin'
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json' }
             }).then(function (response) {
-                return response.json();
+                return response.text().then(function (payload) {
+                    var json;
+
+                    try {
+                        json = JSON.parse(payload);
+                    } catch (error) {
+                        if (response.redirected || response.url.indexOf('/login') !== -1) {
+                            throw new Error('Your Admin session has expired. Please sign in again.');
+                        }
+
+                        throw new Error('The server returned an unexpected response. Please reload and try again.');
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(json.error || json.message || 'The request could not be completed.');
+                    }
+
+                    return json;
+                });
             });
         }
 
@@ -477,8 +515,8 @@ function admin_transaction_badge(string $status): string
                                 } else {
                                     setStatus(json.error || 'Could not save the transaction.', 'error');
                                 }
-                            }).catch(function () {
-                                setStatus('Network error. Please try again.', 'error');
+                            }).catch(function (error) {
+                                setStatus(error.message || 'The request could not be completed. Please try again.', 'error');
                             });
 
                             return false;
@@ -504,8 +542,8 @@ function admin_transaction_badge(string $status): string
                 } else {
                     setStatus(json.error || 'Could not delete the transaction.', 'error');
                 }
-            }).catch(function () {
-                setStatus('Network error. Please try again.', 'error');
+            }).catch(function (error) {
+                setStatus(error.message || 'The request could not be completed. Please try again.', 'error');
             });
         }
 
@@ -533,3 +571,4 @@ function admin_transaction_badge(string $status): string
         render();
     })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     role ENUM('CUSTOMER', 'STAFF', 'ADMIN') NOT NULL DEFAULT 'CUSTOMER',
+    is_first_timer TINYINT(1) NOT NULL DEFAULT 0,
+    assessment_completed_at DATETIME NULL,
     job_title VARCHAR(50) NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 0,
     is_locked TINYINT(1) NOT NULL DEFAULT 0,
@@ -16,6 +18,8 @@ CREATE TABLE IF NOT EXISTS users (
     activation_expires DATETIME NULL,
     email_activation_token CHAR(64) NULL,
     email_activation_expires DATETIME NULL,
+    password_reset_token CHAR(64) NULL,
+    password_reset_expires DATETIME NULL,
     totp_secret_encrypted TEXT NULL,
     totp_enabled_at DATETIME NULL,
     failed_login_attempts TINYINT NOT NULL DEFAULT 0,
@@ -23,6 +27,16 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_email_activation_token (email_activation_token)
+);
+
+CREATE TABLE IF NOT EXISTS account_lockouts (
+    account_lockout_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    locked_at DATETIME NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_account_lockouts_locked_at (locked_at)
 );
 
 CREATE TABLE IF NOT EXISTS system_activity_logs (
@@ -238,6 +252,29 @@ CREATE TABLE IF NOT EXISTS orders (
         ON DELETE RESTRICT
 );
 
+CREATE TABLE IF NOT EXISTS order_payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    provider VARCHAR(24) NOT NULL DEFAULT 'paymongo',
+    provider_session_id VARCHAR(100) NOT NULL,
+    checkout_url VARCHAR(2048) NOT NULL,
+    payment_status ENUM('PENDING', 'PAID', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    payment_method VARCHAR(40) NULL,
+    receipt_email_sent BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_payment_per_order (order_id),
+    UNIQUE KEY unique_provider_session (provider_session_id),
+
+    CONSTRAINT fk_order_payments_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS order_items (
     order_item_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NOT NULL,
@@ -335,7 +372,7 @@ CREATE TABLE IF NOT EXISTS product_preferences (
 CREATE TABLE IF NOT EXISTS product_customization_options (
     product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
-    option_group VARCHAR(20) NOT NULL,
+    option_group VARCHAR(30) NOT NULL,
     option_name VARCHAR(100) NOT NULL,
     additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
@@ -347,6 +384,58 @@ CREATE TABLE IF NOT EXISTS product_customization_options (
     CONSTRAINT unique_product_customization_option
         UNIQUE (product_id, option_group, option_name)
 );
+
+-- Product choice containers used by the preference matcher. Product
+-- customizations store the exact bean, milk, and allergen choices.
+CREATE TABLE IF NOT EXISTS preference_choice_groups (
+    choice_group_id INT AUTO_INCREMENT PRIMARY KEY,
+    group_name VARCHAR(50) NOT NULL UNIQUE,
+    description VARCHAR(255) NULL
+);
+
+CREATE TABLE IF NOT EXISTS preference_choices (
+    choice_id INT AUTO_INCREMENT PRIMARY KEY,
+    choice_group_id INT NOT NULL,
+    choice_name VARCHAR(100) NOT NULL,
+    UNIQUE (choice_group_id, choice_name),
+    CONSTRAINT fk_preference_choices_group
+        FOREIGN KEY (choice_group_id)
+        REFERENCES preference_choice_groups(choice_group_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
+INSERT IGNORE INTO preference_choice_groups (group_name, description)
+VALUES
+    ('bean', 'Coffee bean type'),
+    ('milk', 'Milk type'),
+    ('allergen', 'Allergens present in the product'),
+    ('flavor', 'Flavor profile'),
+    ('caffeine', 'Caffeine content');
+
+INSERT IGNORE INTO preference_choices (choice_group_id, choice_name)
+SELECT choice_group_id, choice_name
+FROM preference_choice_groups
+JOIN (
+    SELECT 'bean' AS group_name, 'Arabica' AS choice_name
+    UNION ALL SELECT 'bean', 'Robusta'
+    UNION ALL SELECT 'bean', 'Blend'
+    UNION ALL SELECT 'milk', 'Dairy milk'
+    UNION ALL SELECT 'milk', 'Oat milk'
+    UNION ALL SELECT 'milk', 'Almond milk'
+    UNION ALL SELECT 'milk', 'Soy milk'
+    UNION ALL SELECT 'milk', 'No milk'
+    UNION ALL SELECT 'allergen', 'Dairy'
+    UNION ALL SELECT 'allergen', 'Nuts'
+    UNION ALL SELECT 'allergen', 'Gluten'
+    UNION ALL SELECT 'flavor', 'Chocolate'
+    UNION ALL SELECT 'flavor', 'Nutty'
+    UNION ALL SELECT 'flavor', 'Fruity'
+    UNION ALL SELECT 'flavor', 'Creamy'
+    UNION ALL SELECT 'caffeine', 'Regular'
+    UNION ALL SELECT 'caffeine', 'Decaf'
+    UNION ALL SELECT 'caffeine', 'Caffeine-free'
+) choices USING (group_name);
 
 CREATE TABLE IF NOT EXISTS catalog_addons (
     addon_id INT AUTO_INCREMENT PRIMARY KEY,

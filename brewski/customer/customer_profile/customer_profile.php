@@ -27,7 +27,12 @@ $addressFormValues = [
 ];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 
-// ---- Fetch avatar URL with cache-buster ----
+if ($userId > 0) {
+    $avatarConn = brewski_db_connection();
+    brewski_ensure_user_avatar_columns($avatarConn);
+    $avatarConn->close();
+}
+
 $avatarUrl = null;
 if ($userId > 0) {
     try {
@@ -72,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
 
         $action = (string) ($_POST['action'] ?? '');
 
-        // ---- AVATAR UPLOAD ----
         if ($action === 'update_avatar') {
 
             if (!isset($_FILES['avatar'])) {
@@ -82,7 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $conn = brewski_db_connection();
                     $avatar = brewski_read_avatar_upload($_FILES['avatar']);
 
-                    // updated_at = NOW() ensures cache-buster URL changes
                     $stmt = $conn->prepare(
                         'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
                     );
@@ -95,13 +98,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     header('Location: customer_profile.php');
                     exit;
 
-                } catch (RuntimeException $e) {
+                } catch (Throwable $e) {
                     $errors[] = $e->getMessage();
                 }
             }
         }
 
-        // ---- AVATAR REMOVE ----
         if ($action === 'remove_avatar') {
             $conn = brewski_db_connection();
             $stmt = $conn->prepare(
@@ -117,7 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             exit;
         }
 
-        // ---- UPDATE PROFILE ----
         if ($action === 'update_profile') {
 
             $firstNameInput = trim((string) ($_POST['first_name'] ?? ''));
@@ -169,7 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
-        // ---- ADD ADDRESS ----
         if ($action === 'add_address') {
 
             foreach (array_keys($addressFormValues) as $field) {
@@ -218,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
             }
         }
 
-        // ---- CHANGE PASSWORD ----
         if ($action === 'change_password') {
 
             $currentInput = (string) ($_POST['current_password'] ?? '');
@@ -308,6 +307,7 @@ $choiceAnswers = is_array($choicePreferences)
     : [];
 $choiceValues = $choiceAnswers;
 $choiceAutoOpen = false;
+$choiceMode = 'recommendation';
 
 require __DIR__ . '/../partials/header.php';
 
@@ -527,6 +527,14 @@ require __DIR__ . '/../partials/header.php';
 
         .avatar-remove:hover {
             color: var(--danger);
+        }
+
+        .avatar-upload-hint {
+            max-width: 220px;
+            margin: 0.65rem auto 0;
+            color: var(--dark-mocha);
+            font-size: 0.75rem;
+            line-height: 1.4;
         }
 
         .profile-summary h2 {
@@ -824,6 +832,7 @@ require __DIR__ . '/../partials/header.php';
                         hidden
                         onchange="document.getElementById('avatar-form').submit();"
                     >
+                    <p class="avatar-upload-hint">JPG, PNG, or WebP only. Maximum file size: 5 MB.</p>
                 </form>
 
                 <?php if ($avatarUrl): ?>
@@ -1119,7 +1128,8 @@ require __DIR__ . '/../partials/header.php';
                                     </span>
 
                                     <span class="choice-summary__answer">
-                                        <?= e($choiceAnswers[$questionKey] ?? 'Not answered') ?>
+                                        <?php $answerLabel = $choiceAnswers[$questionKey] ?? 'Not answered'; ?>
+                                        <?= e(is_array($answerLabel) ? implode(', ', $answerLabel) : $answerLabel) ?>
                                     </span>
 
                                 </li>
@@ -1142,6 +1152,7 @@ require __DIR__ . '/../partials/header.php';
                         type="button"
                         class="btn btn--dark btn--block"
                         id="choice-open"
+                        data-choice-mode="recommendation"
                     >
 
                         <i data-lucide="sparkles"></i>

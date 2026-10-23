@@ -62,10 +62,12 @@ try {
 
     $orderStatement = $pdo->prepare(
         "SELECT o.order_id, o.order_date, o.order_status, o.total_amount,
+                op.payment_status,
                 u.first_name, u.last_name, u.email,
                 a.address_line, a.city, a.province, a.postal_code,
                 $deliveryFeeSelect, $deliveryNotesSelect
          FROM orders o
+         LEFT JOIN order_payments op ON op.order_id = o.order_id
          INNER JOIN users u ON u.user_id = o.user_id
          INNER JOIN addresses a ON a.address_id = o.address_id
          $deliveryJoin
@@ -79,6 +81,12 @@ try {
         customer_receipt_respond(404, [
             'ok' => false,
             'error' => 'Receipt not found.',
+        ]);
+    }
+    if ($order['payment_status'] !== null && $order['payment_status'] !== 'PAID') {
+        customer_receipt_respond(409, [
+            'ok' => false,
+            'error' => 'This receipt will be available after payment is confirmed.',
         ]);
     }
 

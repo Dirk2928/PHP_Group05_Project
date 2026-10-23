@@ -203,3 +203,4 @@ $pageSize = 5;
         render();
     })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

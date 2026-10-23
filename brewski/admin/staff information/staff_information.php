@@ -21,7 +21,7 @@ $endpoint = htmlspecialchars(
     'UTF-8'
 );
 
-$pageSize = 5;
+$pageSize = 6;
 
 function admin_staff_respond(bool $ok, string $message, int $status = 200): void
 {
@@ -817,3 +817,4 @@ $staffMembers = $pdo->query(
         render();
     })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

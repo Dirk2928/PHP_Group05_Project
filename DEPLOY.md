@@ -95,6 +95,9 @@ existing authenticator secret unreadable, locking all enrolled users out.
    | `DB_SSL_CA` | brewski-app | leave blank for now — see step 5 |
    | `EMAIL_SERVICE_URL` | brewski-app | fill in after step 6 |
    | `BREWSKI_TOTP_ENCRYPTION_KEY` | brewski-app | the key from step 3 |
+   | `BREWSKI_PAYMONGO_SECRET_KEY` | brewski-app | PayMongo test or live secret key |
+   | `BREWSKI_PAYMONGO_WEBHOOK_SECRET` | brewski-app | signing secret for the Brewski payment webhook |
+   | `BREWSKI_PUBLIC_URL` | brewski-app | optional; set the public application base URL when using a custom domain |
    | `EMAIL_USER` | brewski-email | the Gmail address that sends mail |
    | `EMAIL_PASSWORD` | brewski-email | its 16-character Google app password |
 
@@ -214,6 +217,9 @@ configured.
 | `DB_SSL_CA` | unset | Path to a CA certificate **file**; enables TLS **and** verifies the server. Leave blank to encrypt without verifying |
 | `EMAIL_SERVICE_URL` | `http://127.0.0.1:3000` | Base URL of the email service |
 | `BREWSKI_TOTP_ENCRYPTION_KEY` | unset | 64 hex characters; required for authenticator login |
+| `BREWSKI_PAYMONGO_SECRET_KEY` | unset | PayMongo API secret; required for customer online checkout |
+| `BREWSKI_PAYMONGO_WEBHOOK_SECRET` | unset | PayMongo signing secret for `checkout_session.payment.paid` events |
+| `BREWSKI_PUBLIC_URL` | unset | Public application base URL; auto-detected unless using a custom domain |
 | `HOST` | `127.0.0.1` | Email service bind address; set to `0.0.0.0` on Render |
 | `PORT` | `3000` | Email service port; Render sets this itself |
 | `MAIL_MODE` | unset | Set to `console` to print emails in the terminal instead of sending |
@@ -236,6 +242,13 @@ Set `MAIL_MODE=console` in that file if you would rather see the messages printe
 terminal than sent through Gmail.
 
 ## Things to know
+
+- **PayMongo checkout needs a webhook.** Apply `brewski/Db/migrations/20261019_add_order_payments.sql`
+  to an existing database, configure the PayMongo secret and webhook signing secret, then
+  register `https://<your-public-host>/customer/checkout/paymongo_webhook.php` in the
+  PayMongo dashboard for `checkout_session.payment.paid`. Use test credentials and a
+  reachable HTTPS endpoint before switching to live credentials. Pending payments are not
+  shown in the staff fulfillment queue until PayMongo confirms them.
 
 - **Free instances sleep.** Render's free plan spins a service down after about 15 minutes
   of inactivity, so the first request afterwards takes a few seconds to wake it. An order

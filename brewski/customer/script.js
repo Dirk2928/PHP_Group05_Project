@@ -15,6 +15,41 @@ window.brewskiImageFallback = function (image) {
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
+    var sessionTimeout = document.querySelector('meta[name="session-timeout-seconds"]');
+    var logoutUrl = document.querySelector('meta[name="logout-url"]');
+    var timeoutSeconds = sessionTimeout ? Number(sessionTimeout.content) : 0;
+
+    if (timeoutSeconds > 0 && logoutUrl && logoutUrl.content) {
+        var timeoutId;
+        var lastActivityAt = Date.now();
+
+        function redirectAfterTimeout() {
+            window.location.assign(logoutUrl.content);
+        }
+
+        function resetSessionTimeout() {
+            lastActivityAt = Date.now();
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(redirectAfterTimeout, timeoutSeconds * 1000);
+        }
+
+        ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) {
+            document.addEventListener(eventName, resetSessionTimeout, { passive: true });
+        });
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                if (Date.now() - lastActivityAt >= timeoutSeconds * 1000) {
+                    redirectAfterTimeout();
+                } else {
+                    resetSessionTimeout();
+                }
+            }
+        });
+
+        resetSessionTimeout();
+    }
+
     if (window.lucide) {
         window.lucide.createIcons();
     }
@@ -46,17 +81,38 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var productCards = document.querySelectorAll('.product-card');
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (productCards.length && 'IntersectionObserver' in window && !reduceMotion) {
+        document.documentElement.classList.add('has-scroll-reveal');
+
+        var revealObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                } else {
+                    entry.target.classList.remove('is-revealed');
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+
+        productCards.forEach(function (card) {
+            revealObserver.observe(card);
+        });
+    }
+
     var noResults = document.getElementById('no-results');
     var menuPageInfo = document.getElementById('menuPageInfo');
     var menuPagination = document.getElementById('menuPagination');
     var filterState = { category: 'all' };
-    var menuPageSize = 8;
+    var menuPageSize = 5;
     var menuPage = 1;
 
     function matchingCards() {
         return Array.prototype.filter.call(productCards, function (card) {
-            return filterState.category === 'all' ||
+            var matchesCategory = filterState.category === 'all' ||
                 card.dataset.category === filterState.category;
+            return matchesCategory;
         });
     }
 
@@ -82,7 +138,11 @@ document.addEventListener('DOMContentLoaded', function () {
             applyFilters();
         }));
 
-        for (var page = 1; page <= pageCount; page++) {
+        var firstPage = Math.max(1, menuPage - 1);
+        var lastPage = Math.min(pageCount, firstPage + 2);
+        firstPage = Math.max(1, lastPage - 2);
+
+        for (var page = firstPage; page <= lastPage; page++) {
             (function (target) {
                 menuPagination.appendChild(menuPageButton(String(target), false, target === menuPage, function () {
                     menuPage = target;
@@ -103,21 +163,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (menuPagination) {
             var pageCount = Math.max(1, Math.ceil(matches.length / menuPageSize));
-
-            if (menuPage > pageCount) {
-                menuPage = pageCount;
-            }
-
+            menuPage = Math.min(menuPage, pageCount);
             var start = (menuPage - 1) * menuPageSize;
-            var end = start + menuPageSize;
+            var end = Math.min(start + menuPageSize, matches.length);
 
             shown = matches.slice(start, end);
 
             if (menuPageInfo) {
                 menuPageInfo.textContent = matches.length === 0
                     ? 'No results'
-                    : 'Showing ' + (start + 1) + ' to ' + Math.min(end, matches.length) +
-                      ' of ' + matches.length + ' drinks';
+                    : 'Showing ' + (start + 1) + '–' + end + ' of ' + matches.length + ' drinks';
             }
 
             renderMenuPagination(pageCount);
@@ -158,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setupFilterGroup('category-filters', 'category');
+
     applyFilters();
 
     var modal = document.getElementById('customization-modal');
@@ -476,4 +532,77 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }, 1000);
     });
+
+    var requestedProduct = parseInt(
+        new URLSearchParams(window.location.search).get('product_id'),
+        10
+    );
+
+    if (requestedProduct > 0) {
+        var requestedCard = Array.prototype.find.call(productCards, function (card) {
+            return parseInt(card.dataset.id, 10) === requestedProduct;
+        });
+
+        if (requestedCard) {
+            var categoryFilter = document.querySelector(
+                '#category-filters .filter-btn[data-filter="' + requestedCard.dataset.category + '"]'
+            );
+
+            if (categoryFilter) {
+                categoryFilter.click();
+            }
+
+            var requestedIndex = matchingCards().indexOf(requestedCard);
+
+            if (requestedIndex >= 0) {
+                menuPage = Math.floor(requestedIndex / menuPageSize) + 1;
+                applyFilters();
+            }
+
+            Array.prototype.forEach.call(
+                requestedCard.querySelectorAll('.product-card__match'),
+                function (badge) {
+                    badge.remove();
+                }
+            );
+
+            var recommendedBadge = document.createElement('span');
+            recommendedBadge.className = 'product-card__match';
+            recommendedBadge.textContent = 'Recommended drink';
+            requestedCard.insertBefore(recommendedBadge, requestedCard.firstChild);
+
+            requestedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    if (!menuPagination) {
+        document.querySelectorAll('.category .product-grid').forEach(function (grid) {
+            var cards = Array.prototype.slice.call(grid.querySelectorAll('.product-card'));
+            var shown = 5;
+
+            if (cards.length <= shown) {
+                return;
+            }
+
+            var more = document.createElement('button');
+            more.type = 'button';
+            more.className = 'see-more';
+            more.textContent = 'See more';
+            grid.parentNode.insertBefore(more, grid.nextSibling);
+
+            var render = function () {
+                cards.forEach(function (card, index) {
+                    card.style.display = index < shown ? '' : 'none';
+                });
+                more.hidden = shown >= cards.length;
+            };
+
+            more.addEventListener('click', function () {
+                shown += 5;
+                render();
+            });
+
+            render();
+        });
+    }
 });

@@ -89,6 +89,41 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
         ];
     }
 
+    if ($endpoint === 'send-password-reset') {
+        $email = $payload['email'] ?? null;
+        $firstName = $payload['firstName'] ?? null;
+        $resetUrl = $payload['resetUrl'] ?? null;
+
+        if (
+            !brewski_mail_email_ok($email)
+            || !brewski_mail_text_ok($firstName, 100)
+            || !brewski_mail_text_ok($resetUrl, 2048)
+        ) {
+            return null;
+        }
+
+        $safeName = brewski_mail_h($firstName);
+        $safeUrl = brewski_mail_h($resetUrl);
+
+        return [
+            'to' => $email,
+            'subject' => 'Reset your Brewski password',
+            'text' => "Hello {$firstName},\n\n"
+                . "Reset your password using this link (valid for 1 hour):\n"
+                . "{$resetUrl}\n\n"
+                . 'If you did not request a password reset, you can ignore this email.',
+            'html' => '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">'
+                . "<h2>Hello, {$safeName}!</h2>"
+                . '<p>Use the link below to reset your Brewski password. This link expires in 1 hour.</p>'
+                . '<p><a href="' . $safeUrl . '" style="display:inline-block;padding:12px 24px;'
+                . 'background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">'
+                . 'Reset my password</a></p>'
+                . '<p style="font-size:12px;color:#71492a">'
+                . 'If you did not request a password reset, you can ignore this email.</p>'
+                . '</div>',
+        ];
+    }
+
     if ($endpoint === 'send-order-otp') {
         $email = $payload['email'] ?? null;
         $firstName = $payload['firstName'] ?? null;
@@ -120,6 +155,76 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
                 . '<p>This code expires in 10 minutes. You have up to 5 attempts.</p>'
                 . '<p style="font-size:12px;color:#71492a">'
                 . 'If you did not try to place an order, you can ignore this email.</p>'
+                . '</div>',
+        ];
+    }
+
+    if ($endpoint === 'send-authenticator-reset-otp') {
+        $email = $payload['email'] ?? null;
+        $firstName = $payload['firstName'] ?? null;
+        $otp = $payload['otp'] ?? null;
+
+        if (
+            !brewski_mail_email_ok($email)
+            || !brewski_mail_text_ok($firstName, 100)
+            || !is_string($otp)
+            || preg_match('/^\d{6}$/', $otp) !== 1
+        ) {
+            return null;
+        }
+
+        $safeName = brewski_mail_h($firstName);
+
+        return [
+            'to' => $email,
+            'subject' => 'Your Brewski authenticator reset code',
+            'text' => "Hello {$firstName},\n\n"
+                . "Your Brewski authenticator reset code is {$otp}. It expires in 10 minutes. "
+                . "You have up to 5 attempts to enter it.\n\n"
+                . 'If you did not request an authenticator reset, you can ignore this email.',
+            'html' => '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">'
+                . '<h2>Reset your Brewski authenticator</h2>'
+                . "<p>Hello {$safeName}, enter this code to reset your authenticator:</p>"
+                . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;'
+                . 'padding:14px 20px;display:inline-block">' . $otp . '</p>'
+                . '<p>This code expires in 10 minutes. You have up to 5 attempts.</p>'
+                . '<p style="font-size:12px;color:#71492a">'
+                . 'If you did not request an authenticator reset, you can ignore this email.</p>'
+                . '</div>',
+        ];
+    }
+
+    if ($endpoint === 'send-signup-otp') {
+        $email = $payload['email'] ?? null;
+        $firstName = $payload['firstName'] ?? null;
+        $otp = $payload['otp'] ?? null;
+
+        if (
+            !brewski_mail_email_ok($email)
+            || !brewski_mail_text_ok($firstName, 100)
+            || !is_string($otp)
+            || preg_match('/^\d{6}$/', $otp) !== 1
+        ) {
+            return null;
+        }
+
+        $safeName = brewski_mail_h($firstName);
+
+        return [
+            'to' => $email,
+            'subject' => 'Verify your Brewski account',
+            'text' => "Hello {$firstName},\n\n"
+                . "Your Brewski verification code is {$otp}. It expires in 10 minutes. "
+                . "You have up to 5 attempts.\n\n"
+                . 'If you did not create a Brewski account, you can ignore this email.',
+            'html' => '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">'
+                . "<h2>Verify your Brewski account</h2>"
+                . "<p>Hello {$safeName}, enter this code to continue creating your account:</p>"
+                . '<p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;'
+                . 'padding:14px 20px;display:inline-block">' . $otp . '</p>'
+                . '<p>This code expires in 10 minutes and has up to 5 attempts.</p>'
+                . '<p style="font-size:12px;color:#71492a">'
+                . 'If you did not create a Brewski account, you can ignore this email.</p>'
                 . '</div>',
         ];
     }

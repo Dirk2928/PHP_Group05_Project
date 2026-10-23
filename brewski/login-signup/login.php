@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email_value = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    $submissionErrors = brewski_auth_submission_errors($_POST, (bool) $portal['recaptcha']);
+    $submissionErrors = brewski_auth_submission_errors($_POST, false);
 
     if ($submissionErrors) {
 
@@ -125,25 +125,11 @@ $csrfToken = (string) $_SESSION['csrf_token'];
         href="styles.css"
     >
 
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-
 </head>
 
 <body>
 
-<main class="auth">
-
-    <aside class="side">
-
-        <p class="side__word">
-            brew<span>ski</span>
-        </p>
-
-        <p class="side__line">
-            Your favorite cup, ready when you are.
-        </p>
-
-    </aside>
+<main class="auth auth--centered">
 
     <section class="auth__panel">
 
@@ -163,6 +149,8 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 Welcome back
             </h1>
 
+            <p class="auth__intro">Sign in to your Brewski account to continue.</p>
+
             <?php if ($success !== ''): ?>
 
                 <p
@@ -170,7 +158,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     style="
                         text-align: center;
                         margin-bottom: 1rem;
-                        color: green;
+                        color: var(--mocha);
                     "
                 >
 
@@ -252,6 +240,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="email">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
                         Email
                     </label>
 
@@ -275,6 +264,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                 <div class="field">
 
                     <label for="password">
+                        <svg class="field__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                         Password
                     </label>
 
@@ -300,6 +290,12 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
                     </div>
 
+                    <p class="auth__switch" style="margin: 0.4rem 0 0; text-align: right; font-size: 0.72rem;">
+                        <a href="forgot-password.php" style="color: var(--espresso); text-decoration: underline;">
+                            Forgot your password?
+                        </a>
+                    </p>
+
                     <p
                         class="field__error"
                         id="password-error"
@@ -307,11 +303,6 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     ></p>
 
                 </div>
-
-                <div
-                    class="g-recaptcha"
-                    data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"
-                ></div>
 
                 <button
                     type="submit"
@@ -333,16 +324,15 @@ $csrfToken = (string) $_SESSION['csrf_token'];
             </p>
 
             <p class="auth__switch">
-
-                How we handle your data:
-
-                <a
-                    href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>"
-                >
-                    Privacy Policy
+                Staff or administrator?
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>">
+                    Open the staff &amp; admin sign-in.
                 </a>
-
             </p>
+
+            <div class="auth__legal">
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>">Privacy &amp; cookie policy</a>
+            </div>
 
         </div>
 

@@ -13,7 +13,7 @@
  *   - Cross-verified MIME
  */
 
-const BREWSKI_AVATAR_MAX_BYTES  = 2097152;   // 2 MB
+const BREWSKI_AVATAR_MAX_BYTES  = 5242880;
 const BREWSKI_AVATAR_MAX_DIM    = 1000;      // 1000×1000 px
 const BREWSKI_AVATAR_MAX_PIXELS = 1000000;   // 1 megapixel
 const BREWSKI_AVATAR_ALLOWED    = [
@@ -21,6 +21,21 @@ const BREWSKI_AVATAR_ALLOWED    = [
     'image/png'  => true,
     'image/webp' => true,
 ];
+
+function brewski_ensure_user_avatar_columns(mysqli $connection): void
+{
+    $columns = $connection->query("SHOW COLUMNS FROM users LIKE 'avatar_data'");
+
+    if ($columns->num_rows === 0) {
+        $connection->query('ALTER TABLE users ADD COLUMN avatar_data LONGBLOB NULL AFTER email');
+    }
+
+    $columns = $connection->query("SHOW COLUMNS FROM users LIKE 'avatar_mime_type'");
+
+    if ($columns->num_rows === 0) {
+        $connection->query('ALTER TABLE users ADD COLUMN avatar_mime_type VARCHAR(32) NULL AFTER avatar_data');
+    }
+}
 
 /**
  * Validates and reads an uploaded avatar.
@@ -48,7 +63,7 @@ function brewski_read_avatar_upload(array $upload): array
     }
 
     if (($upload['size'] ?? 0) <= 0 || $upload['size'] > BREWSKI_AVATAR_MAX_BYTES) {
-        throw new RuntimeException('Choose an image smaller than 2 MB.');
+        throw new RuntimeException('Choose an image no larger than 5 MB.');
     }
 
     if (!is_uploaded_file($upload['tmp_name'])) {

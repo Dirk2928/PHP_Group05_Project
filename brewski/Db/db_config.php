@@ -103,7 +103,9 @@ function brewski_db_tls_connect(array $settings): ?mysqli
 function brewski_db_connect(): ?mysqli
 {
     $settings = brewski_db_settings();
-    $previous_report_mode = mysqli_report(MYSQLI_REPORT_OFF);
+    $driver = new mysqli_driver();
+    $previous_report_mode = $driver->report_mode;
+    mysqli_report(MYSQLI_REPORT_OFF);
     $connection = null;
 
     try {
@@ -183,4 +185,71 @@ function brewski_email_service_url(string $endpoint): string
     }
 
     return rtrim($base, '/') . '/' . ltrim($endpoint, '/');
+}
+
+function brewski_app_public_url(string $path = ''): ?string
+{
+    $configuredBase = brewski_env('BREWSKI_PUBLIC_URL', '');
+    $renderBase = brewski_env('RENDER_EXTERNAL_URL', '');
+
+    if ($renderBase === '') {
+        $renderHostname = brewski_env('RENDER_EXTERNAL_HOSTNAME', '');
+        $renderBase = $renderHostname === '' ? '' : 'https://' . $renderHostname;
+    }
+
+    $base = $configuredBase !== '' ? $configuredBase : $renderBase;
+
+    if ($base !== '') {
+        $parts = parse_url($base);
+
+        if (
+            $parts === false
+            || !isset($parts['scheme'], $parts['host'])
+            || !in_array(strtolower($parts['scheme']), ['http', 'https'], true)
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || isset($parts['query'])
+            || isset($parts['fragment'])
+        ) {
+            error_log('Brewski: configured public URL is invalid.');
+            return null;
+        }
+
+        if ($configuredBase === '') {
+            $base = rtrim($base, '/') . (defined('BREWSKI_BASE_URL') ? BREWSKI_BASE_URL : '');
+        }
+    } else {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+
+        if (
+            preg_match(
+                '/\A(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*(?::[0-9]{1,5})?\z/i',
+                $host
+            ) !== 1
+            || (parse_url('http://' . $host, PHP_URL_PORT) !== null
+                && (int) parse_url('http://' . $host, PHP_URL_PORT) > 65535)
+        ) {
+            error_log('Brewski: request host is invalid; cannot build a public URL.');
+            return null;
+        }
+
+        $scheme = (
+            !empty($_SERVER['HTTPS'])
+            && strtolower((string) $_SERVER['HTTPS']) !== 'off'
+        ) ? 'https' : 'http';
+
+        $forwardedProto = strtolower(trim(explode(
+            ',',
+            (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')
+        )[0]));
+
+        if (in_array($forwardedProto, ['http', 'https'], true)) {
+            $scheme = $forwardedProto;
+        }
+
+        $base = $scheme . '://' . $host
+            . (defined('BREWSKI_BASE_URL') ? BREWSKI_BASE_URL : '');
+    }
+
+    return rtrim($base, '/') . '/' . ltrim($path, '/');
 }

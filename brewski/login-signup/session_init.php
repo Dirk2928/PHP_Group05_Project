@@ -142,6 +142,17 @@ function brewski_login_url(string $query = ''): string
     return brewski_portal_login_url('customer', $query);
 }
 
+function brewski_session_timeout_markup(): string
+{
+    $escape = static function (string $value): string {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    };
+
+    return '<meta name="session-timeout-seconds" content="' . (int) SESSION_IDLE_TIMEOUT . '">' . "\n"
+        . '<meta name="logout-url" content="' . $escape(BREWSKI_BASE_URL . '/login-signup/logout.php?timeout=1') . '">' . "\n"
+        . '<script src="' . $escape(BREWSKI_BASE_URL . '/login-signup/session-timeout.js') . '" defer></script>' . "\n";
+}
+
 /**
  * Which portal the browser is currently inside.
  *

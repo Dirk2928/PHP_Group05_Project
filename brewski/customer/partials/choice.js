@@ -10,13 +10,102 @@ document.addEventListener('DOMContentLoaded', function () {
     var body = modal.querySelector('.modal__body');
     var closeButton = document.getElementById('choice-close');
     var saveButton = document.getElementById('choice-save');
+    var saveLabel = document.getElementById('choice-save-label');
     var status = document.getElementById('choice-status');
+    var title = document.getElementById('choice-modal-title');
+    var subtitle = document.getElementById('choice-modal-subtitle');
     var openButton = document.getElementById('choice-open');
-    var questions = Array.prototype.slice.call(
-        modal.querySelectorAll('[data-choice-question]')
+    var skipButton = document.getElementById('choice-skip');
+    var noticeButton = document.getElementById('choice-open-notice');
+    var panels = {};
+    Array.prototype.forEach.call(
+        modal.querySelectorAll('[data-choice-panel]'),
+        function (panel) {
+            panels[panel.dataset.choicePanel] = panel;
+        }
     );
+    var currentMode = modal.dataset.choiceMode === 'recommendation'
+        ? 'recommendation'
+        : 'first-timer';
 
-    function open() {
+    var copy = {
+        'first-timer': {
+            title: 'Get a drink recommendation',
+            subtitle: 'Answer a few quick questions and we will pick one drink for you.',
+            button: 'Recommend a drink'
+        },
+        recommendation: {
+            title: 'Set up your drink preferences',
+            subtitle: 'Answer a few questions to sort your menu by compatibility.',
+            button: 'Find my best matches'
+        }
+    };
+
+    function activePanel() {
+        return panels[currentMode] || null;
+    }
+
+    function questions() {
+        var panel = activePanel();
+
+        return panel
+            ? Array.prototype.slice.call(panel.querySelectorAll('[data-choice-question]'))
+            : [];
+    }
+
+    function resetRecommendationAnswers() {
+        var panel = panels.recommendation;
+
+        if (!panel) {
+            return;
+        }
+
+        Array.prototype.forEach.call(
+            panel.querySelectorAll('.choice-answer.active'),
+            function (answer) {
+                answer.classList.remove('active');
+                answer.setAttribute('aria-pressed', 'false');
+            }
+        );
+    }
+
+    function setStatus(message, modifier) {
+        if (!status) {
+            return;
+        }
+        status.textContent = message;
+        status.className = 'choice-status' + (modifier ? ' ' + modifier : '');
+    }
+
+    function setMode(mode) {
+        currentMode = mode === 'recommendation' ? 'recommendation' : 'first-timer';
+
+        Object.keys(panels).forEach(function (key) {
+            panels[key].hidden = key !== currentMode;
+        });
+
+        title.textContent = copy[currentMode].title;
+        subtitle.textContent = copy[currentMode].subtitle;
+        saveLabel.textContent = copy[currentMode].button;
+
+        if (skipButton) {
+            skipButton.hidden = currentMode !== 'recommendation';
+        }
+    }
+
+    function open(mode) {
+        setMode(mode || currentMode);
+        if (currentMode === 'first-timer') {
+            resetRecommendationAnswers();
+        }
+        setStatus('', '');
+        if (status) {
+            status.hidden = false;
+        }
+        if (saveButton) {
+            saveButton.hidden = false;
+            saveButton.disabled = false;
+        }
         modal.classList.add('show');
     }
 
@@ -24,15 +113,10 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.classList.remove('show');
     }
 
-    function setStatus(message, modifier) {
-        status.textContent = message;
-        status.className = 'choice-status' + (modifier ? ' ' + modifier : '');
-    }
-
     function selectedAnswers() {
         var answers = {};
 
-        questions.forEach(function (question) {
+        questions().forEach(function (question) {
             var key = question.dataset.choiceQuestion;
             var isMulti = question.dataset.choiceMulti === '1';
 
@@ -54,6 +138,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         return answers;
+    }
+
+    function triggerMode(element, fallback) {
+        var mode = element && element.dataset ? element.dataset.choiceMode : '';
+
+        return mode === 'first-timer' || mode === 'recommendation' ? mode : fallback;
     }
 
     if (body) {
@@ -100,11 +190,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (openButton) {
-        openButton.addEventListener('click', open);
+        openButton.addEventListener('click', function () {
+            open(triggerMode(openButton, 'first-timer'));
+        });
+    }
+    if (noticeButton) {
+        noticeButton.addEventListener('click', function () {
+            open(triggerMode(noticeButton, 'recommendation'));
+        });
     }
 
     if (closeButton) {
         closeButton.addEventListener('click', close);
+    }
+
+    if (skipButton) {
+        skipButton.addEventListener('click', function () {
+            var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            var payload = new URLSearchParams();
+            payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
+            payload.append('action', 'skip');
+            payload.append('mode', currentMode);
+            fetch('../partials/choice-save.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: payload.toString(),
+                credentials: 'same-origin'
+            }).then(function () {
+                close();
+            });
+        });
     }
 
     modal.addEventListener('click', function (event) {
@@ -115,10 +230,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (saveButton && status) {
         saveButton.addEventListener('click', function () {
-            var answers = selectedAnswers();
+            var answered = selectedAnswers();
+            var total = questions().length;
 
-            if (Object.keys(answers).length < questions.length) {
-                setStatus('Please answer all ' + questions.length + ' questions.', 'is-error');
+            if (Object.keys(answered).length < total) {
+                setStatus('Please answer all ' + total + ' questions.', 'is-error');
                 return;
             }
 
@@ -129,9 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
             var csrfMeta = document.querySelector('meta[name="csrf-token"]');
 
             payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
+            payload.append('mode', currentMode);
 
-            Object.keys(answers).forEach(function (questionKey) {
-                var value = answers[questionKey];
+            Object.keys(answered).forEach(function (questionKey) {
+                var value = answered[questionKey];
                 if (Array.isArray(value)) {
                     value.forEach(function (item) {
                         payload.append('answers[' + questionKey + '][]', item);
@@ -141,6 +258,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
 
+            var submittedMode = currentMode;
+
             fetch('../partials/choice-save.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -149,43 +268,60 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(function (response) {
                     return response.text().then(function (text) {
-                        return { ok: response.ok, text: text };
+                        var data = null;
+                        try {
+                            data = JSON.parse(text);
+                        } catch (error) {
+                            data = null;
+                        }
+                        return { ok: response.ok, text: text, data: data };
                     });
                 })
                 .then(function (result) {
-                    if (result.ok && result.text === 'ok') {
-                        setStatus('Saved! Taking you to your menu...', 'is-saved');
+                    if (result.ok && result.data && result.data.ok) {
+                        if (submittedMode === 'first-timer') {
+                            var match = result.data.best_match;
 
-                        window.setTimeout(function () {
-                            window.location.href = '../customer_menu/customermenu.php';
-                        }, 700);
+                            if (match && match.product_id) {
+                                window.location.href = '../customer_menu/customermenu.php?product_id='
+                                    + encodeURIComponent(String(parseInt(match.product_id, 10)));
+
+                                return true;
+                            }
+
+                            setStatus('No recommendation is available right now.', 'is-error');
+                            saveButton.disabled = false;
+
+                            return false;
+                        }
+
+                        window.location.href = '../customer_home/customerhome.php';
 
                         return true;
                     }
 
                     setStatus(
-                        result.ok && result.text.indexOf('<') === -1
-                            ? result.text
-                            : 'Could not save your choices. Please log in again and try.',
+                        result.data && result.data.message
+                            ? result.data.message
+                            : (result.ok && result.text.indexOf('<') === -1
+                                ? result.text
+                                : 'Could not complete the request. Please try again.'),
                         'is-error'
                     );
+                    saveButton.disabled = false;
 
                     return false;
                 })
                 .catch(function () {
-                    setStatus('Could not save your choices. Please try again.', 'is-error');
-
-                    return false;
-                })
-                .then(function (saved) {
-                    if (saved !== true) {
-                        saveButton.disabled = false;
-                    }
+                    setStatus('Could not complete the request. Please try again.', 'is-error');
+                    saveButton.disabled = false;
                 });
         });
     }
 
+    setMode(currentMode);
+
     if (modal.dataset.autoOpen === '1') {
-        open();
+        open('recommendation');
     }
 });

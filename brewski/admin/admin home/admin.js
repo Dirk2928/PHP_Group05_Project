@@ -324,6 +324,10 @@ document.addEventListener('DOMContentLoaded', function () {
             profileMenu.classList.add('hidden');
             profileBtn.setAttribute('aria-expanded', 'false');
         }
+
+        if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target) && document.body.classList.contains('sidebar-open')) {
+            setSidebarOpen(false);
+        }
     });
 
 

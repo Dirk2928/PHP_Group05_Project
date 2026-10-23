@@ -57,6 +57,7 @@ $offset = ($page - 1) * $perPage;
 
 $ordersStatement = $pdo->prepare(
     "SELECT o.order_id, o.order_date, o.total_amount, o.order_status,
+            op.payment_status,
             $deliverySelect,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count,
             (SELECT p.product_name
@@ -66,6 +67,7 @@ $ordersStatement = $pdo->prepare(
               ORDER BY oi.order_item_id ASC
               LIMIT 1) AS first_item
        FROM orders o
+       LEFT JOIN order_payments op ON op.order_id = o.order_id
        $deliveryJoin
       WHERE $where
       ORDER BY o.order_date DESC, o.order_id DESC
@@ -197,6 +199,7 @@ $deliveryIcons = [
             <?php foreach ($orders as $order): ?>
                 <?php
                     $orderStatus = (string) $order['order_status'];
+                    $paymentStatus = (string) ($order['payment_status'] ?? '');
                     $deliveryStatus = (string) ($order['delivery_status'] ?? '');
                     $itemCount = (int) $order['item_count'];
                     $deliveryLabel = $orderStatus === 'CANCELLED'
@@ -218,6 +221,15 @@ $deliveryIcons = [
                             <?= htmlspecialchars($statusLabels[$orderStatus] ?? $orderStatus, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
+                    <?php if ($paymentStatus === 'PENDING'): ?>
+                        <p class="orders-notice" role="status">
+                            Payment pending. This order will be sent to the café after payment is confirmed.
+                        </p>
+                    <?php elseif ($paymentStatus === 'FAILED'): ?>
+                        <p class="orders-notice orders-notice--error" role="status">
+                            Payment was not completed. Your saved cart is available at checkout.
+                        </p>
+                    <?php endif; ?>
 
                     <div class="order-card__summary">
                         <div class="order-card__items">

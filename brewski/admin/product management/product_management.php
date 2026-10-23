@@ -24,6 +24,34 @@ $optionChoices = [
         ['name' => '25%', 'price' => 0],
         ['name' => '0%', 'price' => 0],
     ],
+    'bean' => [
+        ['name' => 'Arabica', 'price' => 0],
+        ['name' => 'Robusta', 'price' => 0],
+        ['name' => 'Blend', 'price' => 0],
+    ],
+    'milk' => [
+        ['name' => 'Dairy milk', 'price' => 0],
+        ['name' => 'Oat milk', 'price' => 0],
+        ['name' => 'Almond milk', 'price' => 0],
+        ['name' => 'Soy milk', 'price' => 0],
+        ['name' => 'No milk', 'price' => 0],
+    ],
+    'allergen' => [
+        ['name' => 'Dairy', 'price' => 0],
+        ['name' => 'Nuts', 'price' => 0],
+        ['name' => 'Gluten', 'price' => 0],
+    ],
+    'flavor' => [
+        ['name' => 'Chocolate', 'price' => 0],
+        ['name' => 'Nutty', 'price' => 0],
+        ['name' => 'Fruity', 'price' => 0],
+        ['name' => 'Creamy', 'price' => 0],
+    ],
+    'caffeine' => [
+        ['name' => 'Regular', 'price' => 0],
+        ['name' => 'Decaf', 'price' => 0],
+        ['name' => 'Caffeine-free', 'price' => 0],
+    ],
 ];
 
 $validOptions = [];
@@ -73,7 +101,7 @@ try {
         "CREATE TABLE IF NOT EXISTS product_customization_options (
             product_customization_option_id INT AUTO_INCREMENT PRIMARY KEY,
             product_id INT NOT NULL,
-            option_group VARCHAR(20) NOT NULL,
+            option_group VARCHAR(30) NOT NULL,
             option_name VARCHAR(100) NOT NULL,
             additional_price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             max_quantity SMALLINT UNSIGNED NOT NULL DEFAULT 99,
@@ -392,18 +420,24 @@ try {
                 }
 
                 $productNameInput = $_POST['product_name'] ?? '';
+                $descriptionInput = $_POST['description'] ?? '';
                 $categoryIdInput = $_POST['category_id'] ?? null;
                 $priceValue = $_POST['price'] ?? '';
                 if (!is_string($productNameInput)
+                    || !is_string($descriptionInput)
                     || (!is_string($categoryIdInput) && !is_int($categoryIdInput))
                     || !is_string($priceValue)) {
                     throw new RuntimeException('Enter valid product details.');
                 }
                 $productName = trim($productNameInput);
+                $description = trim($descriptionInput);
                 $categoryId = filter_var($categoryIdInput, FILTER_VALIDATE_INT);
                 $priceInput = trim($priceValue);
                 if ($productName === '' || strlen($productName) > 150) {
                     throw new RuntimeException('Enter a product name of 1 to 150 characters.');
+                }
+                if (mb_strlen($description) > 1000) {
+                    throw new RuntimeException('Keep the description to 1000 characters or fewer.');
                 }
                 if (!$categoryId || $categoryId < 1) {
                     throw new RuntimeException('Choose a category for this product.');
@@ -433,6 +467,66 @@ try {
                     if (!is_string($selectedOption)) {
                         throw new RuntimeException('Choose only listed customization options.');
                     }
+                }
+
+                $customOptionNames = $_POST['custom_option_name'] ?? [];
+                if (!is_array($customOptionNames)) {
+                    throw new RuntimeException('Enter valid custom customization names.');
+                }
+                foreach (['bean', 'milk', 'allergen', 'flavor', 'caffeine'] as $customGroup) {
+                    $groupNames = $customOptionNames[$customGroup] ?? [];
+                    if (!is_array($groupNames)) {
+                        throw new RuntimeException('Enter valid custom customization names.');
+                    }
+                    $knownNames = [];
+                    foreach ($optionChoices[$customGroup] as $choice) {
+                        $knownNames[strtolower($choice['name'])] = true;
+                    }
+                    foreach ($groupNames as $customNameInput) {
+                        if (!is_string($customNameInput)) {
+                            throw new RuntimeException('Enter valid custom customization names.');
+                        }
+                        $customName = trim($customNameInput);
+                        if ($customName === '') {
+                            continue;
+                        }
+                        if (strlen($customName) > 100 || strpos($customName, ':') !== false) {
+                            throw new RuntimeException('Customization names must be 1 to 100 characters without colons.');
+                        }
+                        $normalizedName = strtolower($customName);
+                        if (isset($knownNames[$normalizedName])) {
+                            throw new RuntimeException('Customization names must be unique within each group.');
+                        }
+                        $knownNames[$normalizedName] = true;
+                        $optionKey = $customGroup . ':' . $customName;
+                        $validOptions[$optionKey] = [
+                            'group' => $customGroup,
+                            'name' => $customName,
+                            'price' => 0,
+                        ];
+                        $selectedOptions[] = $optionKey;
+                    }
+                }
+                if ($productId > 0) {
+                    $existingOptions = $connection->prepare(
+                        'SELECT option_group, option_name
+                         FROM product_customization_options
+                         WHERE product_id = ?'
+                    );
+                    $existingOptions->bind_param('i', $productId);
+                    $existingOptions->execute();
+                    $existingOptionResult = $existingOptions->get_result();
+                    while ($existingOption = $existingOptionResult->fetch_assoc()) {
+                        $optionKey = $existingOption['option_group'] . ':' . $existingOption['option_name'];
+                        if (!isset($validOptions[$optionKey])) {
+                            $validOptions[$optionKey] = [
+                                'group' => $existingOption['option_group'],
+                                'name' => $existingOption['option_name'],
+                                'price' => 0,
+                            ];
+                        }
+                    }
+                    $existingOptions->close();
                 }
 
                 $customSizeNames = $_POST['custom_size_name'] ?? [];
@@ -620,14 +714,15 @@ try {
                     if ($imageData !== null) {
                         $statement = $connection->prepare(
                             'UPDATE products
-                             SET category_id = ?, product_name = ?, price = ?, image_path = NULL,
+                             SET category_id = ?, product_name = ?, description = ?, price = ?, image_path = NULL,
                                  image_data = ?, image_mime_type = ?, availability = 1
                              WHERE product_id = ?'
                         );
                         $statement->bind_param(
-                            'isdssi',
+                            'issdssi',
                             $categoryId,
                             $productName,
+                            $description,
                             $price,
                             $imageData,
                             $imageMimeType,
@@ -636,10 +731,10 @@ try {
                     } else {
                         $statement = $connection->prepare(
                             'UPDATE products
-                             SET category_id = ?, product_name = ?, price = ?, availability = 1
+                             SET category_id = ?, product_name = ?, description = ?, price = ?, availability = 1
                              WHERE product_id = ?'
                         );
-                        $statement->bind_param('isdi', $categoryId, $productName, $price, $productId);
+                        $statement->bind_param('issdi', $categoryId, $productName, $description, $price, $productId);
                     }
                     $statement->execute();
                     $statement->close();
@@ -647,10 +742,10 @@ try {
                 } else {
                     $statement = $connection->prepare(
                         'INSERT INTO products
-                         (category_id, product_name, price, image_path, image_data, image_mime_type, availability)
-                         VALUES (?, ?, ?, NULL, ?, ?, 1)'
+                         (category_id, product_name, description, price, image_path, image_data, image_mime_type, availability)
+                         VALUES (?, ?, ?, ?, NULL, ?, ?, 1)'
                     );
-                    $statement->bind_param('isdss', $categoryId, $productName, $price, $imageData, $imageMimeType);
+                    $statement->bind_param('issdss', $categoryId, $productName, $description, $price, $imageData, $imageMimeType);
                     $statement->execute();
                     $savedProductId = (int) $connection->insert_id;
                     $statement->close();
@@ -785,7 +880,7 @@ try {
     }
 
     $productResult = $connection->query(
-        'SELECT p.product_id, p.category_id, p.product_name, p.price, p.image_path,
+        'SELECT p.product_id, p.category_id, p.product_name, p.description, p.price, p.image_path,
                 p.image_mime_type,
                 c.category_name
          FROM products p
@@ -895,7 +990,7 @@ $catalogIcon = static function (string $name): string {
 };
 
 $imageFallback = brewski_product_image_fallback();
-$pageSize = 10;
+$pageSize = 5;
 ?>
 
 <section class="product-management-page">
@@ -1010,6 +1105,10 @@ $pageSize = 10;
                         <input type="text" name="product_name" maxlength="150" required>
                     </label>
                     <label>
+                        Description
+                        <textarea name="description" rows="3" maxlength="1000" placeholder="Flavor, ingredients, and caffeine level. Used for drink matching."></textarea>
+                    </label>
+                    <label>
                         Category
                         <select name="category_id" required>
                             <?php foreach ($categories as $category): ?>
@@ -1056,6 +1155,11 @@ $pageSize = 10;
                                 <div class="catalog-custom-sizes" data-custom-sizes></div>
                                 <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
                                     <?= $catalogIcon('plus') ?>Add another size
+                                </button>
+                            <?php elseif (in_array($group, ['bean', 'milk', 'allergen', 'flavor', 'caffeine'], true)): ?>
+                                <div class="catalog-custom-options" data-custom-options></div>
+                                <button type="button" class="catalog-button catalog-button--secondary" data-add-custom-option data-option-group="<?= $escape($group) ?>">
+                                    <?= $catalogIcon('plus') ?>Add another <?= $escape($group) ?> option
                                 </button>
                             <?php endif; ?>
                         </div>
@@ -1260,6 +1364,10 @@ $pageSize = 10;
                                         <input type="text" name="product_name" maxlength="150" value="<?= $escape($product['product_name']) ?>" required>
                                     </label>
                                     <label>
+                                        Description
+                                        <textarea name="description" rows="3" maxlength="1000" placeholder="Flavor, ingredients, and caffeine level. Used for drink matching."><?= $escape($product['description'] ?? '') ?></textarea>
+                                    </label>
+                                    <label>
                                         Category
                                         <select name="category_id" required>
                                             <?php if (empty($product['category_name'])): ?>
@@ -1285,6 +1393,22 @@ $pageSize = 10;
                                     <legend>Customizations customers may choose</legend>
                                     <?php foreach ($optionChoices as $group => $choices): ?>
                                         <?php
+                                        $customChoices = [];
+                                        foreach ($product['customizations'] as $customization) {
+                                            $customizationParts = explode(':', $customization, 2);
+                                            if (($customizationParts[0] ?? '') === $group
+                                                && !in_array(
+                                                    $customizationParts[1] ?? '',
+                                                    array_column($choices, 'name'),
+                                                    true
+                                                )) {
+                                                $customChoices[] = [
+                                                    'name' => $customizationParts[1] ?? '',
+                                                    'price' => 0,
+                                                ];
+                                            }
+                                        }
+                                        $groupChoices = array_merge($choices, $customChoices);
                                         $selectedGroupOptions = array_filter(
                                             $product['customizations'],
                                             static fn ($option): bool => strpos($option, $group . ':') === 0
@@ -1309,7 +1433,7 @@ $pageSize = 10;
                                             )
                                             : [];
                                         $selectedChoiceCount = count(array_filter(
-                                            $choices,
+                                            $groupChoices,
                                             static fn ($choice): bool => in_array(
                                                 $group . ':' . $choice['name'],
                                                 $product['customizations'],
@@ -1320,11 +1444,11 @@ $pageSize = 10;
                                         <div class="catalog-option-group" data-customization-group>
                                             <strong><?= $escape(ucfirst($group)) ?></strong>
                                             <label class="catalog-select-all">
-                                                <input type="checkbox" data-select-all-customizations<?= $selectedChoiceCount === count($choices) ? ' checked' : '' ?>>
+                                                <input type="checkbox" data-select-all-customizations<?= $selectedChoiceCount === count($groupChoices) ? ' checked' : '' ?>>
                                                 Select all <?= $escape($group) ?> options
                                             </label>
                                             <div class="catalog-option-list">
-                                                <?php foreach ($choices as $choice): ?>
+                                                <?php foreach ($groupChoices as $choice): ?>
                                                     <?php $optionKey = $group . ':' . $choice['name']; ?>
                                                     <div class="catalog-option-row">
                                                         <label class="catalog-option">
@@ -1358,6 +1482,11 @@ $pageSize = 10;
                                                 </div>
                                                 <button type="button" class="catalog-button catalog-button--secondary catalog-add-size" data-add-size>
                                                     <?= $catalogIcon('plus') ?>Add another size
+                                                </button>
+                                            <?php elseif (in_array($group, ['bean', 'milk', 'allergen', 'flavor', 'caffeine'], true)): ?>
+                                                <div class="catalog-custom-options" data-custom-options></div>
+                                                <button type="button" class="catalog-button catalog-button--secondary" data-add-custom-option data-option-group="<?= $escape($group) ?>">
+                                                    <?= $catalogIcon('plus') ?>Add another <?= $escape($group) ?> option
                                                 </button>
                                             <?php endif; ?>
                                         </div>
@@ -1497,10 +1626,50 @@ $pageSize = 10;
             return;
         }
 
+        var addCustomOptionButton = event.target.closest('[data-add-custom-option]');
+        if (addCustomOptionButton) {
+            var customOptionGroup = addCustomOptionButton.closest('[data-customization-group]');
+            var customOptionList = customOptionGroup && customOptionGroup.querySelector('[data-custom-options]');
+            var optionGroupName = addCustomOptionButton.dataset.optionGroup;
+            if (!customOptionList || !optionGroupName) return;
+
+            var customOptionRow = document.createElement('div');
+            customOptionRow.className = 'catalog-custom-size-row';
+            customOptionRow.innerHTML =
+                '<label class="catalog-option">' +
+                '<input type="checkbox" name="customizations[]" value="" data-customization-option data-custom-option-checkbox checked>' +
+                'Use this option</label>' +
+                '<label>Option name' +
+                '<input type="text" name="custom_option_name[' + optionGroupName + '][]" maxlength="100" required data-custom-option-name>' +
+                '</label>' +
+                '<button type="button" class="catalog-button catalog-button--danger" data-remove-custom-option>Remove</button>';
+            customOptionList.appendChild(customOptionRow);
+            customOptionRow.querySelector('[data-custom-option-name]').focus();
+            return;
+        }
+
         var removeSizeButton = event.target.closest('[data-remove-size]');
         if (removeSizeButton) {
             var sizeRow = removeSizeButton.closest('.catalog-custom-size-row');
             if (sizeRow) sizeRow.remove();
+            return;
+        }
+
+        var removeCustomOptionButton = event.target.closest('[data-remove-custom-option]');
+        if (removeCustomOptionButton) {
+            var customOptionRow = removeCustomOptionButton.closest('.catalog-custom-size-row');
+            if (customOptionRow) customOptionRow.remove();
+        }
+    });
+
+    document.addEventListener('input', function (event) {
+        var customOptionName = event.target.closest('[data-custom-option-name]');
+        if (!customOptionName) return;
+        var customOptionRow = customOptionName.closest('.catalog-custom-size-row');
+        var checkbox = customOptionRow && customOptionRow.querySelector('[data-custom-option-checkbox]');
+        var optionGroupName = customOptionName.name.match(/^custom_option_name\[([^\]]+)\]/);
+        if (checkbox && optionGroupName) {
+            checkbox.value = optionGroupName[1] + ':' + customOptionName.value.trim();
         }
     });
 
@@ -1663,3 +1832,4 @@ $pageSize = 10;
     }
 }());
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

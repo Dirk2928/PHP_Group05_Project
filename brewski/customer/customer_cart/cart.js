@@ -345,7 +345,7 @@
             save(items);
         });
 
-        body.addEventListener('click', function (event) {
+        menu.addEventListener('click', function (event) {
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') return;
 

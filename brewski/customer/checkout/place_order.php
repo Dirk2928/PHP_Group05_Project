@@ -1,15 +1,22 @@
 <?php
 
 ob_start();
-
 ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/db_config.php';
 require_once __DIR__ . '/../partials/order_support.php';
-require_once __DIR__ . '/../../login-signup/email-service-client.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, private');
+
+function customer_place_order_respond(int $status, array $payload): void
+{
+    http_response_code($status);
+    echo json_encode($payload);
+    exit;
+}
 
 register_shutdown_function(static function (): void {
     $body = (string) ob_get_clean();
@@ -21,404 +28,357 @@ register_shutdown_function(static function (): void {
 
     $fatal = error_get_last();
     $reason = trim($body);
-
     if ($reason === '') {
         $reason = (string) ($fatal['message'] ?? 'The script stopped before it could reply.');
     }
-
     error_log('place_order.php returned a non-JSON response: ' . $reason);
 
     if (!headers_sent()) {
         http_response_code(500);
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
     }
-
     echo json_encode([
-        'ok'     => false,
-        'error'  => 'We could not place your order. Please try again.',
-        'detail' => $reason,
+        'ok' => false,
+        'error' => 'We could not start secure checkout. Please try again.',
     ]);
 });
 
 if (empty($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['ok' => false, 'error' => 'Not logged in.']);
-    exit;
+    customer_place_order_respond(401, ['ok' => false, 'error' => 'Sign in to continue.']);
 }
-
 if (brewski_current_role() !== 'CUSTOMER') {
-    http_response_code(403);
-    echo json_encode(['ok' => false, 'error' => 'Only customer accounts can place orders.']);
-    exit;
+    customer_place_order_respond(403, [
+        'ok' => false,
+        'error' => 'Only customer accounts can place orders.',
+    ]);
 }
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['ok' => false, 'error' => 'Method not allowed.']);
-    exit;
+    header('Allow: POST');
+    customer_place_order_respond(405, ['ok' => false, 'error' => 'Method not allowed.']);
 }
 
-$token = $_POST['csrf_token'] ?? '';
-
+$submittedToken = $_POST['csrf_token'] ?? '';
 if (
     empty($_SESSION['csrf_token'])
-    || !is_string($token)
-    || !hash_equals($_SESSION['csrf_token'], $token)
+    || !is_string($submittedToken)
+    || !hash_equals($_SESSION['csrf_token'], $submittedToken)
 ) {
-    http_response_code(403);
-    echo json_encode(['ok' => false, 'error' => 'Invalid session token.']);
-    exit;
+    customer_place_order_respond(403, ['ok' => false, 'error' => 'Invalid session token.']);
 }
 
-$userId    = (int) $_SESSION['user_id'];
-$action    = (string) ($_POST['action'] ?? '');
-$addressId = (int) ($_POST['address_id'] ?? 0);
-$notes     = trim((string) ($_POST['notes'] ?? ''));
-
-if ($addressId <= 0) {
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Please select a delivery address.']);
-    exit;
+if ((string) ($_POST['action'] ?? '') !== 'create_payment') {
+    customer_place_order_respond(422, ['ok' => false, 'error' => 'Invalid payment request.']);
 }
 
+$addressId = filter_var(
+    $_POST['address_id'] ?? null,
+    FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]]
+);
+$notes = trim((string) ($_POST['notes'] ?? ''));
+if ($addressId === false) {
+    customer_place_order_respond(422, [
+        'ok' => false,
+        'error' => 'Please select a delivery address.',
+    ]);
+}
 if (mb_strlen($notes) > 500) {
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Delivery notes must be 500 characters or fewer.']);
-    exit;
+    customer_place_order_respond(422, [
+        'ok' => false,
+        'error' => 'Delivery notes must be 500 characters or fewer.',
+    ]);
 }
-
-$hasDeliveries = customer_has_deliveries_table($pdo);
-
-if ($notes !== '' && !$hasDeliveries) {
-    http_response_code(503);
-    echo json_encode([
+if ($notes !== '' && !customer_has_deliveries_table($pdo)) {
+    customer_place_order_respond(503, [
         'ok' => false,
         'error' => 'Custom delivery notes are unavailable right now. Please try again later.',
     ]);
-    exit;
 }
 
-if ($action === 'request_otp') {
-    $lastSent = (int) ($_SESSION['order_otp']['last_sent'] ?? 0);
-    $waitSeconds = 60 - (time() - $lastSent);
-
-    if ($lastSent > 0 && $waitSeconds > 0) {
-        http_response_code(429);
-        echo json_encode([
-            'ok' => false,
-            'error' => "Please wait {$waitSeconds} seconds before requesting another code.",
-            'wait_seconds' => $waitSeconds,
-        ]);
-        exit;
-    }
-
-    $addressStatement = $pdo->prepare(
-        'SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ? LIMIT 1'
-    );
-    $addressStatement->execute([$addressId, $userId]);
-
-    if (!$addressStatement->fetchColumn()) {
-        http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => 'Please select a valid delivery address.']);
-        exit;
-    }
-
-    $cartStatement = $pdo->prepare(
-        'SELECT COUNT(*)
-         FROM cart_items ci
-         INNER JOIN carts c ON c.cart_id = ci.cart_id
-         WHERE c.user_id = ?'
-    );
-    $cartStatement->execute([$userId]);
-
-    if ((int) $cartStatement->fetchColumn() === 0) {
-        http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => 'Your cart is empty.']);
-        exit;
-    }
-
-    $userStatement = $pdo->prepare(
-        "SELECT email, first_name FROM users WHERE user_id = ? AND role = 'CUSTOMER' LIMIT 1"
-    );
-    $userStatement->execute([$userId]);
-    $customer = $userStatement->fetch();
-
-    if (!$customer || !filter_var($customer['email'], FILTER_VALIDATE_EMAIL)) {
-        http_response_code(422);
-        echo json_encode(['ok' => false, 'error' => 'We could not find a valid email for your account.']);
-        exit;
-    }
-
-    try {
-        $otp = (string) random_int(100000, 999999);
-    } catch (Throwable $error) {
-        error_log('Could not generate order OTP: ' . $error->getMessage());
-        http_response_code(500);
-        echo json_encode(['ok' => false, 'error' => 'Unable to generate an order code. Please try again.']);
-        exit;
-    }
-
-    $emailSent = email_service_send('send-order-otp', [
-        'email' => (string) $customer['email'],
-        'firstName' => (string) $customer['first_name'],
-        'otp' => $otp,
+$userId = (int) $_SESSION['user_id'];
+$publicBase = brewski_app_public_url();
+if ($publicBase === null) {
+    error_log('place_order: brewski_app_public_url() returned null (check APP_URL / env config on Render).');
+    customer_place_order_respond(503, [
+        'ok' => false,
+        'error' => 'Secure checkout is not configured for this site yet.',
     ]);
-
-    if (!$emailSent) {
-        http_response_code(503);
-        echo json_encode(['ok' => false, 'error' => 'We could not send your order code. Please try again.']);
-        exit;
-    }
-
-    $_SESSION['order_otp'] = [
-        'user_id' => $userId,
-        'code_hash' => password_hash($otp, PASSWORD_DEFAULT),
-        'expires_at' => time() + 600,
-        'attempts' => 0,
-        'last_sent' => time(),
-    ];
-
-    echo json_encode([
-        'ok' => true,
-        'message' => 'A 6-digit verification code was sent to ' . $customer['email'] . '.',
-    ]);
-    exit;
 }
-
-if ($action !== 'verify_otp') {
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Request an order verification code before placing the order.']);
-    exit;
-}
-
-$orderOtp = $_SESSION['order_otp'] ?? null;
-
-if (
-    !is_array($orderOtp)
-    || (int) ($orderOtp['user_id'] ?? 0) !== $userId
-    || !isset($orderOtp['code_hash'], $orderOtp['expires_at'], $orderOtp['attempts'])
-) {
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Request a new order verification code.']);
-    exit;
-}
-
-if ((int) $orderOtp['expires_at'] <= time()) {
-    unset($_SESSION['order_otp']);
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Your order code has expired. Request a new code.']);
-    exit;
-}
-
-if ((int) $orderOtp['attempts'] >= 5) {
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => 'Too many incorrect attempts. Request a new code.']);
-    exit;
-}
-
-$submittedOtp = $_POST['otp'] ?? '';
-if (
-    !is_string($submittedOtp)
-    || !preg_match('/^\d{6}$/', $submittedOtp)
-    || !password_verify($submittedOtp, (string) $orderOtp['code_hash'])
-) {
-    $_SESSION['order_otp']['attempts'] = (int) $orderOtp['attempts'] + 1;
-    $attemptsLeft = max(0, 5 - (int) $_SESSION['order_otp']['attempts']);
-    $errorMessage = $attemptsLeft > 0
-        ? "Incorrect code. {$attemptsLeft} attempt(s) left."
-        : 'Too many incorrect attempts. Request a new code.';
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => $errorMessage]);
-    exit;
-}
-
-unset($_SESSION['order_otp']);
+$publicBase = rtrim($publicBase, '/');
 
 try {
     $pdo->beginTransaction();
 
-    $stmt = $pdo->prepare('SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ?');
-    $stmt->execute([$addressId, $userId]);
-
-    if (!$stmt->fetchColumn()) {
-        throw new RuntimeException('Invalid delivery address.');
+    $addressStatement = $pdo->prepare(
+        'SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ? LIMIT 1'
+    );
+    $addressStatement->execute([(int) $addressId, $userId]);
+    if (!$addressStatement->fetchColumn()) {
+        throw new RuntimeException('Please select one of your saved delivery addresses.');
     }
 
-    $stmt = $pdo->prepare(
-        'SELECT cart_id FROM carts
-         WHERE user_id = ?
-         ORDER BY cart_id ASC
-         LIMIT 1'
+    $cartStatement = $pdo->prepare(
+        'SELECT cart_id FROM carts WHERE user_id = ? ORDER BY cart_id ASC LIMIT 1 FOR UPDATE'
     );
-    $stmt->execute([$userId]);
-    $cartId = $stmt->fetchColumn();
-
+    $cartStatement->execute([$userId]);
+    $cartId = $cartStatement->fetchColumn();
     if (!$cartId) {
         throw new RuntimeException('Your cart is empty.');
     }
 
-    $stmt = $pdo->prepare(
-        'SELECT ci.product_id, ci.size_id, ci.quantity, ci.unit_price
-         FROM cart_items ci
-         WHERE ci.cart_id = ?'
+    $pendingStatement = $pdo->prepare(
+        "SELECT op.payment_id, op.order_id, op.provider_session_id, op.checkout_url
+           FROM order_payments op
+           INNER JOIN orders o ON o.order_id = op.order_id
+          WHERE o.user_id = ? AND op.payment_status = 'PENDING'
+          ORDER BY op.payment_id DESC
+          LIMIT 1
+          FOR UPDATE"
     );
-    $stmt->execute([$cartId]);
-    $items = $stmt->fetchAll();
+    $pendingStatement->execute([$userId]);
+    $pendingPayment = $pendingStatement->fetch();
+    $stalePaymentResolved = false;
+    if ($pendingPayment) {
+        $sessionLookupFailed = false;
+        $sessionResponse = [];
+        try {
+            $sessionResponse = customer_paymongo_request(
+                'GET',
+                'checkout_sessions/' . rawurlencode((string) $pendingPayment['provider_session_id'])
+            );
+        } catch (Throwable $lookupError) {
+            $sessionLookupFailed = true;
+            error_log(sprintf(
+                'place_order: could not look up pending PayMongo session %s for user %d (payment_id %d): %s',
+                (string) $pendingPayment['provider_session_id'],
+                $userId,
+                (int) $pendingPayment['payment_id'],
+                $lookupError->getMessage()
+            ));
+        }
 
+        if ($sessionLookupFailed) {
+            customer_mark_payment_failed(
+                $pdo,
+                (int) $pendingPayment['payment_id'],
+                (int) $pendingPayment['order_id']
+            );
+            $stalePaymentResolved = true;
+        } else {
+            $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
+            $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
+            $existingCheckoutUrl = (string) ($sessionAttributes['checkout_url'] ?? '');
+            if (
+                customer_paymongo_session_is_paid($sessionAttributes)
+                || in_array($sessionStatus, ['completed', 'paid'], true)
+            ) {
+                throw new RuntimeException('Payment is being confirmed. Please check My orders shortly.');
+            }
+            if ($sessionStatus === 'active') {
+                if (
+                    !filter_var($existingCheckoutUrl, FILTER_VALIDATE_URL)
+                    || parse_url($existingCheckoutUrl, PHP_URL_SCHEME) !== 'https'
+                    || parse_url($existingCheckoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
+                ) {
+                    throw new RuntimeException('The payment provider returned an invalid checkout link.');
+                }
+                $pdo->commit();
+                customer_place_order_respond(200, [
+                    'ok' => true,
+                    'redirect' => $existingCheckoutUrl,
+                ]);
+            }
+            if (!in_array($sessionStatus, ['expired', 'failed'], true)) {
+                error_log('place_order: pending session returned unexpected status "' . $sessionStatus . '"');
+                throw new RuntimeException('Could not verify your current payment. Please try again shortly.');
+            }
+
+            customer_mark_payment_failed(
+                $pdo,
+                (int) $pendingPayment['payment_id'],
+                (int) $pendingPayment['order_id']
+            );
+            $stalePaymentResolved = true;
+        }
+    }
+
+    if ($stalePaymentResolved) {
+        $pdo->commit();
+        $pdo->beginTransaction();
+        $cartStatement = $pdo->prepare(
+            'SELECT cart_id FROM carts WHERE user_id = ? ORDER BY cart_id ASC LIMIT 1 FOR UPDATE'
+        );
+        $cartStatement->execute([$userId]);
+        $cartId = $cartStatement->fetchColumn();
+        if (!$cartId) {
+            throw new RuntimeException('Your cart is empty.');
+        }
+    }
+
+    $itemsStatement = $pdo->prepare(
+        'SELECT product_id, size_id, quantity, unit_price
+           FROM cart_items
+          WHERE cart_id = ?
+          ORDER BY cart_item_id ASC'
+    );
+    $itemsStatement->execute([(int) $cartId]);
+    $items = $itemsStatement->fetchAll();
     if (!$items) {
         throw new RuntimeException('Your cart is empty.');
     }
 
-    $subtotal = 0.0;
-
-    foreach ($items as $it) {
-        $subtotal += (float) $it['unit_price'] * (int) $it['quantity'];
+    $subtotalCents = 0;
+    foreach ($items as $item) {
+        if ((int) $item['quantity'] < 1 || (float) $item['unit_price'] < 0) {
+            throw new RuntimeException('Your cart contains an invalid item. Please refresh and try again.');
+        }
+        $subtotalCents += (int) round((float) $item['unit_price'] * 100) * (int) $item['quantity'];
     }
+    $deliveryFeeCents = $subtotalCents >= 50000 ? 0 : 5000;
+    $totalCents = $subtotalCents + $deliveryFeeCents;
 
-    $deliveryFee = $subtotal >= 500 ? 0.00 : 50.00;
-    $total       = $subtotal + $deliveryFee;
-
-    $stmt = $pdo->prepare(
+    $orderStatement = $pdo->prepare(
         "INSERT INTO orders (user_id, address_id, total_amount, order_status)
          VALUES (?, ?, ?, 'PENDING')"
     );
-    $stmt->execute([$userId, $addressId, $total]);
+    $orderStatement->execute([
+        $userId,
+        (int) $addressId,
+        number_format($totalCents / 100, 2, '.', ''),
+    ]);
     $orderId = (int) $pdo->lastInsertId();
 
-    $stmtItem = $pdo->prepare(
+    $orderItemStatement = $pdo->prepare(
         'INSERT INTO order_items (order_id, product_id, size_id, quantity, unit_price, subtotal)
          VALUES (?, ?, ?, ?, ?, ?)'
     );
-
-    foreach ($items as $it) {
-        $lineTotal = (float) $it['unit_price'] * (int) $it['quantity'];
-
-        $stmtItem->execute([
+    foreach ($items as $item) {
+        $lineCents = (int) round((float) $item['unit_price'] * 100) * (int) $item['quantity'];
+        $orderItemStatement->execute([
             $orderId,
-            (int) $it['product_id'],
-            (int) $it['size_id'],
-            (int) $it['quantity'],
-            (float) $it['unit_price'],
-            $lineTotal,
+            (int) $item['product_id'],
+            (int) $item['size_id'],
+            (int) $item['quantity'],
+            number_format((float) $item['unit_price'], 2, '.', ''),
+            number_format($lineCents / 100, 2, '.', ''),
         ]);
     }
 
+    $hasDeliveries = customer_has_deliveries_table($pdo);
     if ($hasDeliveries) {
-        $stmt = $pdo->prepare(
+        $deliveryStatement = $pdo->prepare(
             "INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
              VALUES (?, 'UNASSIGNED', ?, ?)"
         );
-        $stmt->execute([$orderId, $deliveryFee, $notes !== '' ? $notes : null]);
-    }
-
-    $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([$cartId]);
-
-    $pdo->commit();
-
-    $receiptEmailSent = false;
-    try {
-        $notesSelect = $hasDeliveries
-            ? 'd.notes AS delivery_notes'
-            : 'NULL AS delivery_notes';
-        $deliveryJoin = $hasDeliveries
-            ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id'
-            : '';
-        $receiptStatement = $pdo->prepare(
-            'SELECT u.email, u.first_name, u.last_name, o.order_date, o.total_amount,
-                    a.address_line, a.city, a.province, a.postal_code,
-                    ' . $notesSelect . '
-             FROM orders o
-             INNER JOIN users u ON u.user_id = o.user_id
-             INNER JOIN addresses a ON a.address_id = o.address_id
-             ' . $deliveryJoin . '
-             WHERE o.order_id = ? AND o.user_id = ?
-             LIMIT 1'
-        );
-        $receiptStatement->execute([$orderId, $userId]);
-        $receiptOrder = $receiptStatement->fetch();
-
-        $receiptItemsStatement = $pdo->prepare(
-            'SELECT p.product_name, s.size_name, oi.quantity, oi.unit_price, oi.subtotal
-             FROM order_items oi
-             LEFT JOIN products p ON p.product_id = oi.product_id
-             LEFT JOIN sizes s ON s.size_id = oi.size_id
-             WHERE oi.order_id = ?
-             ORDER BY oi.order_item_id ASC'
-        );
-        $receiptItemsStatement->execute([$orderId]);
-        $receiptItems = $receiptItemsStatement->fetchAll();
-
-        if (!$receiptOrder || !$receiptItems) {
-            throw new RuntimeException('Saved order details are unavailable for the receipt email.');
-        }
-
-        $emailItems = [];
-        $subtotalCents = 0;
-        foreach ($receiptItems as $receiptItem) {
-            $unitPriceCents = (int) round((float) $receiptItem['unit_price'] * 100);
-            $lineTotalCents = (int) round((float) $receiptItem['subtotal'] * 100);
-            $subtotalCents += $lineTotalCents;
-            $emailItems[] = [
-                'name' => (string) $receiptItem['product_name'],
-                'size' => (string) $receiptItem['size_name'],
-                'quantity' => (int) $receiptItem['quantity'],
-                'unitPrice' => number_format($unitPriceCents / 100, 2, '.', ''),
-                'lineTotal' => number_format($lineTotalCents / 100, 2, '.', ''),
-            ];
-        }
-
-        $totalCents = (int) round((float) $receiptOrder['total_amount'] * 100);
-        $receiptEmailSent = email_service_send('send-order-receipt', [
-            'email' => (string) $receiptOrder['email'],
-            'customerName' => trim($receiptOrder['first_name'] . ' ' . $receiptOrder['last_name']),
-            'receiptNumber' => 'BRW-' . str_pad((string) $orderId, 8, '0', STR_PAD_LEFT),
-            'orderDate' => (string) $receiptOrder['order_date'],
-            'address' => [
-                'addressLine' => (string) $receiptOrder['address_line'],
-                'city' => (string) $receiptOrder['city'],
-                'province' => (string) $receiptOrder['province'],
-                'postalCode' => (string) $receiptOrder['postal_code'],
-            ],
-            'deliveryNotes' => (string) ($receiptOrder['delivery_notes'] ?? ''),
-            'items' => $emailItems,
-            'subtotal' => number_format($subtotalCents / 100, 2, '.', ''),
-            'deliveryFee' => number_format($deliveryFee, 2, '.', ''),
-            'total' => number_format($totalCents / 100, 2, '.', ''),
+        $deliveryStatement->execute([
+            $orderId,
+            number_format($deliveryFeeCents / 100, 2, '.', ''),
+            $notes !== '' ? $notes : null,
         ]);
-    } catch (Throwable $emailError) {
-        error_log('Could not email receipt for order ' . $orderId . ': ' . $emailError->getMessage());
     }
 
-    echo json_encode([
-        'ok'                 => true,
-        'order_id'           => $orderId,
-        'total'              => number_format($total, 2, '.', ''),
-        'receipt_email_sent' => $receiptEmailSent,
-        'redirect'           => '../customer_orders/order_success.php?order_id=' . $orderId
-            . '&receipt_email_sent=' . ($receiptEmailSent ? '1' : '0'),
+    $userStatement = $pdo->prepare(
+        'SELECT email, first_name, last_name FROM users WHERE user_id = ? LIMIT 1'
+    );
+    $userStatement->execute([$userId]);
+    $customer = $userStatement->fetch();
+    if (!$customer) {
+        throw new RuntimeException('Your customer account could not be verified.');
+    }
+
+    $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
+    $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
+
+    $debugMinimalMethods = false;
+    $paymentMethodTypes = $debugMinimalMethods
+        ? ['gcash', 'paymaya']
+        : [
+            'gcash',
+            'paymaya',
+            'grab_pay',
+            'qrph',
+        ];
+
+    $sessionResponse = customer_paymongo_request('POST', 'checkout_sessions', [
+        'data' => [
+            'attributes' => [
+                'line_items' => [[
+                    'name' => 'Brewski order #' . $orderId,
+                    'amount' => $totalCents,
+                    'currency' => 'PHP',
+                    'quantity' => 1,
+                ]],
+                'payment_method_types' => $paymentMethodTypes,
+                'success_url' => $successUrl,
+                'cancel_url' => $cancelUrl,
+                'reference_number' => 'BRW-' . $orderId,
+                'send_email_receipt' => false,
+                'billing' => [
+                    'name' => trim($customer['first_name'] . ' ' . $customer['last_name']),
+                    'email' => (string) $customer['email'],
+                ],
+                'metadata' => [
+                    'order_id' => (string) $orderId,
+                    'customer_id' => (string) $userId,
+                ],
+            ],
+        ],
     ]);
 
-} catch (RuntimeException $e) {
+    $sessionId = (string) ($sessionResponse['data']['id'] ?? '');
+    $checkoutUrl = (string) ($sessionResponse['data']['attributes']['checkout_url'] ?? '');
+    if (
+        $sessionId === ''
+        || !filter_var($checkoutUrl, FILTER_VALIDATE_URL)
+        || parse_url($checkoutUrl, PHP_URL_SCHEME) !== 'https'
+        || parse_url($checkoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
+    ) {
+        error_log('place_order: PayMongo returned no usable checkout session: '
+            . substr((string) json_encode($sessionResponse), 0, 1000));
+        throw new RuntimeException('The payment provider returned an invalid checkout link.');
+    }
 
+    $paymentStatement = $pdo->prepare(
+        'INSERT INTO order_payments (order_id, provider_session_id, checkout_url)
+         VALUES (?, ?, ?)'
+    );
+    $paymentStatement->execute([$orderId, $sessionId, $checkoutUrl]);
+    $pdo->commit();
+
+    customer_place_order_respond(200, [
+        'ok' => true,
+        'order_id' => $orderId,
+        'redirect' => $checkoutUrl,
+    ]);
+} catch (RuntimeException $error) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-
-    http_response_code(422);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
-
-} catch (Throwable $e) {
-
+    error_log(sprintf(
+        'place_order RuntimeException (user %d): %s at %s:%d',
+        $userId,
+        $error->getMessage(),
+        basename($error->getFile()),
+        $error->getLine()
+    ));
+    customer_place_order_respond(422, [
+        'ok' => false,
+        'error' => $error->getMessage(),
+    ]);
+} catch (Throwable $error) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-
-    error_log('place_order failed: ' . $e->getMessage());
-
-    http_response_code(500);
-    echo json_encode([
-        'ok'     => false,
-        'error'  => 'We could not place your order. Please try again.',
-        'detail' => $e->getMessage(),
+    error_log(sprintf(
+        'PayMongo checkout creation failed (user %d): %s: %s at %s:%d',
+        $userId,
+        get_class($error),
+        $error->getMessage(),
+        basename($error->getFile()),
+        $error->getLine()
+    ));
+    customer_place_order_respond(500, [
+        'ok' => false,
+        'error' => 'We could not start secure checkout. Please try again.',
     ]);
 }

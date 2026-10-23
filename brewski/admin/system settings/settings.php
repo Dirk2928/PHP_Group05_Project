@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../login-signup/settings.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 $settings_endpoint = BREWSKI_BASE_URL . '/admin/system%20settings/settings.php';
 
@@ -181,6 +182,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pending[$rule['setting']] = (string) $password_rules[$rule_key];
     }
 
+    $settingLabels = [
+        'min_password_length' => 'Minimum password length',
+        'session_idle_timeout' => 'Session idle timeout',
+        'session_absolute_timeout' => 'Session lifetime',
+        'max_login_attempts' => 'Failed sign-in attempts allowed',
+    ];
+    foreach ($password_rule_definitions as $rule) {
+        $settingLabels[$rule['setting']] = 'Password requirement: ' . strtolower($rule['label']);
+    }
+
+    $formatSettingValue = static function (string $key, string $value): string {
+        if ($value === '') {
+            return 'default';
+        }
+
+        if ($key === 'session_idle_timeout') {
+            return ((int) $value / 60) . ' minutes';
+        }
+        if ($key === 'session_absolute_timeout') {
+            return ((int) $value / 3600) . ' hours';
+        }
+
+        return $value;
+    };
+
+    $changedSettings = [];
+    foreach ($pending as $settingKey => $settingValue) {
+        $previousValue = (string) brewski_setting($settingKey, '');
+        if ($previousValue !== $settingValue) {
+            $changedSettings[$settingKey] = [$previousValue, $settingValue];
+        }
+    }
+
     $saved = true;
 
     foreach ($pending as $setting_key => $setting_value) {
@@ -192,6 +226,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$saved) {
         echo 'Could not save the settings. Please try again.';
         exit;
+    }
+
+    $settingsConnection = brewski_settings_connection();
+    if ($settingsConnection instanceof mysqli) {
+        foreach ($changedSettings as $settingKey => [$previousValue, $settingValue]) {
+            $settingLabel = $settingLabels[$settingKey] ?? $settingKey;
+            $description = $settingLabel . ': '
+                . $formatSettingValue($settingKey, $previousValue)
+                . ' → '
+                . $formatSettingValue($settingKey, $settingValue)
+                . '.';
+            brewski_record_activity(
+                $settingsConnection,
+                'system',
+                'Updated ' . $settingLabel,
+                $description,
+                'setting'
+            );
+        }
     }
 
     echo 'ok';
@@ -481,3 +534,4 @@ unset($record);
     });
 })();
 </script>
+<?php echo brewski_session_timeout_markup(); ?>

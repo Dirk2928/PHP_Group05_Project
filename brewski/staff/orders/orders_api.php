@@ -59,17 +59,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $statement = $pdo->prepare('SELECT order_status FROM orders WHERE order_id = ? LIMIT 1');
+        $statement = $pdo->prepare(
+            'SELECT o.order_status, op.payment_status
+               FROM orders o
+               LEFT JOIN order_payments op ON op.order_id = o.order_id
+              WHERE o.order_id = ?
+              LIMIT 1'
+        );
         $statement->execute([(int) $orderId]);
-        $currentStatus = $statement->fetchColumn();
+        $currentOrder = $statement->fetch();
 
-        if ($currentStatus === false) {
+        if (!$currentOrder) {
             http_response_code(404);
             echo json_encode(['ok' => false, 'error' => 'That order no longer exists.']);
             exit;
         }
 
-        $currentStatus = strtoupper((string) $currentStatus);
+        if (
+            $currentOrder['payment_status'] !== null
+            && $currentOrder['payment_status'] !== 'PAID'
+        ) {
+            http_response_code(422);
+            echo json_encode([
+                'ok' => false,
+                'error' => 'This order cannot be fulfilled until payment is confirmed.',
+            ]);
+            exit;
+        }
+
+        $currentStatus = strtoupper((string) $currentOrder['order_status']);
 
         if (!in_array($newStatus, $transitions[$currentStatus] ?? [], true)) {
             http_response_code(422);
@@ -159,8 +177,10 @@ try {
                 TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
                 d.notes AS delivery_notes
            FROM orders o
+          LEFT JOIN order_payments op ON op.order_id = o.order_id
            LEFT JOIN users u ON u.user_id = o.user_id
            LEFT JOIN deliveries d ON d.order_id = o.order_id
+          WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
           ORDER BY o.order_date DESC, o.order_id DESC
           LIMIT 100"
     );
@@ -200,7 +220,9 @@ try {
                 p.product_name AS name,
                 COALESCE(c.category_name, 'Uncategorised') AS category,
                 p.price,
-                p.availability
+                p.availability,
+                p.image_path,
+                p.image_mime_type
            FROM products p
            LEFT JOIN categories c ON c.category_id = p.category_id
           ORDER BY category ASC, p.product_name ASC"
@@ -215,6 +237,9 @@ try {
             'category'  => (string) $product['category'],
             'price'     => (float) $product['price'],
             'available' => (int) $product['availability'] === 1,
+            'image_url' => !empty($product['image_mime_type'])
+                ? BREWSKI_BASE_URL . '/customer/product_image.php?id=' . (int) $product['product_id']
+                : BREWSKI_BASE_URL . '/images/' . rawurlencode((string) ($product['image_path'] ?: 'brewskilogo.png')),
         ];
     }
 

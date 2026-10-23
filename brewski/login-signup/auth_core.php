@@ -25,6 +25,46 @@ const BREWSKI_AUTH_WRONG_PORTAL = 'wrong_portal';
 const BREWSKI_AUTH_TOTP = 'totp';
 const BREWSKI_AUTH_ENROLL = 'enroll';
 
+function brewski_ensure_account_lockouts_table(mysqli $connection): bool
+{
+    return $connection->query(
+        "CREATE TABLE IF NOT EXISTS account_lockouts (
+            account_lockout_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255) NOT NULL UNIQUE,
+            failed_attempts INT UNSIGNED NOT NULL DEFAULT 0,
+            locked_at DATETIME NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_account_lockouts_locked_at (locked_at)
+        )"
+    ) === true;
+}
+
+function brewski_record_login_attempt(
+    mysqli $connection,
+    string $username,
+    int $attempts,
+    bool $locked
+): void {
+    $statement = $connection->prepare(
+        'INSERT INTO account_lockouts (username, failed_attempts, locked_at)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+            failed_attempts = VALUES(failed_attempts),
+            locked_at = VALUES(locked_at)'
+    );
+    if (!$statement) {
+        error_log('Could not prepare account lockout history statement: ' . $connection->error);
+        return;
+    }
+    $lockedAt = $locked ? date('Y-m-d H:i:s') : null;
+    $statement->bind_param('sis', $username, $attempts, $lockedAt);
+    if (!$statement->execute()) {
+        error_log('Could not save account lockout history: ' . $statement->error);
+    }
+    $statement->close();
+}
+
 function brewski_auth_result(
     string $status,
     string $message = '',
@@ -90,6 +130,9 @@ function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = tr
  */
 function brewski_authenticate($conn, string $email, string $password, string $portalKey): array
 {
+    if (!brewski_ensure_account_lockouts_table($conn)) {
+        error_log('Account lockout history table is unavailable: ' . $conn->error);
+    }
     $portal = brewski_portal($portalKey);
     $allowedRoles = $portal['roles'];
 
@@ -158,8 +201,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
 
     $maxAttempts = brewski_max_login_attempts();
     $accountLocked = (int) $isLocked === 1;
-    $lockedMessage = 'This account is locked after too many failed sign-in attempts. '
-        . 'Contact an administrator to unlock it.';
+    $genericLoginMessage = 'Incorrect email or password.';
 
     $passwordOk = password_verify($password, $storedPassword);
 
@@ -187,10 +229,11 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             $resetAttempts->execute();
             $resetAttempts->close();
         }
+        brewski_record_login_attempt($conn, $email, 0, false);
     }
 
     if ($accountLocked) {
-        return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+        return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
     }
 
     if (!$passwordOk) {
@@ -206,8 +249,9 @@ function brewski_authenticate($conn, string $email, string $password, string $po
                 $lockUpdate->execute();
                 $lockUpdate->close();
             }
+            brewski_record_login_attempt($conn, $email, $attempts, true);
 
-            return brewski_auth_result(BREWSKI_AUTH_LOCKED, $lockedMessage);
+            return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
         }
 
         $attemptUpdate = $conn->prepare(
@@ -219,16 +263,9 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             $attemptUpdate->execute();
             $attemptUpdate->close();
         }
+        brewski_record_login_attempt($conn, $email, $attempts, false);
 
-        $remaining = $maxAttempts - $attempts;
-
-        return brewski_auth_result(
-            BREWSKI_AUTH_INVALID,
-            'Incorrect email or password. '
-                . $remaining
-                . ($remaining === 1 ? ' attempt' : ' attempts')
-                . ' left before this account is locked.'
-        );
+        return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
     }
 
     // Portal gate. This runs only after the password has verified, so an
