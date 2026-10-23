@@ -182,48 +182,60 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- THE MAGIC FIX: MUTATION OBSERVER ---
-    // This watches the modal for changes. If the menu script redraws the button,
-    // we instantly change it back to "Save Changes" before you even see it.
-    var editBtnObserver = new MutationObserver(function(mutations) {
-        var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; // Not editing, ignore
+    // --- EDIT MODE ---
+    // The "Save Changes" label is forced with CSS while the modal is in edit mode,
+    // so it no longer matters when another script rewrites the button text.
+    var editingKey = '';
+    var editingName = '';
+    var openingForEdit = false;
 
-        var btn = document.getElementById('btn-confirm-add');
-        if (btn && btn.textContent.indexOf('Add to Cart') !== -1) {
-            btn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
-            if (window.lucide) window.lucide.createIcons();
-        }
-    });
+    (function injectEditStyles() {
+        var style = document.createElement('style');
+        style.textContent =
+            '#customization-modal.is-editing #btn-confirm-add > span,' +
+            '#customization-modal.is-editing #btn-confirm-add > i,' +
+            '#customization-modal.is-editing #btn-confirm-add > svg { display: none !important; }' +
+            '#customization-modal.is-editing #btn-confirm-add::before { content: "Save Changes"; }' +
+            '#customization-modal.is-editing #btn-confirm-add::after { content: "\\2713"; margin-left: 8px; }';
+        document.head.appendChild(style);
+    })();
 
-    // Start watching when the modal is on the page
-    var modal = document.getElementById('customization-modal');
-    if (modal) {
-        editBtnObserver.observe(modal, { childList: true, subtree: true, characterData: true });
+    function startEditing(key, name) {
+        editingKey = key;
+        editingName = name;
+        var modalEl = document.getElementById('customization-modal');
+        var keyInput = document.getElementById('modal-edit-key');
+        if (modalEl) modalEl.classList.add('is-editing');
+        if (keyInput) keyInput.value = key;
+    }
+
+    function stopEditing() {
+        editingKey = '';
+        editingName = '';
+        var modalEl = document.getElementById('customization-modal');
+        var keyInput = document.getElementById('modal-edit-key');
+        if (modalEl) modalEl.classList.remove('is-editing');
+        if (keyInput) keyInput.value = '';
     }
 
     // --- EDIT INTERCEPTOR ---
-    window.openEditModal = function(key) {
+    window.openEditModal = function (key) {
         var items = load();
-        var item = items.find(function(i) { return i.key === key; });
+        var item = items.find(function (i) { return i.key === key; });
         if (!item) return;
 
-        setOpen(false); 
+        setOpen(false);
 
         var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
-        
+
         if (productCard) {
             var addBtn = productCard.querySelector('.btn-add');
-            if (addBtn) addBtn.click(); 
 
-            document.getElementById('modal-edit-key').value = key;
+            openingForEdit = true;
+            if (addBtn) addBtn.click();
+            openingForEdit = false;
 
-            // Immediately change the text
-            var confirmBtn = document.getElementById('btn-confirm-add');
-            if (confirmBtn) {
-                confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
-                if (window.lucide) window.lucide.createIcons();
-            }
+            startEditing(key, item.name);
 
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
@@ -232,22 +244,30 @@
         }
     };
 
+    // Opening the modal normally (a real "Add to Cart" click) must never be in edit mode
+    document.addEventListener('click', function (e) {
+        if (!openingForEdit && e.target.closest('.btn-add')) {
+            stopEditing();
+        }
+    }, true);
+
     // 1. Handle Save Changes
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         var confirmBtn = e.target.closest('#btn-confirm-add');
         if (!confirmBtn) return;
 
-        var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; 
+        var keyInput = document.getElementById('modal-edit-key');
+        var oldKey = editingKey || (keyInput ? keyInput.value : '');
+        if (!oldKey) return; // normal "Add to Cart" flow, let the menu script handle it
 
         e.preventDefault();
         e.stopPropagation();
 
-        var oldKey = editKeyInput.value;
         var modal = document.getElementById('customization-modal');
-        var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
+        var titleEl = document.getElementById('modal-product-name');
+        var productName = editingName || (titleEl ? titleEl.textContent.replace('Edit: ', '') : '');
         var productCard = document.querySelector('.product-card[data-name="' + productName + '"]');
-        
+
         if (!productCard) return;
 
         var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
@@ -257,7 +277,7 @@
 
         var selectedOptions = [];
         var optionGroups = modal.querySelectorAll('[data-option-group]');
-        optionGroups.forEach(function(group) {
+        optionGroups.forEach(function (group) {
             if (group.hasAttribute('hidden')) return;
             var activeBtn = group.querySelector('.option-btn.active');
             if (activeBtn) {
@@ -281,38 +301,35 @@
         };
 
         var items = load();
-        items = items.filter(function(i) { return i.key !== oldKey; });
+        items = items.filter(function (i) { return i.key !== oldKey; });
         items.push(newItem);
-        
+
         save(items);
-        
-        // Close modal and reset
+
+        // Close modal and leave edit mode
         modal.classList.remove('active');
-        editKeyInput.value = '';
-        
-        // Reset button text
-        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-        document.getElementById('modal-product-name').textContent = 'Customize your drink';
+        stopEditing();
+        if (titleEl) titleEl.textContent = 'Customize your drink';
 
     }, true);
 
-    // 2. Reset on close
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
-            var editKeyInput = document.getElementById('modal-edit-key');
-            if (editKeyInput && editKeyInput.value !== '') {
-                setTimeout(function() {
-                    editKeyInput.value = '';
-                    var confirmBtn = document.getElementById('btn-confirm-add');
-                    if (confirmBtn) {
-                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-                        if (window.lucide) window.lucide.createIcons();
-                    }
-                    document.getElementById('modal-product-name').textContent = 'Customize your drink';
-                }, 50);
-            }
+    // 2. Leave edit mode when the modal is closed (X button, overlay, or Escape)
+    document.addEventListener('click', function (e) {
+        if (!editingKey) return;
+        if (e.target.closest('#modal-close') || e.target.id === 'customization-modal') {
+            setTimeout(function () {
+                stopEditing();
+                var titleEl = document.getElementById('modal-product-name');
+                if (titleEl) titleEl.textContent = 'Customize your drink';
+            }, 50);
         }
     }, true);
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && editingKey) {
+            setTimeout(stopEditing, 50);
+        }
+    });
 
     if (menu && button && body) {
 
@@ -405,15 +422,6 @@
         });
     });
     window.addEventListener('pageshow', render);
-
-    window.BrewskiCart = {
-        STORAGE_KEY: STORAGE_KEY,
-        load: load,
-        save: save,
-        add: function(item) { save([...load(), item]); },
-        count: count,
-        render: render
-    };
 
     render();
     var isCheckoutPage = checkoutUrl
