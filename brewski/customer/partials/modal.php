@@ -37,7 +37,7 @@
         </div>
 
         <div class="modal__body">
-            
+
             <!-- Hidden field to track if we are editing -->
             <input type="hidden" id="modal-edit-key" value="">
 
@@ -88,6 +88,7 @@
 
             </div>
 
+            <!-- Menu's native button (Hidden when editing) -->
             <button
                 type="button"
                 class="btn-confirm"
@@ -97,6 +98,20 @@
                 <span>Add to Cart</span>
 
                 <i data-lucide="arrow-right"></i>
+
+            </button>
+
+            <!-- Our custom edit button (Hidden when adding) -->
+            <button
+                type="button"
+                class="btn-confirm"
+                id="btn-save-edit"
+                style="display: none;"
+            >
+
+                <span>Save Changes</span>
+
+                <i data-lucide="check"></i>
 
             </button>
 

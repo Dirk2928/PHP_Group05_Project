@@ -198,11 +198,9 @@
 
             document.getElementById('modal-edit-key').value = key;
 
-            var confirmBtn = document.getElementById('btn-confirm-add');
-            if (confirmBtn) {
-                confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
-                if (window.lucide) window.lucide.createIcons();
-            }
+            // Swap buttons
+            document.getElementById('btn-confirm-add').style.display = 'none';
+            document.getElementById('btn-save-edit').style.display = 'flex';
 
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
@@ -211,17 +209,15 @@
         }
     };
 
-    // 1. Intercept Save Changes button
+    // 1. Handle Save Changes
     document.addEventListener('click', function(e) {
-        var confirmBtn = e.target.closest('#btn-confirm-add');
-        if (!confirmBtn) return;
-
-        var editKeyInput = document.getElementById('modal-edit-key');
-        if (!editKeyInput || editKeyInput.value === '') return; 
+        var saveBtn = e.target.closest('#btn-save-edit');
+        if (!saveBtn) return;
 
         e.preventDefault();
         e.stopPropagation();
 
+        var editKeyInput = document.getElementById('modal-edit-key');
         var oldKey = editKeyInput.value;
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
@@ -265,31 +261,26 @@
         
         save(items);
         
-        // Close modal cleanly
+        // Close modal and reset
         modal.classList.remove('active');
         editKeyInput.value = '';
         
-        // The menu might try to re-render it, so we use setTimeout to override it
-        setTimeout(function() {
-            confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-            document.getElementById('modal-product-name').textContent = 'Customize your drink';
-            if (window.lucide) window.lucide.createIcons();
-        }, 10);
+        // Reset buttons
+        saveBtn.style.display = 'none';
+        document.getElementById('btn-confirm-add').style.display = 'flex';
+        document.getElementById('modal-product-name').textContent = 'Customize your drink';
 
     }, true);
 
-    // 2. Intercept Close (X) button
+    // 2. Reset on close
     document.addEventListener('click', function(e) {
         if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
             var editKeyInput = document.getElementById('modal-edit-key');
             if (editKeyInput && editKeyInput.value !== '') {
                 setTimeout(function() {
                     editKeyInput.value = '';
-                    var confirmBtn = document.getElementById('btn-confirm-add');
-                    if (confirmBtn) {
-                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-                        if (window.lucide) window.lucide.createIcons();
-                    }
+                    document.getElementById('btn-save-edit').style.display = 'none';
+                    document.getElementById('btn-confirm-add').style.display = 'flex';
                     document.getElementById('modal-product-name').textContent = 'Customize your drink';
                 }, 50);
             }
