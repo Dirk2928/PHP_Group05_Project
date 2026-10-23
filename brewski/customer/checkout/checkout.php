@@ -135,9 +135,6 @@ require __DIR__ . '/../partials/header.php';
                         <span>GCash</span>
                         <span>Maya</span>
                         <span>QR Ph</span>
-                        <span>Cards</span>
-                        <span>Online banking</span>
-                        <span>More</span>
                     </div>
                 </div>
             </div>
