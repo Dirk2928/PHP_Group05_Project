@@ -1746,3 +1746,64 @@ body.sidebar-open::after {
         font-size: 11px;
     }
 }
+
+/* =========================================
+   THEME SYNC OVERRIDES (Customer Match)
+   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
+
+body, input, select, button, table, .toolbar-input {
+    font-family: "Questrial", sans-serif !important;
+}
+
+h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
+    font-family: "Fredoka", sans-serif !important;
+}
+
+/* Make buttons pill-shaped */
+.btn {
+    border-radius: 999px !important;
+    padding: 0.6rem 1.2rem !important;
+    border: none !important;
+}
+
+.btn-primary {
+    background-color: var(--espresso) !important;
+    color: var(--cream) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--mocha) !important;
+}
+
+.btn-secondary {
+    background-color: var(--foam) !important;
+    color: var(--espresso) !important;
+}
+
+/* Soft rounded cards */
+.stat-card, .table-card, .order-summary-card, .toolbar {
+    border-radius: 1.25rem !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(26, 15, 10, 0.05) !important;
+    background-color: var(--surface) !important;
+}
+
+/* Fix table header colors */
+.data-table th, .orders-table th {
+    background-color: var(--foam) !important;
+    color: var(--dark-mocha) !important;
+}
+
+/* Pill-shaped search bar */
+.toolbar-input, .toolbar-select {
+    border-radius: 999px !important;
+    border: 1px solid var(--latte) !important;
+    background-color: var(--cream) !important;
+    padding: 0 1rem !important;
+}
+
+.toolbar-input:focus, .toolbar-select:focus {
+    box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12) !important;
+    border-color: var(--mocha) !important;
+}
