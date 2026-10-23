@@ -18,7 +18,7 @@ try {
         "SELECT activity_id, actor_name, actor_role, category, action, description,
                 target_type, target_id, created_at
            FROM system_activity_logs
-          WHERE actor_role IN ('ADMIN', 'STAFF')
+          WHERE actor_role IN ('ADMIN', 'STAFF', 'CUSTOMER')
           ORDER BY created_at DESC, activity_id DESC"
     );
     $logs = $statement->fetchAll();
@@ -49,7 +49,7 @@ $categoryLabels = [
 <div class="page-container system-activity-page">
     <div class="page-header">
         <h1 class="page-title">System Activity</h1>
-        <p class="subtitle">A shared audit trail of staff and administrator sign-ins and operational changes.</p>
+        <p class="subtitle">A shared audit trail of customer, staff, and administrator activity.</p>
     </div>
 
     <?php if ($loadError !== ''): ?>
@@ -68,6 +68,7 @@ $categoryLabels = [
                 <option value="all">All roles</option>
                 <option value="ADMIN">Admins</option>
                 <option value="STAFF">Staff</option>
+                <option value="CUSTOMER">Customers</option>
             </select>
             <select id="activityCategory" class="toolbar-select" aria-label="Filter by activity type">
                 <option value="all">All activity</option>
@@ -104,7 +105,19 @@ $categoryLabels = [
                     <?php foreach ($logs as $log): ?>
                         <?php
                         $role = strtoupper((string) $log['actor_role']);
-                        $roleClass = $role === 'ADMIN' ? 'badge-role-admin' : 'badge-role-staff';
+                        
+                        // Handle the badge colors for all 3 roles
+                        if ($role === 'ADMIN') {
+                            $roleClass = 'badge-role-admin';
+                            $roleLabel = 'Admin';
+                        } elseif ($role === 'STAFF') {
+                            $roleClass = 'badge-role-staff';
+                            $roleLabel = 'Staff';
+                        } else {
+                            $roleClass = 'badge-role-customer';
+                            $roleLabel = 'Customer';
+                        }
+
                         $createdAt = null;
                         try {
                             $createdAt = (new DateTimeImmutable(
@@ -124,7 +137,7 @@ $categoryLabels = [
                             data-date="<?= $escape($createdAt ? $createdAt->format('Y-m-d') : '') ?>">
                             <td><span class="cell-muted"><?= $escape($createdAt ? $createdAt->format('M j, Y · h:i A') : $log['created_at']) ?></span></td>
                             <td><span class="cell-strong"><?= $escape($log['actor_name']) ?></span></td>
-                            <td><span class="badge <?= $roleClass ?>"><?= $role === 'ADMIN' ? 'Admin' : 'Staff' ?></span></td>
+                            <td><span class="badge <?= $roleClass ?>"><?= $roleLabel ?></span></td>
                             <td>
                                 <span class="activity-action"><?= $escape($log['action']) ?></span>
                                 <span class="activity-category"><?= $escape($categoryLabels[$category] ?? ucfirst($category)) ?></span>
@@ -136,7 +149,7 @@ $categoryLabels = [
                         <td colspan="5" class="empty-cell">
                             <div class="empty-state">
                                 <p class="empty-title"><?= $logs ? 'No activity found' : 'No activity recorded yet' ?></p>
-                                <p class="empty-hint"><?= $logs ? 'Try changing or clearing the filters.' : ($loadError !== '' ? 'Resolve the database message above, then refresh this page.' : 'Staff and administrator actions will appear here as they happen.') ?></p>
+                                <p class="empty-hint"><?= $logs ? 'Try changing or clearing the filters.' : ($loadError !== '' ? 'Resolve the database message above, then refresh this page.' : 'Activity will appear here as it happens.') ?></p>
                             </div>
                         </td>
                     </tr>
