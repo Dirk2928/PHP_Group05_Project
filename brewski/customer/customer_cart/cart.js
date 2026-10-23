@@ -174,8 +174,10 @@
                 '<div>Drink</div>' +
                 '<div>Customization</div>' +
                 '<div>Drinks</div>' +
-                '<div>Price</div>' +
-                '<div></div>' +
+                '<div style="grid-column: span 2; display: flex; justify-content: space-between; width: 100%;">' +
+                    '<span>Price</span>' +
+                    '<span></span>' +
+                '</div>' +
             '</div>' +
             '<div class="cart-list">';
 
@@ -185,7 +187,7 @@
                 ? 'Per drink: ' + item.customization
                 : 'No extras per drink';
 
-            // FIXED LAYOUT: Removed the div that caused the price text to overlap the icon
+            // FIX: Group Price and Buttons in a flex container to prevent overlap
             html +=
                 '<div class="cart-row" data-key="' + escapeHtml(item.key) + '">' +
                     '<div class="cart-drink">' +
@@ -198,10 +200,12 @@
                         '<span class="cart-qty__value">' + (Number(item.quantity) || 0) + '</span>' +
                         '<button type="button" class="cart-qty__btn" data-action="increase" aria-label="Add one identical drink"><i data-lucide="plus"></i></button>' +
                     '</div>' +
-                    '<div class="cart-price">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
-                    '<div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end;">' +
-                        '<button type="button" class="cart-remove__btn" data-action="edit" aria-label="Edit item"><i data-lucide="pencil"></i></button>' +
-                        '<button type="button" class="cart-remove__btn" data-action="remove" aria-label="Remove item"><i data-lucide="trash-2"></i></button>' +
+                    '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 16px; grid-column: span 2; width: 100%;">' +
+                        '<div class="cart-price" style="margin: 0;">' + money((Number(item.price) || 0) * (Number(item.quantity) || 0)) + '</div>' +
+                        '<div style="display: flex; gap: 8px; align-items: center;">' +
+                            '<button type="button" class="cart-remove__btn" data-action="edit" aria-label="Edit item" style="background:none; border:none; cursor:pointer; color:#5c4033;"><i data-lucide="pencil"></i></button>' +
+                            '<button type="button" class="cart-remove__btn" data-action="remove" aria-label="Remove item" style="background:none; border:none; cursor:pointer; color:#5c4033;"><i data-lucide="trash-2"></i></button>' +
+                        '</div>' +
                     '</div>' +
                 '</div>';
         });
