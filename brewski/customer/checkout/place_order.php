@@ -104,6 +104,7 @@ if ($publicBase === null) {
         'error' => 'Secure checkout is not configured for this site yet.',
     ]);
 }
+$publicBase = rtrim($publicBase, '/');
 
 try {
     $pdo->beginTransaction();

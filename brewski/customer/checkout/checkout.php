@@ -433,7 +433,10 @@ require __DIR__ . '/../partials/header.php';
         });
     }).then(function () {
         params.set('cart_synced', '1');
-        window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+        var syncedUrl = new URL(window.location.href);
+        syncedUrl.pathname = syncedUrl.pathname.replace(/^\/{2,}/, '/');
+        syncedUrl.search = params.toString();
+        window.history.replaceState(null, '', syncedUrl.href);
         status.hidden = true;
     }).catch(function (error) {
         console.error('Could not sync the cart on checkout:', error);
