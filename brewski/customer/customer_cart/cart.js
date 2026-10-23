@@ -80,58 +80,6 @@
         return [name, size, customization].join('|');
     }
 
-    function add(item, isEdit) {
-        var items = load();
-        
-        // If we are editing, remove the old item first
-        if (isEdit && item.originalKey) {
-            items = items.filter(function (entry) {
-                return entry.key !== item.originalKey;
-            });
-        }
-
-        var key = makeKey(item.name, item.size || '', item.customization || '');
-        var quantity = Math.max(1, Math.min(MAX_QTY, parseInt(item.quantity, 10) || 1));
-        var existing = null;
-
-        items.forEach(function (entry) {
-            if (entry.key === key) {
-                existing = entry;
-            }
-        });
-
-        if (existing && !isEdit) {
-            existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + quantity);
-        } else {
-            if (existing) {
-                // If editing and the key hasn't changed, just update it
-                existing.quantity = quantity;
-                existing.price = Number(item.price) || existing.price || 0;
-                existing.customizationOptions = item.customizationOptions || existing.customizationOptions || {};
-            } else {
-                // Otherwise push new
-                items.push({
-                    key: key,
-                    productId: Number(item.productId) || 0,
-                    name: item.name,
-                    image: item.image || '',
-                    size: item.size || '',
-                    customization: item.customization || '',
-                    customizationOptions: item.customizationOptions || {},
-                    price: Number(item.price) || 0,
-                    quantity: quantity
-                });
-            }
-        }
-        save(items);
-    }
-
-    function count() {
-        return load().reduce(function (sum, item) {
-            return sum + (Number(item.quantity) || 0);
-        }, 0);
-    }
-
     function money(amount) {
         return '₱' + Number(amount).toLocaleString('en-PH');
     }
@@ -234,7 +182,10 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    function openEditModal(key) {
+    // --- NEW EDIT INTERCEPTOR ---
+    
+    // 1. Open the modal and set the Edit Key
+    window.openEditModal = function(key) {
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
         if (!item) return;
@@ -244,15 +195,11 @@
         var productCard = document.querySelector('.product-card[data-id="' + item.productId + '"]');
         
         if (productCard) {
-            // 1. Trigger the menu's built-in click event to open the modal
             var addBtn = productCard.querySelector('.btn-add');
-            if (addBtn) addBtn.click();
+            if (addBtn) addBtn.click(); // Opens the modal
 
-            // 2. Save the item key in the hidden field
-            var editKeyInput = document.getElementById('modal-edit-key');
-            if (editKeyInput) editKeyInput.value = key;
+            document.getElementById('modal-edit-key').value = key;
 
-            // 3. Change the "Add to Cart" button text to "Save Changes"
             var confirmBtn = document.getElementById('btn-confirm-add');
             if (confirmBtn) {
                 confirmBtn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
@@ -264,55 +211,76 @@
         } else {
             alert("Please go to the Menu page to edit this drink's customizations.");
         }
-    }
+    };
 
-    // Reset modal when closed
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('#modal-close') || e.target.closest('.modal-overlay')) {
-            var editKeyInput = document.getElementById('modal-edit-key');
-            if (editKeyInput && editKeyInput.value !== '') {
-                editKeyInput.value = '';
-                var confirmBtn = document.getElementById('btn-confirm-add');
-                if (confirmBtn) {
-                    confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
-                    if (window.lucide) window.lucide.createIcons();
-                }
-                var titleEl = document.getElementById('modal-product-name');
-                if (titleEl) titleEl.textContent = 'Customize your drink';
-            }
-        }
-    });
-
-    // Intercept the Add to Cart click from the menu
+    // 2. Intercept the Save Changes button
     document.addEventListener('click', function(e) {
         var confirmBtn = e.target.closest('#btn-confirm-add');
-        if (confirmBtn) {
-            var editKeyInput = document.getElementById('modal-edit-key');
-            if (editKeyInput && editKeyInput.value !== '') {
-                var oldKey = editKeyInput.value;
-                
-                // Find the function inside the menu that builds the item payload
-                // Since we can't hook into its internal variables, we wait a tick for it to add the item
-                // then we clean up the duplicate.
-                setTimeout(function() {
-                    var items = load();
-                    // Remove the old item if it's still there
-                    var newItems = items.filter(function(entry) {
-                        return entry.key !== oldKey;
-                    });
-                    // Also need to clean up if the new item was added but old wasn't removed
-                    // Actually, the safest way: if the user hits Save, the new item is pushed by the menu.
-                    // If the new key matches the old key, they just updated quantity.
-                    // If the new key differs, we want ONLY the new one.
-                    // So we just filter out the old key.
-                    persist(newItems);
-                    render();
-                }, 100);
+        if (!confirmBtn) return;
 
-                editKeyInput.value = '';
+        var editKeyInput = document.getElementById('modal-edit-key');
+        if (!editKeyInput || editKeyInput.value === '') return; // Not editing, let menu handle it
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        var oldKey = editKeyInput.value;
+        
+        // Get current product info from the card
+        var modal = document.getElementById('customization-modal');
+        var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
+        var productCard = document.querySelector('.product-card[data-name="' + productName + '"]');
+        
+        if (!productCard) return;
+
+        // Read the quantity
+        var qty = parseInt(document.getElementById('drink-quantity-value').textContent, 10) || 1;
+        
+        // Read the total price from the modal footer
+        var priceText = document.getElementById('modal-total-price').textContent.replace('₱', '').replace(/,/g, '');
+        var totalPrice = parseFloat(priceText) || 0;
+        var unitPrice = totalPrice / qty;
+
+        // Read the selected options
+        var selectedOptions = [];
+        var optionGroups = modal.querySelectorAll('[data-option-group]');
+        optionGroups.forEach(function(group) {
+            if (group.hasAttribute('hidden')) return;
+            var groupName = group.getAttribute('data-option-group');
+            var activeBtn = group.querySelector('.option-btn.active');
+            if (activeBtn) {
+                selectedOptions.push(activeBtn.textContent.trim());
             }
-        }
-    });
+        });
+
+        var customizationString = selectedOptions.join(', ');
+        if (!customizationString) customizationString = 'No extras';
+
+        var newItem = {
+            key: makeKey(productName, '', customizationString),
+            productId: productCard.dataset.id,
+            name: productName,
+            image: productCard.dataset.image,
+            size: '',
+            customization: customizationString,
+            customizationOptions: {},
+            price: unitPrice,
+            quantity: qty
+        };
+
+        var items = load();
+        // Remove old key
+        items = items.filter(function(i) { return i.key !== oldKey; });
+        // Add new key
+        items.push(newItem);
+        
+        save(items);
+        
+        // Close modal and reset
+        modal.classList.remove('active');
+        editKeyInput.value = '';
+        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+    }, true); // Use capture to intercept before menu script
 
     if (menu && button && body) {
 
@@ -346,7 +314,7 @@
             var action = target.dataset.action;
 
             if (action === 'edit') {
-                openEditModal(row.dataset.key);
+                if (window.openEditModal) window.openEditModal(row.dataset.key);
                 return;
             }
 
@@ -410,7 +378,7 @@
         STORAGE_KEY: STORAGE_KEY,
         load: load,
         save: save,
-        add: add,
+        add: function(item) { save([...load(), item]); }, // fallback
         count: count,
         render: render
     };
