@@ -97,7 +97,7 @@ $choiceAutoOpen = $choiceUserId > 0
     && is_array($choicePreferences)
     && count($choicePreferences) === 0
     && empty($_SESSION['choice_skipped']);
-$choiceMode = $choiceAutoOpen ? 'recommendation' : 'first-timer';
+$choiceMode = $choiceAutoOpen ? 'first-timer' : 'recommendation';
 $choiceRanking = $choiceRanking ?? [];
 $renderProductCard = static function (array $product, bool $showMatch = false) use ($choiceRanking): void {
     $image = !empty($product['image_mime_type'])
