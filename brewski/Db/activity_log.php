@@ -14,7 +14,6 @@ function brewski_record_activity(
     $role = strtoupper(trim((string) ($_SESSION['role'] ?? '')));
     $actorId = (int) ($_SESSION['user_id'] ?? 0);
 
-    // Only block if there is no user ID at all
     if ($actorId <= 0) {
         return;
     }
@@ -27,6 +26,44 @@ function brewski_record_activity(
     }
 
     try {
+        // 1. CREATE TABLE IF NOT EXISTS (This fixes the missing table on Render)
+        if ($database instanceof PDO) {
+            $database->exec("
+                CREATE TABLE IF NOT EXISTS system_activity_logs (
+                    activity_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    actor_user_id INT NOT NULL,
+                    actor_name VARCHAR(201) NOT NULL,
+                    actor_role VARCHAR(20) NOT NULL,
+                    category VARCHAR(40) NOT NULL,
+                    action VARCHAR(80) NOT NULL,
+                    description VARCHAR(500) NOT NULL,
+                    target_type VARCHAR(60) NULL,
+                    target_id INT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_activity_actor (actor_user_id),
+                    INDEX idx_activity_created (created_at)
+                )
+            ");
+        } else {
+            $database->query("
+                CREATE TABLE IF NOT EXISTS system_activity_logs (
+                    activity_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    actor_user_id INT NOT NULL,
+                    actor_name VARCHAR(201) NOT NULL,
+                    actor_role VARCHAR(20) NOT NULL,
+                    category VARCHAR(40) NOT NULL,
+                    action VARCHAR(80) NOT NULL,
+                    description VARCHAR(500) NOT NULL,
+                    target_type VARCHAR(60) NULL,
+                    target_id INT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_activity_actor (actor_user_id),
+                    INDEX idx_activity_created (created_at)
+                )
+            ");
+        }
+
+        // 2. INSERT THE LOG
         $values = [
             $actorId,
             mb_substr($actorName, 0, 201),
@@ -63,6 +100,7 @@ function brewski_record_activity(
             $statement->close();
         }
     } catch (Throwable $error) {
+        // Log the error to the server logs instead of dying silently
         error_log('Could not record system activity: ' . $error->getMessage());
     }
 }
