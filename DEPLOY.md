@@ -53,6 +53,10 @@ If Aiven reports that `CREATE DATABASE` is not permitted, delete lines 1 and 3 o
 `Db/schema.aiven.sql` (the `CREATE DATABASE` and `USE` statements) and run it against the
 existing `defaultdb` instead, then set `DB_NAME=defaultdb` in step 4.
 
+For an existing installation, run `brewski/Db/migrations/20261024_add_customer_system_activity.sql`
+against the application database. This enables customer-role rows in the system activity
+table without removing existing activity.
+
 ### Keeping the two schema files in sync
 
 `Db/schema.sql` is the **source of truth**. `Db/schema.aiven.sql` is a copy of its first

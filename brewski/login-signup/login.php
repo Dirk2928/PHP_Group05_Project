@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/auth_core.php';
-require_once __DIR__ . '/../Db/activity_log.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -76,22 +75,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = brewski_authenticate($conn, $email, $password, $portal['key']);
 
         if ($result['status'] === BREWSKI_AUTH_TOTP || $result['status'] === BREWSKI_AUTH_ENROLL) {
-            
-            // Log the successful password stage
-            if (isset($result['user_id'])) {
-                brewski_record_activity(
-                    $conn,
-                    'Authentication',
-                    'Customer Login',
-                    'Customer successfully authenticated and is pending TOTP/Enrollment.',
-                    'user',
-                    (int) $result['user_id'],
-                    (int) $result['user_id'],
-                    'CUSTOMER',
-                    $email
-                );
-            }
-
             header('Location: ' . $result['redirect']);
             exit;
         }
@@ -101,40 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($result['status'] === BREWSKI_AUTH_SUCCESS) {
-            
-            // Log the successful full login (if TOTP is already done)
-            if (isset($result['user_id'])) {
-                brewski_record_activity(
-                    $conn,
-                    'Authentication',
-                    'Customer Login',
-                    'Customer logged in successfully.',
-                    'user',
-                    (int) $result['user_id'],
-                    (int) $result['user_id'],
-                    'CUSTOMER',
-                    $email
-                );
-            }
-
             // Redirect normally if successful
             header('Location: ' . brewski_home_for_role(brewski_current_role()));
             exit;
-        }
-
-        // Log failed attempts
-        if ($result['status'] === BREWSKI_AUTH_FAILED) {
-            brewski_record_activity(
-                $conn,
-                'Authentication',
-                'Failed Login',
-                'Failed login attempt for email: ' . $email,
-                'user',
-                null,
-                null, // No user id because they failed
-                'CUSTOMER',
-                $email
-            );
         }
 
         $error = $result['message'];

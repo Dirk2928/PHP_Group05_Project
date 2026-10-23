@@ -2,6 +2,7 @@
 session_start();
 
 require_once __DIR__ . '/../../Db/db_config.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 if (!function_exists('e')) {
     function e($value)
@@ -73,6 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$errors) {
                 $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?');
                 $update->execute([$firstName, $lastName, $email, $userId]);
+                $_SESSION['first_name'] = $firstName;
+                $_SESSION['last_name'] = $lastName;
+                $_SESSION['email'] = $email;
+                brewski_record_activity(
+                    $pdo,
+                    'profile',
+                    'Updated profile',
+                    'Updated account profile details.'
+                );
                 $_SESSION['flash_success'] = 'Your profile has been updated.';
                 header('Location: profile.php');
                 exit;
@@ -112,6 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
                 $update->execute([password_hash($new, PASSWORD_DEFAULT), $userId]);
                 session_regenerate_id(true);
+                brewski_record_activity(
+                    $pdo,
+                    'security',
+                    'Changed password',
+                    'Changed the account password.'
+                );
                 $_SESSION['flash_success'] = 'Your password has been changed.';
                 header('Location: profile.php');
                 exit;

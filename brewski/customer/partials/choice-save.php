@@ -3,6 +3,8 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/preferences.php';
 require_once __DIR__ . '/catalog.php';
+require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -166,6 +168,13 @@ if (!brewski_save_user_preferences($userId, $preferenceNames)) {
     echo 'Could not save your choices. Please try again.';
     exit;
 }
+
+brewski_record_activity(
+    $pdo,
+    'preferences',
+    'Updated drink preferences',
+    'Updated personalized drink preferences.'
+);
 
 unset($_SESSION['choice_skipped']);
 
