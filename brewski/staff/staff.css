@@ -1877,10 +1877,11 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     gap: 12px;
     min-width: 0;
     padding: 14px;
-    border: 1px solid var(--line);
+    border: 1px solid #684a35;
     border-radius: 12px;
     background: var(--surface);
-    box-shadow: 0 2px 6px rgba(30, 17, 10, 0.04);
+    color: var(--text-body);
+    box-shadow: 0 3px 8px rgba(30, 17, 10, 0.14);
 }
 
 .order-card-heading,
@@ -1889,6 +1890,14 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+}
+
+.order-card .order-id,
+.order-card .order-customer strong,
+.order-card .order-items,
+.order-card .order-total,
+.order-card .order-delivery-notes strong {
+    color: var(--text);
 }
 
 .order-card .order-customer {
@@ -1917,6 +1926,7 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
 .order-card .order-delivery-notes {
     max-width: none;
     margin: -4px 0 0;
+    color: var(--text-muted);
 }
 
 .order-card-footer {
@@ -1926,7 +1936,6 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
 }
 
 .order-card .order-total {
-    color: var(--text);
     font-size: 15px;
 }
 
@@ -1942,6 +1951,42 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     height: auto;
     padding: 7px 10px;
     font-size: 11px;
+}
+
+.order-card .customer-avatar {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+
+.order-card .order-action-done,
+.order-card .order-action-waiting {
+    color: var(--text-faint);
+}
+
+.order-card .btn-primary {
+    background: var(--espresso) !important;
+    color: var(--cream) !important;
+}
+
+.order-card .btn-secondary {
+    border: 1px solid var(--line-strong) !important;
+    background: var(--surface-muted) !important;
+    color: var(--espresso) !important;
+}
+
+.order-card .order-status--pending {
+    background: #fff1d6;
+    color: #8a5b0b;
+}
+
+.order-card .order-status--confirmed {
+    background: #eaf0ff;
+    color: #405c99;
+}
+
+.order-card .order-status--cancelled {
+    background: #fbe9e7;
+    color: #9a4238;
 }
 
 .order-status--pending {
