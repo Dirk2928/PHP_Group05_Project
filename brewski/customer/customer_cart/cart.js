@@ -13,10 +13,27 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
+    // Identical drinks (same key) become one row with a combined quantity
+    function mergeDuplicates(items) {
+        var merged = [];
+        var byKey = {};
+        items.forEach(function (item) {
+            if (!item || typeof item !== 'object') return;
+            var existing = byKey[item.key];
+            if (existing) {
+                existing.quantity = Math.min(MAX_QTY, (Number(existing.quantity) || 0) + (Number(item.quantity) || 0));
+            } else {
+                byKey[item.key] = item;
+                merged.push(item);
+            }
+        });
+        return merged;
+    }
+
     function load() {
         try {
             var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            return Array.isArray(data) ? data : [];
+            return Array.isArray(data) ? mergeDuplicates(data) : [];
         } catch (error) {
             return [];
         }
@@ -31,6 +48,7 @@
     }
 
     function save(items) {
+        items = mergeDuplicates(items);
         persist(items);
         render();
         syncWithDatabase(items).catch(function (error) {
@@ -422,6 +440,19 @@
         });
     });
     window.addEventListener('pageshow', render);
+
+    // Other scripts (menu / add to cart) use this object, so it must exist.
+    // Uses an existing global count() if the page defines one, otherwise a fallback.
+    window.BrewskiCart = {
+        STORAGE_KEY: STORAGE_KEY,
+        load: load,
+        save: save,
+        add: function (item) { save(load().concat([item])); },
+        count: (typeof count === 'function') ? count : function () {
+            return load().reduce(function (sum, i) { return sum + (Number(i.quantity) || 0); }, 0);
+        },
+        render: render
+    };
 
     render();
     var isCheckoutPage = checkoutUrl
