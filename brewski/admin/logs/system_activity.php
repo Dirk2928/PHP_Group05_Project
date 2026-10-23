@@ -140,7 +140,7 @@ $categoryLabels = [
 </div>
 
 <script>
-(function () {
+function initializeSystemActivity() {
     const body = document.getElementById('activityTableBody');
     if (!body) return;
 
@@ -223,6 +223,12 @@ $categoryLabels = [
         }
     });
     render();
-})();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSystemActivity, { once: true });
+} else {
+    initializeSystemActivity();
+}
 </script>
 <?php echo brewski_session_timeout_markup(); ?>
