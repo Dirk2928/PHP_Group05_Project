@@ -63,8 +63,8 @@ $renderQuestions = static function (array $questionSet, array $values): void {
 
                 <p class="modal__subtitle" id="choice-modal-subtitle">
                     <?= $initialMode === 'recommendation'
-                        ? 'Answer a few questions to find and rank your best matches.'
-                        : 'Answer a few questions and we will pick one exact match for you.' ?>
+                        ? 'Answer a few questions to sort your menu by compatibility.'
+                        : 'Answer a few quick questions and we will pick one drink for you.' ?>
                 </p>
 
             </div>
@@ -85,11 +85,11 @@ $renderQuestions = static function (array $questionSet, array $values): void {
         <div class="modal__body">
 
             <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($recommendationQuestions, []); ?>
+                <?php $renderQuestions($choiceQuestions, []); ?>
             </div>
 
             <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($choiceQuestions, $choiceValues); ?>
+                <?php $renderQuestions($recommendationQuestions, $choiceValues); ?>
             </div>
 
             <p

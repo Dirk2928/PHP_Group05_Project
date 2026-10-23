@@ -39,8 +39,8 @@ if ($mode === 'recommendation' && $userId <= 0) {
 }
 
 $questions = $mode === 'recommendation'
-    ? brewski_recommendation_questions()
-    : brewski_choice_questions();
+    ? brewski_choice_questions()
+    : brewski_recommendation_questions();
 
 if (($_POST['action'] ?? '') === 'skip') {
     if ($mode === 'recommendation') {

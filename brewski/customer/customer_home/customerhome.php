@@ -174,7 +174,7 @@ require __DIR__ . '/../partials/header.php';
                 </h1>
 
                 <p>
-                    Find one exact drink match or set up your profile to see ranked best matches.
+                    Get one drink recommendation or set up your preferences to find your best matches.
                 </p>
 
             </div>

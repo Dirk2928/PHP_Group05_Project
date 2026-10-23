@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var copy = {
         'first-timer': {
             title: 'Get a drink recommendation',
-            subtitle: 'Answer a few questions and we will pick one exact match for you.',
+            subtitle: 'Answer a few quick questions and we will pick one drink for you.',
             button: 'Recommend a drink'
         },
         recommendation: {
             title: 'Set up your drink preferences',
-            subtitle: 'Answer a few questions to find and rank your best matches.',
+            subtitle: 'Answer a few questions to sort your menu by compatibility.',
             button: 'Find my best matches'
         }
     };
