@@ -182,7 +182,7 @@
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    // --- EDIT INTERCEPTOR ---
+    // --- THE FIX: RACE CONDITION INTERCEPTOR ---
     window.openEditModal = function(key) {
         var items = load();
         var item = items.find(function(i) { return i.key === key; });
@@ -198,12 +198,23 @@
 
             document.getElementById('modal-edit-key').value = key;
 
-            // Force the buttons to swap using !important so the menu can't override it
-            document.getElementById('btn-confirm-add').style.setProperty('display', 'none', 'important');
-            document.getElementById('btn-save-edit').style.setProperty('display', 'flex', 'important');
-
             var titleEl = document.getElementById('modal-product-name');
             if (titleEl) titleEl.textContent = 'Edit: ' + item.name;
+
+            // Start a "watcher" loop that forces the button text to stay as "Save Changes"
+            if (window.editModeWatcher) clearInterval(window.editModeWatcher);
+            window.editModeWatcher = setInterval(function() {
+                var btn = document.getElementById('btn-confirm-add');
+                if (btn && document.getElementById('modal-edit-key').value !== '') {
+                    // If the button currently says "Add to Cart", change it to "Save Changes"
+                    if (btn.innerHTML.indexOf('Add to Cart') !== -1) {
+                        btn.innerHTML = '<span>Save Changes</span> <i data-lucide="check"></i>';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                } else {
+                    clearInterval(window.editModeWatcher);
+                }
+            }, 50); // Check every 50ms
         } else {
             alert("Please go to the Menu page to edit this drink's customizations.");
         }
@@ -211,13 +222,15 @@
 
     // 1. Handle Save Changes
     document.addEventListener('click', function(e) {
-        var saveBtn = e.target.closest('#btn-save-edit');
-        if (!saveBtn) return;
+        var confirmBtn = e.target.closest('#btn-confirm-add');
+        if (!confirmBtn) return;
+
+        var editKeyInput = document.getElementById('modal-edit-key');
+        if (!editKeyInput || editKeyInput.value === '') return; 
 
         e.preventDefault();
         e.stopPropagation();
 
-        var editKeyInput = document.getElementById('modal-edit-key');
         var oldKey = editKeyInput.value;
         var modal = document.getElementById('customization-modal');
         var productName = document.getElementById('modal-product-name').textContent.replace('Edit: ', '');
@@ -264,10 +277,9 @@
         // Close modal and reset
         modal.classList.remove('active');
         editKeyInput.value = '';
+        if (window.editModeWatcher) clearInterval(window.editModeWatcher);
         
-        // Reset buttons
-        document.getElementById('btn-save-edit').style.setProperty('display', 'none', 'important');
-        document.getElementById('btn-confirm-add').style.setProperty('display', 'flex', 'important');
+        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
         document.getElementById('modal-product-name').textContent = 'Customize your drink';
 
     }, true);
@@ -279,8 +291,12 @@
             if (editKeyInput && editKeyInput.value !== '') {
                 setTimeout(function() {
                     editKeyInput.value = '';
-                    document.getElementById('btn-save-edit').style.setProperty('display', 'none', 'important');
-                    document.getElementById('btn-confirm-add').style.setProperty('display', 'flex', 'important');
+                    if (window.editModeWatcher) clearInterval(window.editModeWatcher);
+                    var confirmBtn = document.getElementById('btn-confirm-add');
+                    if (confirmBtn) {
+                        confirmBtn.innerHTML = '<span>Add to Cart</span> <i data-lucide="arrow-right"></i>';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
                     document.getElementById('modal-product-name').textContent = 'Customize your drink';
                 }, 50);
             }
