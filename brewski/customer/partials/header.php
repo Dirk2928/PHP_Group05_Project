@@ -58,6 +58,7 @@ if ($headerInitials === '') {
     <meta name="cart-session-url" content="../customer_cart/cart_session.php">
     <meta name="checkout-url" content="../checkout/checkout.php">
     <meta name="cart-sync-enabled" content="1">
+    <meta name="login-url" content="<?= e(BREWSKI_BASE_URL . '/login-signup/login.php') ?>">
 
     <title><?= e($pageTitle) ?></title>
 

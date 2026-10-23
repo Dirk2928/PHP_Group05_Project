@@ -95,7 +95,9 @@
             }).then(function (response) {
                 return response.json().then(function (result) {
                     if (!response.ok || !result.ok) {
-                        throw new Error(result.error || 'Cart synchronization failed.');
+                        var syncError = new Error(result.error || 'Cart synchronization failed.');
+                        syncError.status = response.status;
+                        throw syncError;
                     }
                 });
             }).catch(function (error) {
@@ -568,6 +570,12 @@
                 checkoutDestination.searchParams.set('cart_synced', '1');
                 window.location.assign(checkoutDestination.href);
             }).catch(function (error) {
+                // Not signed in (or session expired): go to the login page, no popup
+                if (error && error.status === 401) {
+                    var loginMeta = document.querySelector('meta[name="login-url"]');
+                    window.location.assign(loginMeta ? loginMeta.content : '../../login-signup/login.php');
+                    return;
+                }
                 console.error('Could not sync cart with checkout:', error);
                 window.alert(error.message);
                 checkoutLink.removeAttribute('aria-disabled');
