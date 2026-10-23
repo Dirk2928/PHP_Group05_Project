@@ -1807,3 +1807,208 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     box-shadow: 0 0 0 3px rgba(59, 34, 24, 0.12) !important;
     border-color: var(--mocha) !important;
 }
+
+.order-board-card {
+    overflow: hidden;
+}
+
+.order-board {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.order-lane {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface-subtle);
+}
+
+.order-lane-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.order-lane-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.order-lane-heading > span {
+    display: inline-flex;
+    min-width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.order-lane-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
+    align-items: start;
+    gap: 10px;
+}
+
+.order-lane-empty {
+    margin: 0;
+    padding: 18px 10px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+}
+
+.order-card {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #684a35;
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text-body);
+    box-shadow: 0 3px 8px rgba(30, 17, 10, 0.14);
+}
+
+.order-card-heading,
+.order-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.order-card .order-id,
+.order-card .order-customer strong,
+.order-card .order-items,
+.order-card .order-total,
+.order-card .order-delivery-notes strong {
+    color: var(--text);
+}
+
+.order-card .order-customer {
+    min-width: 0;
+}
+
+.order-card .order-customer strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.order-card .order-customer small {
+    color: var(--text-faint);
+    font-size: 11px;
+    white-space: normal;
+}
+
+.order-card .order-items {
+    min-width: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+}
+
+.order-card .order-delivery-notes {
+    max-width: none;
+    margin: -4px 0 0;
+    color: var(--text-muted);
+}
+
+.order-card-footer {
+    align-items: flex-end;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
+.order-card .order-total {
+    font-size: 15px;
+}
+
+.order-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.order-card .btn {
+    min-height: 34px;
+    height: auto;
+    padding: 7px 10px;
+    font-size: 11px;
+}
+
+.order-card .customer-avatar {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+
+.order-card .order-action-done,
+.order-card .order-action-waiting {
+    color: var(--text-faint);
+}
+
+.order-card .btn-primary {
+    background: var(--espresso) !important;
+    color: var(--cream) !important;
+}
+
+.order-card .btn-secondary {
+    border: 1px solid var(--line-strong) !important;
+    background: var(--surface-muted) !important;
+    color: var(--espresso) !important;
+}
+
+.order-card .order-status--pending {
+    background: #fff1d6;
+    color: #8a5b0b;
+}
+
+.order-card .order-status--confirmed {
+    background: #eaf0ff;
+    color: #405c99;
+}
+
+.order-card .order-status--cancelled {
+    background: #fbe9e7;
+    color: #9a4238;
+}
+
+.order-status--pending {
+    background: #fff1d6;
+    color: #8a5b0b;
+}
+
+.order-status--confirmed {
+    background: #eaf0ff;
+    color: #405c99;
+}
+
+.order-status--cancelled {
+    background: #fbe9e7;
+    color: #9a4238;
+}
+
+@media (max-width: 768px) {
+    .order-board {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .order-lane-cards {
+        grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
+    }
+}
