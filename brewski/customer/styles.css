@@ -158,28 +158,31 @@ html, body {
 }
 
 .greeting__help {
-    background: none;
-    border: 2px solid var(--dark-mocha);
-    color: var(--dark-mocha);
+    background: #fff;
+    border: 0;
     border-radius: 50%;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 4.5rem;
+    height: 4.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.15s;
+    box-shadow: 0 4px 14px rgba(74, 43, 27, 0.38);
+    transition: transform 0.15s, box-shadow 0.15s;
     flex-shrink: 0;
 }
 
 .greeting__help:hover {
-    background-color: var(--dark-mocha);
-    color: var(--cream);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(74, 43, 27, 0.45);
 }
 
-.greeting__help i {
-    width: 20px;
-    height: 20px;
+.greeting__help img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
 }
 
 

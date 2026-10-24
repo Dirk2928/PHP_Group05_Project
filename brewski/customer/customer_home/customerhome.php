@@ -186,7 +186,11 @@ require __DIR__ . '/../partials/header.php';
                 data-choice-mode="first-timer"
                 aria-label="Get a drink recommendation"
             >
-                <i data-lucide="help-circle"></i>
+                <img
+                    src="<?= e(BREWSKI_BASE_URL . '/images/mascot.png') ?>"
+                    alt=""
+                    aria-hidden="true"
+                >
             </button>
 
         </section>
