@@ -157,7 +157,7 @@ html, body {
     line-height: 1.5;
 }
 
-.greeting__help {
+#choice-open.greeting__help {
     position: relative;
     overflow: hidden;
     padding: 0;
@@ -165,13 +165,14 @@ html, body {
     background: #fff;
     border: 0;
     border-radius: 50%;
-    width: 4.5rem;
-    height: 4.5rem;
-    min-width: 4.5rem;
-    min-height: 4.5rem;
-    max-width: 4.5rem;
-    max-height: 4.5rem;
-    display: flex;
+    width: 4rem;
+    height: 4rem;
+    min-width: 4rem;
+    min-height: 4rem;
+    max-width: 4rem;
+    max-height: 4rem;
+    flex: 0 0 4rem;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -185,7 +186,7 @@ html, body {
     box-shadow: 0 6px 18px rgba(74, 43, 27, 0.45);
 }
 
-.greeting__help img {
+#choice-open.greeting__help > img {
     position: absolute;
     inset: 0;
     display: block;

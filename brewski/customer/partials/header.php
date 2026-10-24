@@ -66,7 +66,7 @@ if ($headerInitials === '') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../styles.css?v=mascot-button-2">
     <link rel="stylesheet" href="../header.css">
 
     <?php foreach ($extraStyles as $style): ?>
