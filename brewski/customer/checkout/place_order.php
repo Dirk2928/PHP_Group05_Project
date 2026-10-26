@@ -70,13 +70,20 @@ if ((string) ($_POST['action'] ?? '') !== 'create_payment') {
     customer_place_order_respond(422, ['ok' => false, 'error' => 'Invalid payment request.']);
 }
 
-$addressId = filter_var(
+$paymentMode = (string) ($_POST['payment_mode'] ?? 'online');
+if (!in_array($paymentMode, ['online', 'in_store'], true)) {
+    customer_place_order_respond(422, ['ok' => false, 'error' => 'Please choose a payment method.']);
+}
+$addressId = $paymentMode === 'online' ? filter_var(
     $_POST['address_id'] ?? null,
     FILTER_VALIDATE_INT,
     ['options' => ['min_range' => 1]]
-);
+) : null;
 $notes = trim((string) ($_POST['notes'] ?? ''));
-if ($addressId === false) {
+if ($paymentMode === 'in_store') {
+    $notes = '';
+}
+if ($paymentMode === 'online' && $addressId === false) {
     customer_place_order_respond(422, [
         'ok' => false,
         'error' => 'Please select a delivery address.',
@@ -88,7 +95,7 @@ if (mb_strlen($notes) > 500) {
         'error' => 'Delivery notes must be 500 characters or fewer.',
     ]);
 }
-if ($notes !== '' && !customer_has_deliveries_table($pdo)) {
+if ($paymentMode === 'online' && $notes !== '' && !customer_has_deliveries_table($pdo)) {
     customer_place_order_respond(503, [
         'ok' => false,
         'error' => 'Custom delivery notes are unavailable right now. Please try again later.',
@@ -96,25 +103,27 @@ if ($notes !== '' && !customer_has_deliveries_table($pdo)) {
 }
 
 $userId = (int) $_SESSION['user_id'];
-$publicBase = brewski_app_public_url();
-if ($publicBase === null) {
+$publicBase = $paymentMode === 'online' ? brewski_app_public_url() : null;
+if ($paymentMode === 'online' && $publicBase === null) {
     error_log('place_order: brewski_app_public_url() returned null (check APP_URL / env config on Render).');
     customer_place_order_respond(503, [
         'ok' => false,
         'error' => 'Secure checkout is not configured for this site yet.',
     ]);
 }
-$publicBase = rtrim($publicBase, '/');
+$publicBase = $publicBase !== null ? rtrim($publicBase, '/') : null;
 
 try {
     $pdo->beginTransaction();
 
-    $addressStatement = $pdo->prepare(
-        'SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ? LIMIT 1'
-    );
-    $addressStatement->execute([(int) $addressId, $userId]);
-    if (!$addressStatement->fetchColumn()) {
-        throw new RuntimeException('Please select one of your saved delivery addresses.');
+    if ($paymentMode === 'online') {
+        $addressStatement = $pdo->prepare(
+            'SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ? LIMIT 1'
+        );
+        $addressStatement->execute([(int) $addressId, $userId]);
+        if (!$addressStatement->fetchColumn()) {
+            throw new RuntimeException('Please select one of your saved delivery addresses.');
+        }
     }
 
     $cartStatement = $pdo->prepare(
@@ -126,80 +135,83 @@ try {
         throw new RuntimeException('Your cart is empty.');
     }
 
-    $pendingStatement = $pdo->prepare(
-        "SELECT op.payment_id, op.order_id, op.provider_session_id, op.checkout_url
-           FROM order_payments op
-           INNER JOIN orders o ON o.order_id = op.order_id
-          WHERE o.user_id = ? AND op.payment_status = 'PENDING'
-          ORDER BY op.payment_id DESC
-          LIMIT 1
-          FOR UPDATE"
-    );
-    $pendingStatement->execute([$userId]);
-    $pendingPayment = $pendingStatement->fetch();
     $stalePaymentResolved = false;
-    if ($pendingPayment) {
-        $sessionLookupFailed = false;
-        $sessionResponse = [];
-        try {
-            $sessionResponse = customer_paymongo_request(
-                'GET',
-                'checkout_sessions/' . rawurlencode((string) $pendingPayment['provider_session_id'])
-            );
-        } catch (Throwable $lookupError) {
-            $sessionLookupFailed = true;
-            error_log(sprintf(
-                'place_order: could not look up pending PayMongo session %s for user %d (payment_id %d): %s',
-                (string) $pendingPayment['provider_session_id'],
-                $userId,
-                (int) $pendingPayment['payment_id'],
-                $lookupError->getMessage()
-            ));
-        }
-
-        if ($sessionLookupFailed) {
-            customer_mark_payment_failed(
-                $pdo,
-                (int) $pendingPayment['payment_id'],
-                (int) $pendingPayment['order_id']
-            );
-            $stalePaymentResolved = true;
-        } else {
-            $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
-            $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
-            $existingCheckoutUrl = (string) ($sessionAttributes['checkout_url'] ?? '');
-            if (
-                customer_paymongo_session_is_paid($sessionAttributes)
-                || in_array($sessionStatus, ['completed', 'paid'], true)
-            ) {
-                throw new RuntimeException('Payment is being confirmed. Please check My orders shortly.');
+    if ($paymentMode === 'online') {
+        $pendingStatement = $pdo->prepare(
+            "SELECT op.payment_id, op.order_id, op.provider_session_id, op.checkout_url
+               FROM order_payments op
+               INNER JOIN orders o ON o.order_id = op.order_id
+              WHERE o.user_id = ? AND op.provider = 'paymongo' AND op.payment_status = 'PENDING'
+              ORDER BY op.payment_id DESC
+              LIMIT 1
+              FOR UPDATE"
+        );
+        $pendingStatement->execute([$userId]);
+        $pendingPayment = $pendingStatement->fetch();
+        if ($pendingPayment) {
+            $sessionLookupFailed = false;
+            $sessionResponse = [];
+            try {
+                $sessionResponse = customer_paymongo_request(
+                    'GET',
+                    'checkout_sessions/' . rawurlencode((string) $pendingPayment['provider_session_id'])
+                );
+            } catch (Throwable $lookupError) {
+                $sessionLookupFailed = true;
+                error_log(sprintf(
+                    'place_order: could not look up pending PayMongo session %s for user %d (payment_id %d): %s',
+                    (string) $pendingPayment['provider_session_id'],
+                    $userId,
+                    (int) $pendingPayment['payment_id'],
+                    $lookupError->getMessage()
+                ));
             }
-            if ($sessionStatus === 'active') {
+
+            if ($sessionLookupFailed) {
+                customer_mark_payment_failed(
+                    $pdo,
+                    (int) $pendingPayment['payment_id'],
+                    (int) $pendingPayment['order_id']
+                );
+                $stalePaymentResolved = true;
+            } else {
+                $sessionAttributes = $sessionResponse['data']['attributes'] ?? [];
+                $sessionStatus = (string) ($sessionAttributes['status'] ?? '');
+                $existingCheckoutUrl = (string) ($sessionAttributes['checkout_url'] ?? '');
                 if (
-                    !filter_var($existingCheckoutUrl, FILTER_VALIDATE_URL)
-                    || parse_url($existingCheckoutUrl, PHP_URL_SCHEME) !== 'https'
-                    || parse_url($existingCheckoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
+                    customer_paymongo_session_is_paid($sessionAttributes)
+                    || in_array($sessionStatus, ['completed', 'paid'], true)
                 ) {
-                    throw new RuntimeException('The payment provider returned an invalid checkout link.');
+                    throw new RuntimeException('Payment is being confirmed. Please check My orders shortly.');
                 }
-                $pdo->commit();
-                customer_place_order_respond(200, [
-                    'ok' => true,
-                    'redirect' => $existingCheckoutUrl,
-                ]);
-            }
-            if (!in_array($sessionStatus, ['expired', 'failed'], true)) {
-                error_log('place_order: pending session returned unexpected status "' . $sessionStatus . '"');
-                throw new RuntimeException('Could not verify your current payment. Please try again shortly.');
-            }
+                if ($sessionStatus === 'active') {
+                    if (
+                        !filter_var($existingCheckoutUrl, FILTER_VALIDATE_URL)
+                        || parse_url($existingCheckoutUrl, PHP_URL_SCHEME) !== 'https'
+                        || parse_url($existingCheckoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
+                    ) {
+                        throw new RuntimeException('The payment provider returned an invalid checkout link.');
+                    }
+                    $pdo->commit();
+                    customer_place_order_respond(200, [
+                        'ok' => true,
+                        'redirect' => $existingCheckoutUrl,
+                    ]);
+                }
+                if (!in_array($sessionStatus, ['expired', 'failed'], true)) {
+                    error_log('place_order: pending session returned unexpected status "' . $sessionStatus . '"');
+                    throw new RuntimeException('Could not verify your current payment. Please try again shortly.');
+                }
 
-            customer_mark_payment_failed(
-                $pdo,
-                (int) $pendingPayment['payment_id'],
-                (int) $pendingPayment['order_id']
-            );
-            $stalePaymentResolved = true;
+                customer_mark_payment_failed(
+                    $pdo,
+                    (int) $pendingPayment['payment_id'],
+                    (int) $pendingPayment['order_id']
+                );
+                $stalePaymentResolved = true;
+            }
         }
+
     }
 
     if ($stalePaymentResolved) {
@@ -234,8 +246,7 @@ try {
         }
         $subtotalCents += (int) round((float) $item['unit_price'] * 100) * (int) $item['quantity'];
     }
-    $deliveryFeeCents = $subtotalCents >= 50000 ? 0 : 5000;
-    $totalCents = $subtotalCents + $deliveryFeeCents;
+    $totalCents = $subtotalCents;
 
     $orderStatement = $pdo->prepare(
         "INSERT INTO orders (user_id, address_id, total_amount, order_status)
@@ -243,7 +254,7 @@ try {
     );
     $orderStatement->execute([
         $userId,
-        (int) $addressId,
+        $addressId === null ? null : (int) $addressId,
         number_format($totalCents / 100, 2, '.', ''),
     ]);
     $orderId = (int) $pdo->lastInsertId();
@@ -265,15 +276,31 @@ try {
     }
 
     $hasDeliveries = customer_has_deliveries_table($pdo);
-    if ($hasDeliveries) {
+    if ($hasDeliveries && $paymentMode === 'online') {
         $deliveryStatement = $pdo->prepare(
             "INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
              VALUES (?, 'UNASSIGNED', ?, ?)"
         );
         $deliveryStatement->execute([
             $orderId,
-            number_format($deliveryFeeCents / 100, 2, '.', ''),
+            '0.00',
             $notes !== '' ? $notes : null,
+        ]);
+    }
+
+    if ($paymentMode === 'in_store') {
+        $paymentStatement = $pdo->prepare(
+            "INSERT INTO order_payments
+                (order_id, provider, provider_session_id, checkout_url, payment_status, payment_method)
+             VALUES (?, 'in_store', ?, '', 'PENDING', 'cash')"
+        );
+        $paymentStatement->execute([$orderId, 'in-store-' . $orderId]);
+        $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([(int) $cartId]);
+        $pdo->commit();
+        customer_place_order_respond(200, [
+            'ok' => true,
+            'order_id' => $orderId,
+            'redirect' => '../customer_orders/order_success.php?order_id=' . $orderId,
         ]);
     }
 

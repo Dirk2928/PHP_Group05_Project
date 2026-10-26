@@ -59,8 +59,7 @@ if ($cartId) {
     }
 }
 
-$deliveryFee = $subtotal >= 500 ? 0.00 : 50.00;
-$total       = $subtotal + $deliveryFee;
+$total = $subtotal;
 
 require __DIR__ . '/../partials/header.php';
 ?>
@@ -71,7 +70,7 @@ require __DIR__ . '/../partials/header.php';
         style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1rem;"></p>
 
     <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Checkout</h1>
-    <p style="color:#5c4033; margin-bottom: 2rem;">Review your order and pick a delivery address.</p>
+    <p style="color:#5c4033; margin-bottom: 2rem;">Review your order and choose how to pay.</p>
 
     <?php if (($_GET['payment'] ?? '') === 'cancelled'): ?>
         <p class="checkout-payment__notice" role="status" style="padding:1rem; border:1px solid #e8dac4; border-radius:0.75rem; background:#fffaf2; margin-bottom:1.25rem;">
@@ -92,22 +91,23 @@ require __DIR__ . '/../partials/header.php';
 
         <section>
 
-            <h2 style="font-size:1.15rem; margin-bottom:1rem;">Delivery address</h2>
+            <h2 data-delivery-only style="font-size:1.15rem; margin-bottom:1rem;">Delivery address</h2>
 
             <?php if (!$addresses): ?>
 
-                <div style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1.5rem;">
+                <div data-delivery-only style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1.5rem;">
                     You have no saved addresses yet.
                     <a href="../customer_profile/customer_profile.php">Add one in your profile</a>.
                 </div>
 
-            <?php else: ?>
+            <?php endif; ?>
 
                 <form id="checkout-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:2rem;">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
+                    <?php if ($addresses): ?>
                     <?php foreach ($addresses as $i => $a): ?>
-                        <label style="display:flex; gap:0.75rem; padding:1rem; background:#f2e4cc; border-radius:0.75rem; cursor:pointer;">
+                        <label data-delivery-only style="display:flex; gap:0.75rem; padding:1rem; background:#f2e4cc; border-radius:0.75rem; cursor:pointer;">
                             <input type="radio" name="address_id" value="<?= (int)$a['address_id'] ?>" <?= $i === 0 ? 'checked' : '' ?> required>
                             <span>
                                 <strong><?= htmlspecialchars($a['address_line']) ?></strong><br>
@@ -115,29 +115,34 @@ require __DIR__ . '/../partials/header.php';
                             </span>
                         </label>
                     <?php endforeach; ?>
+                    <?php endif; ?>
 
-                    <label style="display:flex; flex-direction:column; gap:0.4rem; margin-top:0.5rem;">
+                    <label data-delivery-only style="display:flex; flex-direction:column; gap:0.4rem; margin-top:0.5rem;">
                         <span style="font-size:0.85rem; font-weight:600; color:#3b2218;">Delivery notes (optional)</span>
                         <textarea name="notes" rows="2" placeholder="e.g. Leave at the front desk"
                             style="padding:0.75rem; border:1px solid #e8dac4; border-radius:0.75rem; font-family:inherit; background:#faf5ee;"></textarea>
                     </label>
                 </form>
 
-            <?php endif; ?>
-
             <h2 style="font-size:1.15rem; margin-bottom:1rem;">Payment method</h2>
-            <div class="checkout-payment">
+            <label class="checkout-payment">
+                <input type="radio" name="payment_mode" value="online" form="checkout-form" checked>
                 <span class="checkout-payment__icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
-                <div class="checkout-payment__copy">
+                <span class="checkout-payment__copy">
                     <strong>Secure checkout with PayMongo</strong>
                     <small>Choose your preferred payment method on PayMongo’s secure payment page.</small>
-                    <div class="checkout-payment__methods" aria-label="Available payment methods">
+                    <span class="checkout-payment__methods" aria-label="Available payment methods">
                         <span>GCash</span>
                         <span>Maya</span>
                         <span>QR Ph</span>
-                    </div>
-                </div>
-            </div>
+                    </span>
+                </span>
+            </label>
+            <label class="checkout-payment">
+                <input type="radio" name="payment_mode" value="in_store" form="checkout-form">
+                <span class="checkout-payment__icon" aria-hidden="true"><i data-lucide="store"></i></span>
+                <span class="checkout-payment__copy"><strong>Pay at the store</strong><small>Pick up your order and pay cash at the counter.</small></span>
+            </label>
 
             <h2 style="font-size:1.15rem; margin-bottom:1rem;">Your items</h2>
 
@@ -164,11 +169,6 @@ require __DIR__ . '/../partials/header.php';
                 <span>₱<?= number_format($subtotal, 2) ?></span>
             </div>
 
-            <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-                <span>Delivery fee</span>
-                <span><?= $deliveryFee > 0 ? '₱' . number_format($deliveryFee, 2) : 'FREE' ?></span>
-            </div>
-
             <div style="display:flex; justify-content:space-between; padding-top:1rem; border-top:1px solid #e8dac4; font-size:1.15rem; font-weight:700;">
                 <span>Total</span>
                 <span>₱<?= number_format($total, 2) ?></span>
@@ -177,13 +177,12 @@ require __DIR__ . '/../partials/header.php';
             <button
                 type="button"
                 id="place-order-btn"
-                <?= !$addresses ? 'disabled' : '' ?>
-                style="width:100%; margin-top:1.5rem; padding:1rem; background:#1a0f0a; color:#faf5ee; border:none; border-radius:0.75rem; font-weight:600; cursor:pointer; <?= !$addresses ? 'opacity:0.5; cursor:not-allowed;' : '' ?>"
+                style="width:100%; margin-top:1.5rem; padding:1rem; background:#1a0f0a; color:#faf5ee; border:none; border-radius:0.75rem; font-weight:600; cursor:pointer;"
             >
                 Continue to payment
             </button>
 
-            <p class="checkout-payment__notice">Your order is sent to the café only after PayMongo confirms your payment. Card details are entered on PayMongo, not stored by Brewski.</p>
+            <p class="checkout-payment__notice" id="payment-notice">Online orders are sent to the café after PayMongo confirms payment. Card details are entered on PayMongo.</p>
             <p id="checkout-msg" style="margin-top:1rem; font-size:0.9rem;"></p>
 
         </aside>
@@ -268,8 +267,8 @@ require __DIR__ . '/../partials/header.php';
 
 <dialog id="order-confirmation-dialog" aria-labelledby="order-confirmation-title">
     <form id="order-confirmation-form" class="order-confirmation-dialog__content">
-        <h2 id="order-confirmation-title">Continue to payment?</h2>
-        <p>You’ll choose your preferred payment method on the next step.</p>
+        <h2 id="order-confirmation-title">Confirm your order?</h2>
+        <p id="order-confirmation-description">You’ll choose your preferred payment method on the next step.</p>
         <p id="order-confirmation-message" role="status" aria-live="polite"></p>
         <div class="order-confirmation-dialog__actions">
             <button type="button" id="order-confirmation-cancel">Cancel</button>
@@ -289,6 +288,9 @@ require __DIR__ . '/../partials/header.php';
     var confirmationForm = document.getElementById('order-confirmation-form');
     var confirmationMessage = document.getElementById('order-confirmation-message');
     var proceedButton = document.getElementById('order-confirmation-proceed');
+    var confirmationDescription = document.getElementById('order-confirmation-description');
+    var paymentNotice = document.getElementById('payment-notice');
+    var paymentOptions = document.querySelectorAll('input[name="payment_mode"]');
 
     if (!placeOrderButton || !checkoutForm || !dialog || !confirmationForm) {
         return;
@@ -304,6 +306,24 @@ require __DIR__ . '/../partials/header.php';
         data.set('action', action);
         return data;
     }
+
+    function selectedMode() {
+        return document.querySelector('input[name="payment_mode"]:checked').value;
+    }
+
+    function updatePaymentMode() {
+        var inStore = selectedMode() === 'in_store';
+        document.querySelectorAll('[data-delivery-only]').forEach(function (element) {
+            element.hidden = inStore;
+        });
+        placeOrderButton.textContent = inStore ? 'Place pickup order' : 'Continue to payment';
+        paymentNotice.textContent = inStore
+            ? 'Pay cash when you collect your order at the store.'
+            : 'Online orders are sent to the café after PayMongo confirms payment. Card details are entered on PayMongo.';
+    }
+
+    paymentOptions.forEach(function (option) { option.addEventListener('change', updatePaymentMode); });
+    updatePaymentMode();
 
     function describe(result, fallback) {
         var message = result.error || fallback;
@@ -345,8 +365,15 @@ require __DIR__ . '/../partials/header.php';
     }
 
     placeOrderButton.addEventListener('click', function () {
+        if (selectedMode() === 'online' && !checkoutForm.querySelector('input[name="address_id"]:checked')) {
+            showError('Please add and select a delivery address for online payment.', checkoutMessage);
+            return;
+        }
         checkoutMessage.textContent = '';
         confirmationMessage.textContent = '';
+        confirmationDescription.textContent = selectedMode() === 'in_store'
+            ? 'Your order will be prepared for store pickup. Pay cash at the counter.'
+            : 'You’ll choose your preferred payment method on the next step.';
         dialog.showModal();
     });
 
@@ -357,7 +384,7 @@ require __DIR__ . '/../partials/header.php';
     confirmationForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         proceedButton.disabled = true;
-        confirmationMessage.textContent = 'Preparing secure checkout…';
+        confirmationMessage.textContent = selectedMode() === 'in_store' ? 'Placing your pickup order…' : 'Preparing secure checkout…';
         confirmationMessage.style.color = '#5c4033';
 
         try {

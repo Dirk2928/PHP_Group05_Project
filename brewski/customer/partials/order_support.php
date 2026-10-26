@@ -68,7 +68,7 @@ function customer_send_order_receipt(PDO $pdo, int $orderId): bool
                 ' . $notesSelect . '
            FROM orders o
            INNER JOIN users u ON u.user_id = o.user_id
-           INNER JOIN addresses a ON a.address_id = o.address_id
+           LEFT JOIN addresses a ON a.address_id = o.address_id
            ' . $deliveryJoin . '
           WHERE o.order_id = ?
           LIMIT 1'
@@ -119,7 +119,7 @@ function customer_send_order_receipt(PDO $pdo, int $orderId): bool
         'receiptNumber' => 'BRW-' . str_pad((string) $orderId, 8, '0', STR_PAD_LEFT),
         'orderDate' => (string) $order['order_date'],
         'address' => [
-            'addressLine' => (string) $order['address_line'],
+            'addressLine' => $order['address_line'] === null ? 'Store pickup' : (string) $order['address_line'],
             'city' => (string) $order['city'],
             'province' => (string) $order['province'],
             'postalCode' => (string) $order['postal_code'],

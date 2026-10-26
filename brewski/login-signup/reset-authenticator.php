@@ -118,7 +118,7 @@ if ($requestMethod === 'POST') {
     if (!is_string($submittedToken) || !hash_equals($csrfToken, $submittedToken)) {
         $error = 'This request could not be verified. Refresh the page and try again.';
     } elseif (!$canReset) {
-        // Keep the account lookup error visible.
+
     } elseif (($_POST['action'] ?? 'verify') === 'send_code') {
         $sendOtp();
     } else {

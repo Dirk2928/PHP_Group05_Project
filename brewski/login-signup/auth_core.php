@@ -1,14 +1,4 @@
 <?php
-
-/**
- * Shared authentication engine.
- *
- * Every sign-in entry point (the customer login and the staff/admin portal)
- * delegates credential checking here. Portals differ only in the policy they
- * pass in, so password verification, lockout counting and the authenticator
- * handoff exist in exactly one place.
- */
-
 require_once __DIR__ . '/session_init.php';
 require_once __DIR__ . '/totp.php';
 require_once __DIR__ . '/settings.php';
@@ -78,15 +68,6 @@ function brewski_auth_result(
         'redirect' => $redirect,
     ];
 }
-
-/**
- * Form-level checks shared by every sign-in entry point.
- *
- * Kept separate from credential verification: the controller decides what to
- * show the user, the engine decides whether the credentials are good.
- *
- * @return string[] Human-readable problems; the first is the one to display.
- */
 function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = true): array
 {
     $submittedToken = $post['csrf_token'] ?? '';
@@ -117,17 +98,6 @@ function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = tr
     return $errors;
 }
 
-/**
- * Verify a set of credentials against a portal's role policy.
- *
- * On success this leaves the session either fully signed in or holding a
- * pending authenticator step, and returns the URL to send the browser to.
- *
- * @param mysqli $conn    Open database connection.
- * @param string $email   Submitted email address.
- * @param string $password Submitted plaintext password.
- * @param string $portalKey Key from brewski_portals() defining allowed roles.
- */
 function brewski_authenticate($conn, string $email, string $password, string $portalKey): array
 {
     if (!brewski_ensure_account_lockouts_table($conn)) {
@@ -205,7 +175,6 @@ function brewski_authenticate($conn, string $email, string $password, string $po
 
     $passwordOk = password_verify($password, $storedPassword);
 
-    // Legacy rows still holding a plaintext password are upgraded in place.
     if (!$passwordOk && hash_equals((string) $storedPassword, $password)) {
         $passwordOk = true;
 
@@ -268,9 +237,6 @@ function brewski_authenticate($conn, string $email, string $password, string $po
         return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
     }
 
-    // Portal gate. This runs only after the password has verified, so an
-    // attacker without valid credentials learns nothing from it and a real
-    // staff member who reached the wrong sign-in page gets a useful pointer.
     if ($allowedRoles && !in_array($role, $allowedRoles, true)) {
         $targetPortal = brewski_portal(brewski_portal_key_for_role($role));
 

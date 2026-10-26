@@ -1,8 +1,8 @@
 <?php
 
-/**
- * Record an action without interrupting the action being logged.
- */
+
+
+
 function brewski_record_activity(
     PDO|mysqli $database,
     string $category,
@@ -26,7 +26,7 @@ function brewski_record_activity(
     }
 
     try {
-        // Ensure the table exists for deployments that have not run migrations yet.
+
         if ($database instanceof PDO) {
             $database->exec("
                 CREATE TABLE IF NOT EXISTS system_activity_logs (
@@ -99,7 +99,7 @@ function brewski_record_activity(
             $statement->close();
         }
     } catch (Throwable $error) {
-        // Log the error to the server logs instead of dying silently
+
         error_log('Could not record system activity: ' . $error->getMessage());
     }
 }

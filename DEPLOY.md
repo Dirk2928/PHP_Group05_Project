@@ -56,6 +56,8 @@ existing `defaultdb` instead, then set `DB_NAME=defaultdb` in step 4.
 For an existing installation, run `brewski/Db/migrations/20261024_add_customer_system_activity.sql`
 against the application database. This enables customer-role rows in the system activity
 table without removing existing activity.
+Run `brewski/Db/migrations/20261026_allow_store_pickup.sql` as well so pickup orders can
+be saved without a delivery address.
 
 ### Keeping the two schema files in sync
 

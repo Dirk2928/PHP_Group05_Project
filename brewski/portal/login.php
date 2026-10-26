@@ -1,13 +1,13 @@
 <?php
 
-/**
- * Staff & administrator portal sign-in.
- *
- * This is a separate entry point from the customer login, but it is not a
- * second implementation of it: credential checking, lockout handling and the
- * authenticator handoff all live in login-signup/auth_core.php. This file only
- * supplies the portal's policy (which roles may sign in here) and its markup.
- */
+
+
+
+
+
+
+
+
 
 require_once __DIR__ . '/../login-signup/auth_core.php';
 
@@ -45,7 +45,7 @@ if (brewski_is_logged_in()) {
         exit;
     }
 
-    // A signed-in customer has no business seeing an internal sign-in form.
+
     $foreignSession = true;
 }
 

@@ -19,7 +19,7 @@ $deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order
 
 $stmt = $pdo->prepare(
     "SELECT o.order_id, o.total_amount, o.order_status, u.email,
-            op.payment_status, $deliverySelect
+            op.payment_status, op.provider AS payment_provider, $deliverySelect
      FROM orders o
      INNER JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_payments op ON op.order_id = o.order_id
@@ -33,7 +33,7 @@ if (!$order) {
     header('Location: ../customer_home/customerhome.php');
     exit;
 }
-if (in_array($order['payment_status'], ['PENDING', 'FAILED'], true)) {
+if ($order['payment_provider'] !== 'in_store' && in_array($order['payment_status'], ['PENDING', 'FAILED'], true)) {
     header('Location: ../checkout/payment_return.php?order_id=' . $orderId);
     exit;
 }
@@ -54,6 +54,9 @@ require __DIR__ . '/../partials/header.php';
             <p class="order-success-message">
                 Order <strong>#<?= (int)$order['order_id'] ?></strong> is in. We’ll keep you updated as it moves along.
             </p>
+            <?php if ($order['payment_provider'] === 'in_store'): ?>
+                <p class="order-success-message">Pick up your order at the store and pay cash at the counter.</p>
+            <?php endif; ?>
             <?php if (($_GET['receipt_email_sent'] ?? '') === '1'): ?>
                 <p class="order-success-email-notice" role="status">
                     Your receipt was emailed to <?= htmlspecialchars($order['email'], ENT_QUOTES, 'UTF-8') ?>.
@@ -65,7 +68,7 @@ require __DIR__ . '/../partials/header.php';
             <?php endif; ?>
         </div>
 
-    <?php if (!$hasDeliveries): ?>
+    <?php if (!$hasDeliveries && $order['payment_provider'] !== 'in_store'): ?>
         <p class="order-success-notice" role="status">
             <i data-lucide="info" aria-hidden="true"></i>
             <span>Delivery tracking is not set up yet. You can still view your order details and status.</span>
@@ -85,18 +88,18 @@ require __DIR__ . '/../partials/header.php';
                 <span class="order-success-detail__copy"><small>Order status</small><strong><?= htmlspecialchars($order['order_status']) ?></strong></span>
             </div>
             <div class="order-success-detail">
-                <span class="order-success-detail__icon"><i data-lucide="bike" aria-hidden="true"></i></span>
-                <span class="order-success-detail__copy"><small>Delivery</small><strong><?= htmlspecialchars($order['delivery_status'] ?? ($hasDeliveries ? 'UNASSIGNED' : 'Not available')) ?></strong></span>
+                <span class="order-success-detail__icon"><i data-lucide="<?= $order['payment_provider'] === 'in_store' ? 'store' : 'bike' ?>" aria-hidden="true"></i></span>
+                <span class="order-success-detail__copy"><small><?= $order['payment_provider'] === 'in_store' ? 'Fulfillment' : 'Delivery' ?></small><strong><?= $order['payment_provider'] === 'in_store' ? 'Store pickup' : htmlspecialchars($order['delivery_status'] ?? ($hasDeliveries ? 'UNASSIGNED' : 'Not available')) ?></strong></span>
             </div>
             <div class="order-success-detail order-success-detail--total">
                 <span class="order-success-detail__icon"><i data-lucide="wallet" aria-hidden="true"></i></span>
-                <span class="order-success-detail__copy"><small>Total paid</small><strong>₱<?= number_format((float)$order['total_amount'], 2) ?></strong></span>
+                <span class="order-success-detail__copy"><small><?= $order['payment_provider'] === 'in_store' ? 'Pay at pickup' : 'Total paid' ?></small><strong>₱<?= number_format((float)$order['total_amount'], 2) ?></strong></span>
             </div>
         </div>
 
         <div class="order-success-actions">
             <a class="order-success-button order-success-button--primary" href="track_order.php?order_id=<?= (int)$order['order_id'] ?>">
-                <i data-lucide="map-pin" aria-hidden="true"></i>
+                <i data-lucide="<?= $order['payment_provider'] === 'in_store' ? 'store' : 'map-pin' ?>" aria-hidden="true"></i>
                 View order details
                 <i data-lucide="arrow-right" aria-hidden="true"></i>
             </a>

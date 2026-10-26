@@ -1,21 +1,21 @@
 <?php
 
-/**
- * Brewski user avatar helpers.
- *
- * Same security hardening as product images:
- *   - Error code handling
- *   - Size limit (2 MB)
- *   - MIME whitelist (jpg/png/webp)
- *   - finfo_file() content sniffing
- *   - getimagesize() real-image check
- *   - Dimension limits (1000×1000 max, 1 MP)
- *   - Cross-verified MIME
- */
+
+
+
+
+
+
+
+
+
+
+
+
 
 const BREWSKI_AVATAR_MAX_BYTES  = 5242880;
-const BREWSKI_AVATAR_MAX_DIM    = 1000;      // 1000×1000 px
-const BREWSKI_AVATAR_MAX_PIXELS = 1000000;   // 1 megapixel
+const BREWSKI_AVATAR_MAX_DIM    = 1000;
+const BREWSKI_AVATAR_MAX_PIXELS = 1000000;
 const BREWSKI_AVATAR_ALLOWED    = [
     'image/jpeg' => true,
     'image/png'  => true,
@@ -37,10 +37,10 @@ function brewski_ensure_user_avatar_columns(mysqli $connection): void
     }
 }
 
-/**
- * Validates and reads an uploaded avatar.
- * Returns ['data' => binary, 'mime' => string] or throws RuntimeException.
- */
+
+
+
+
 function brewski_read_avatar_upload(array $upload): array
 {
     switch ($upload['error'] ?? UPLOAD_ERR_NO_FILE) {
@@ -106,9 +106,9 @@ function brewski_read_avatar_upload(array $upload): array
     return ['data' => $data, 'mime' => $mimeType];
 }
 
-/**
- * Checks whether a user has an uploaded avatar.
- */
+
+
+
 function brewski_user_has_avatar(mysqli $connection, int $userId): bool
 {
     $stmt = $connection->prepare(

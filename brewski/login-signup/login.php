@@ -46,8 +46,6 @@ if (isset($_GET['timeout'])) {
     $error = 'Your session expired. Please log in again.';
 }
 
-// Staff and administrators belong on the portal; send them straight to their
-// own landing page rather than bouncing them through the customer flow.
 if (brewski_is_logged_in()) {
     header('Location: ' . brewski_home_for_role(brewski_current_role()));
     exit;
@@ -84,7 +82,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($result['status'] === BREWSKI_AUTH_SUCCESS) {
-            // Redirect normally if successful
             header('Location: ' . brewski_home_for_role(brewski_current_role()));
             exit;
         }

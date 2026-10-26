@@ -1,0 +1,1 @@
+ALTER TABLE orders MODIFY COLUMN address_id INT NULL;

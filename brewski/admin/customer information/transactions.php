@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $exists = $pdo->prepare(
-        'SELECT o.order_id, op.payment_status
+        'SELECT o.order_id, op.payment_status, op.provider
            FROM orders o
            LEFT JOIN order_payments op ON op.order_id = o.order_id
           WHERE o.order_id = ?
@@ -76,7 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ) {
         admin_transactions_respond(
             false,
-            'This order cannot be changed until PayMongo confirms payment.',
+            $transaction['provider'] === 'in_store'
+                ? 'Use the staff orders board to collect the store payment and complete this order.'
+                : 'This order cannot be changed until PayMongo confirms payment.',
             422
         );
     }
@@ -145,7 +147,7 @@ $transactions = $pdo->query(
      LEFT JOIN users cu ON cu.user_id = o.user_id
      LEFT JOIN deliveries d ON d.order_id = o.order_id
      LEFT JOIN users su ON su.user_id = d.staff_id
-     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
+     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
      ORDER BY o.order_date DESC, o.order_id DESC"
 )->fetchAll();
 

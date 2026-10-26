@@ -9,6 +9,15 @@
     background: #fffaf2;
 }
 
+.checkout-page [hidden] {
+    display: none !important;
+}
+
+.checkout-payment input[type="radio"] {
+    margin-top: 0.7rem;
+    accent-color: #1a0f0a;
+}
+
 .checkout-payment__icon {
     display: grid;
     flex: 0 0 2.4rem;

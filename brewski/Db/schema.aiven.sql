@@ -102,8 +102,6 @@ VALUES
     ('session_idle_timeout', '1800'),
     ('session_absolute_timeout', '28800'),
     ('choice_catalog_fingerprint', ''),
-    ('delivery_fee', '50'),
-    ('free_delivery_threshold', '500'),
     ('delivery_enabled', '1'),
     ('max_login_attempts', '3');
 
@@ -222,7 +220,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE TABLE IF NOT EXISTS orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    address_id INT NOT NULL,
+    address_id INT NULL,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 
@@ -385,8 +383,8 @@ CREATE TABLE IF NOT EXISTS product_customization_options (
         UNIQUE (product_id, option_group, option_name)
 );
 
--- Product choice containers used by the preference matcher. Product
--- customizations store the exact bean, milk, and allergen choices.
+
+
 CREATE TABLE IF NOT EXISTS preference_choice_groups (
     choice_group_id INT AUTO_INCREMENT PRIMARY KEY,
     group_name VARCHAR(50) NOT NULL UNIQUE,

@@ -13,15 +13,15 @@
     var button = document.getElementById('cart-button');
     var body = document.getElementById('cart-body');
 
-    /* ------------------------------------------------------------------ */
-    /* Storage                                                             */
-    /* ------------------------------------------------------------------ */
+
+
+
 
     function makeKey(name, size, customization) {
         return [name, size, customization].join('|');
     }
 
-    // Every item must have a key, otherwise edit / delete / quantity cannot find it
+
     function normalizeItem(item) {
         if (item && typeof item === 'object' && !item.key) {
             item.key = makeKey(item.name || '', item.size || '', item.customization || '');
@@ -29,7 +29,7 @@
         return item;
     }
 
-    // Identical drinks (same key) become one row with a combined quantity
+
     function mergeDuplicates(items) {
         var merged = [];
         var byKey = {};
@@ -113,9 +113,9 @@
         return pendingSync;
     }
 
-    /* ------------------------------------------------------------------ */
-    /* Rendering                                                           */
-    /* ------------------------------------------------------------------ */
+
+
+
 
     function money(amount) {
         return '₱' + Number(amount).toLocaleString('en-PH');
@@ -222,11 +222,11 @@
         b.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    /* ------------------------------------------------------------------ */
-    /* Cart row actions: edit / delete / quantity                          */
-    /* Delegated on the document so it works no matter when the cart is    */
-    /* drawn, and it finds the item by position, not only by its key.      */
-    /* ------------------------------------------------------------------ */
+
+
+
+
+
 
     document.addEventListener('click', function (event) {
         var target = event.target.closest ? event.target.closest('#cart-body [data-action]') : null;
@@ -274,16 +274,16 @@
         save(items);
     }, true);
 
-    /* ------------------------------------------------------------------ */
-    /* Edit mode                                                           */
-    /* ------------------------------------------------------------------ */
+
+
+
 
     var editingKey = '';
     var editingItem = null;
     var openingForEdit = false;
 
-    // "Save Changes" is forced with CSS while editing, so it no longer matters
-    // when another script rewrites the button text back to "Add to Cart".
+
+
     (function injectEditStyles() {
         var style = document.createElement('style');
         style.textContent =
@@ -339,8 +339,8 @@
         });
     }
 
-    // Pre-select the choices the item was saved with, so editing one thing
-    // does not reset everything else.
+
+
     function applySavedOptions(item, tries) {
         if (editingKey !== item.key) return;
 
@@ -375,7 +375,7 @@
             return;
         }
 
-        // Drink quantity
+
         var qtyEl = document.getElementById('drink-quantity-value');
         var current = qtyEl ? (parseInt(qtyEl.textContent, 10) || 1) : 1;
         var target = Math.max(1, Math.min(MAX_QTY, Number(item.quantity) || 1));
@@ -386,8 +386,8 @@
         }
     }
 
-    // Close the popup the same way the X button does (so the menu script also
-    // cleans up its own state), and remove any "open" class as a backup.
+
+
     function closeCustomizationModal() {
         var modalEl = document.getElementById('customization-modal');
         var closeBtn = document.getElementById('modal-close');
@@ -427,21 +427,21 @@
         applySavedOptions(item, 0);
     };
 
-    // Opening the modal normally (a real "Add to Cart" click) is never edit mode
+
     document.addEventListener('click', function (e) {
         if (!openingForEdit && e.target.closest && e.target.closest('.btn-add')) {
             stopEditing();
         }
     }, true);
 
-    // Save Changes
+
     document.addEventListener('click', function (e) {
         var confirmBtn = e.target.closest ? e.target.closest('#btn-confirm-add') : null;
         if (!confirmBtn) return;
 
         var keyInput = document.getElementById('modal-edit-key');
         var oldKey = editingKey || (keyInput ? keyInput.value : '');
-        if (!oldKey) return; // normal "Add to Cart", let the menu script handle it
+        if (!oldKey) return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -470,7 +470,7 @@
                 if (!text) return;
 
                 if (type === 'size') {
-                    size = text.replace(/\s*\(.*\)\s*$/, ''); // "Large (+₱20)" -> "Large"
+                    size = text.replace(/\s*\(.*\)\s*$/, '');
                     return;
                 }
                 if (type === 'sugar' && /^\d+%$/.test(text)) {
@@ -494,7 +494,7 @@
             quantity: qty
         };
 
-        // Put the edited item where the old one was
+
         var items = load();
         var position = -1;
         items.forEach(function (entry, i) {
@@ -508,14 +508,14 @@
 
         save(items);
 
-        // Leave edit mode, then close the popup
+
         stopEditing();
         if (titleEl) titleEl.textContent = 'Customize your drink';
         closeCustomizationModal();
 
     }, true);
 
-    // Leave edit mode when the modal is closed (X button, overlay, or Escape)
+
     document.addEventListener('click', function (e) {
         if (!editingKey) return;
         if (e.target.closest && (e.target.closest('#modal-close') || e.target.id === 'customization-modal')) {
@@ -533,9 +533,9 @@
         }
     });
 
-    /* ------------------------------------------------------------------ */
-    /* Cart dropdown open / close, checkout link                           */
-    /* ------------------------------------------------------------------ */
+
+
+
 
     if (menu && button && body) {
 
@@ -557,7 +557,7 @@
         });
 
         body.addEventListener('click', function (event) {
-            event.stopPropagation(); // keep clicks inside the cart from closing it
+            event.stopPropagation();
 
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') return;
@@ -570,7 +570,7 @@
                 checkoutDestination.searchParams.set('cart_synced', '1');
                 window.location.assign(checkoutDestination.href);
             }).catch(function (error) {
-                // Not signed in (or session expired): go to the login page, no popup
+
                 if (error && error.status === 401) {
                     var loginMeta = document.querySelector('meta[name="login-url"]');
                     window.location.assign(loginMeta ? loginMeta.content : '../../login-signup/login.php');
@@ -602,8 +602,8 @@
     });
     window.addEventListener('pageshow', render);
 
-    // Other scripts (menu / add to cart) use this object, so it must exist.
-    // Uses an existing global count() if the page defines one, otherwise a fallback.
+
+
     window.BrewskiCart = {
         STORAGE_KEY: STORAGE_KEY,
         load: load,

@@ -57,7 +57,7 @@ $offset = ($page - 1) * $perPage;
 
 $ordersStatement = $pdo->prepare(
     "SELECT o.order_id, o.order_date, o.total_amount, o.order_status,
-            op.payment_status,
+            op.payment_status, op.provider AS payment_provider,
             $deliverySelect,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count,
             (SELECT p.product_name
@@ -200,13 +200,16 @@ $deliveryIcons = [
                 <?php
                     $orderStatus = (string) $order['order_status'];
                     $paymentStatus = (string) ($order['payment_status'] ?? '');
+                    $storePickup = ($order['payment_provider'] ?? '') === 'in_store';
                     $deliveryStatus = (string) ($order['delivery_status'] ?? '');
                     $itemCount = (int) $order['item_count'];
                     $deliveryLabel = $orderStatus === 'CANCELLED'
                         ? 'Order cancelled'
-                        : (!$hasDeliveries
+                        : ($storePickup
+                            ? 'Store pickup · Pay at counter'
+                            : (!$hasDeliveries
                             ? 'Delivery updates unavailable'
-                            : ($deliveryLabels[$deliveryStatus] ?? 'Delivery details pending'));
+                            : ($deliveryLabels[$deliveryStatus] ?? 'Delivery details pending')));
                 ?>
                 <article class="order-card">
                     <div class="order-card__top">
@@ -221,7 +224,7 @@ $deliveryIcons = [
                             <?= htmlspecialchars($statusLabels[$orderStatus] ?? $orderStatus, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                     </div>
-                    <?php if ($paymentStatus === 'PENDING'): ?>
+                    <?php if ($paymentStatus === 'PENDING' && !$storePickup): ?>
                         <p class="orders-notice" role="status">
                             Payment pending. This order will be sent to the café after payment is confirmed.
                         </p>
@@ -229,6 +232,9 @@ $deliveryIcons = [
                         <p class="orders-notice orders-notice--error" role="status">
                             Payment was not completed. Your saved cart is available at checkout.
                         </p>
+                    <?php endif; ?>
+                    <?php if ($storePickup && $paymentStatus === 'PENDING'): ?>
+                        <p class="orders-notice" role="status">Pay cash when you pick up your order at the store.</p>
                     <?php endif; ?>
 
                     <div class="order-card__summary">
@@ -254,7 +260,7 @@ $deliveryIcons = [
 
                     <div class="order-card__bottom">
                         <span class="order-delivery">
-                            <i data-lucide="<?= htmlspecialchars($orderStatus === 'CANCELLED' ? 'circle-x' : (!$hasDeliveries ? 'info' : ($deliveryIcons[$deliveryStatus] ?? 'truck')), ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
+                            <i data-lucide="<?= htmlspecialchars($orderStatus === 'CANCELLED' ? 'circle-x' : ($storePickup ? 'store' : (!$hasDeliveries ? 'info' : ($deliveryIcons[$deliveryStatus] ?? 'truck'))), ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
                             <?= htmlspecialchars($deliveryLabel, ENT_QUOTES, 'UTF-8') ?>
                         </span>
                         <a href="track_order.php?order_id=<?= (int) $order['order_id'] ?>">

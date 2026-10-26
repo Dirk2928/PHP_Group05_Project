@@ -626,9 +626,9 @@ try {
                     $existing->close();
                 }
 
-                // ============================================================
-                // SECURE IMAGE UPLOAD
-                // ============================================================
+
+
+
                 $imageData = null;
                 $imageMimeType = null;
                 $upload = $_FILES['product_image'] ?? null;

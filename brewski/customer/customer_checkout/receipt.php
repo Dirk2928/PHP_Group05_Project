@@ -62,14 +62,14 @@ try {
 
     $orderStatement = $pdo->prepare(
         "SELECT o.order_id, o.order_date, o.order_status, o.total_amount,
-                op.payment_status,
+                op.payment_status, op.provider AS payment_provider,
                 u.first_name, u.last_name, u.email,
                 a.address_line, a.city, a.province, a.postal_code,
                 $deliveryFeeSelect, $deliveryNotesSelect
          FROM orders o
          LEFT JOIN order_payments op ON op.order_id = o.order_id
          INNER JOIN users u ON u.user_id = o.user_id
-         INNER JOIN addresses a ON a.address_id = o.address_id
+         LEFT JOIN addresses a ON a.address_id = o.address_id
          $deliveryJoin
          WHERE o.order_id = ? AND o.user_id = ?
          LIMIT 1"
@@ -142,6 +142,7 @@ try {
                 'province' => $order['province'],
                 'postal_code' => $order['postal_code'],
             ],
+            'fulfillment' => $order['payment_provider'] === 'in_store' ? 'Store pickup' : 'Delivery',
             'delivery_notes' => $order['delivery_notes'],
             'items' => $items,
             'subtotal' => customer_receipt_money($subtotalCents),

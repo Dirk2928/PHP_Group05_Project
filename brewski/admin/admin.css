@@ -279,7 +279,7 @@ body {
     margin-left: var(--sidebar-width);
 }
 
-/* Shared admin shell */
+
 :root {
     --sidebar-width: 280px;
     --shell-shadow: 0 8px 24px rgba(30, 17, 10, 0.08);
@@ -505,7 +505,7 @@ body {
     }
 }
 
-/* Collapsible full-height navigation */
+
 .topbar {
     justify-content: flex-start;
     gap: 16px;
@@ -2853,7 +2853,7 @@ body.sidebar-open::after {
     }
 }
 
-/* Keep the collapsible navigation full-height across admin breakpoints. */
+
 .sidebar {
     top: 0;
     height: 100vh;
@@ -2977,9 +2977,9 @@ body.sidebar-open::after {
     }
 }
 
-/* =========================================
-   THEME SYNC OVERRIDES (Customer Match)
-   ========================================= */
+
+
+
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
 
 body, input, select, button, table, .form-control {
@@ -2990,7 +2990,7 @@ h1, h2, h3, .page-title, .card-title, .sidebar-brand {
     font-family: "Fredoka", sans-serif !important;
 }
 
-/* Make buttons pill-shaped like the customer side */
+
 .btn {
     border-radius: 999px !important;
     padding: 0.6rem 1.2rem !important;
@@ -3018,7 +3018,7 @@ h1, h2, h3, .page-title, .card-title, .sidebar-brand {
     background-color: var(--latte, #e8dac4) !important;
 }
 
-/* Soft rounded cards and shadows */
+
 .stat-card, .card, .table-card, .dashboard-card, .panel {
     border-radius: 1.25rem !important;
     border: none !important;
@@ -3026,7 +3026,7 @@ h1, h2, h3, .page-title, .card-title, .sidebar-brand {
     background-color: var(--cream, #faf5ee) !important;
 }
 
-/* Fix table header colors to match */
+
 table th {
     background-color: var(--foam, #f2e4cc) !important;
     color: var(--dark-mocha, #5c4033) !important;
@@ -3038,7 +3038,7 @@ table td {
     color: var(--espresso, #1a0f0a) !important;
 }
 
-/* Pill-shaped search inputs and form fields */
+
 .form-control, .form-select, input[type="text"], input[type="search"], select {
     border-radius: 999px !important;
     border: 1px solid var(--latte, #e8dac4) !important;

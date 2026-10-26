@@ -170,6 +170,8 @@ does not collect or store card details. Configure `BREWSKI_PAYMONGO_SECRET_KEY`
 and `BREWSKI_PAYMONGO_WEBHOOK_SECRET` in the PHP environment; do not put either
 secret in the repository. Existing databases must apply
 [`20261019_add_order_payments.sql`](brewski/Db/migrations/20261019_add_order_payments.sql).
+For pay-at-store pickup, existing databases must also apply
+[`20261026_allow_store_pickup.sql`](brewski/Db/migrations/20261026_allow_store_pickup.sql).
 
 In the PayMongo dashboard, register
 `https://<your-public-host>/customer/checkout/paymongo_webhook.php` and subscribe

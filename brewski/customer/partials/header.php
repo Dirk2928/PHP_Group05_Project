@@ -4,7 +4,7 @@ $pageTitle   = $pageTitle   ?? 'brewski';
 $active      = $active      ?? '';
 $extraStyles = $extraStyles ?? [];
 
-// Token used by cart.js to sync the cart to the server (checked in cart_session.php)
+
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -22,13 +22,14 @@ if (!empty($_SESSION['user_id'])) {
         require_once __DIR__ . '/../../Db/db_config.php';
         $avatarConn = brewski_db_connection();
         $avatarStmt = $avatarConn->prepare(
-            'SELECT avatar_mime_type FROM users WHERE user_id = ? LIMIT 1'
+            'SELECT avatar_mime_type, updated_at FROM users WHERE user_id = ? LIMIT 1'
         );
         $avatarStmt->bind_param('i', $_SESSION['user_id']);
         $avatarStmt->execute();
-        $avatarStmt->bind_result($avatarMime);
+        $avatarStmt->bind_result($avatarMime, $avatarUpdatedAt);
         if ($avatarStmt->fetch() && $avatarMime) {
-            $headerAvatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . (int) $_SESSION['user_id'];
+            $headerAvatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . (int) $_SESSION['user_id']
+                . '&v=' . ($avatarUpdatedAt ? strtotime($avatarUpdatedAt) : time());
         }
         $avatarStmt->close();
         $avatarConn->close();
@@ -53,7 +54,7 @@ if ($headerInitials === '') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- Cart sync settings used by customer_cart/cart.js -->
+
     <meta name="csrf-token" content="<?= e($_SESSION['csrf_token']) ?>">
     <meta name="cart-session-url" content="../customer_cart/cart_session.php">
     <meta name="checkout-url" content="../checkout/checkout.php">
@@ -76,7 +77,7 @@ if ($headerInitials === '') {
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Checkout button inside the cart dropdown (For JS fallback) */
+
         .cart-checkout-btn {
             display: flex;
             align-items: center;
@@ -96,7 +97,7 @@ if ($headerInitials === '') {
         .cart-checkout-btn:hover { background: #3b2218; }
         .cart-checkout-btn i, .cart-checkout-btn svg { width: 18px; height: 18px; stroke: #faf5ee !important; }
 
-        /* Cart Actions (Edit + Remove) */
+
         .cart-actions {
             display: flex;
             gap: 0.5rem;
@@ -114,7 +115,7 @@ if ($headerInitials === '') {
         .cart-edit__btn:hover { color: #1a0f0a; }
         .cart-remove__btn:hover { color: #a32a1f; }
 
-        /* Cart Edit Modal */
+
         .cart-edit-modal {
             position: fixed;
             inset: 0;
@@ -176,7 +177,7 @@ if ($headerInitials === '') {
             color: #faf5ee;
         }
 
-        /* Avatar inside the profile dropdown */
+
         .profile-dropdown__user { display: flex; align-items: center; gap: 0.75rem; }
         .profile-dropdown__avatar {
             width: 40px; height: 40px; border-radius: 50%;
@@ -196,7 +197,7 @@ if ($headerInitials === '') {
 <body>
 
     <header class="topbar">
-        <div class="topbar__brand">brewski</div>
+        <a class="topbar__brand" href="<?= e(BREWSKI_BASE_URL . '/Start-screen/start.php') ?>">brewski</a>
 
         <nav class="topbar__nav">
             <a href="<?= e($navItems['home']['href']) ?>" class="topbar__link<?= $active === 'home' ? ' active' : '' ?>">
@@ -216,7 +217,7 @@ if ($headerInitials === '') {
                 <div class="cart-dropdown" id="cart-dropdown">
                     <h3 class="cart-dropdown__title">Your cart</h3>
                     <div id="cart-body"></div>
-                    <!-- NOTE: The duplicate <a href="..." class="cart-checkout"> has been removed. cart.js handles this now. -->
+
                 </div>
             </div>
 
@@ -230,7 +231,11 @@ if ($headerInitials === '') {
                 </a>
 
                 <button type="button" class="profile-button" id="profile-button" aria-label="Open profile menu" aria-haspopup="true" aria-expanded="false">
-                    <i data-lucide="chevron-down" class="profile-chevron"></i>
+                    <?php if ($headerAvatarUrl): ?>
+                        <img src="<?= e($headerAvatarUrl) ?>" alt="" class="profile-button__avatar">
+                    <?php else: ?>
+                        <span class="profile-button__avatar profile-button__avatar--initials" aria-hidden="true"><?= e($headerInitials) ?></span>
+                    <?php endif; ?>
                 </button>
 
                 <div class="profile-dropdown" id="profile-dropdown">
@@ -261,13 +266,13 @@ if ($headerInitials === '') {
         </nav>
     </header>
 
-    <!-- Cart Edit Modal -->
+
     <div id="cart-edit-modal" class="cart-edit-modal" hidden>
         <div class="cart-edit-modal__panel">
             <h3>Edit Drink</h3>
             <form id="cart-edit-form">
                 <input type="hidden" id="cart-edit-key" value="">
-                
+
                 <div style="margin-bottom: 1rem; font-weight: bold; color: #3b2218;" id="cart-edit-name"></div>
 
                 <label>

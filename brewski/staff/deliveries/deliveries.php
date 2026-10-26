@@ -95,7 +95,6 @@ $deliveries = $stmt->fetchAll();
                 <?php endif; ?>
 
                 <p class="row"><strong>Total:</strong> ₱<?= number_format((float)$d['total_amount'], 2) ?></p>
-                <p class="row"><strong>Fee:</strong> ₱<?= number_format((float)$d['delivery_fee'], 2) ?></p>
 
                 <?php if ($d['driver_first']): ?>
                     <p class="row"><strong>Rider:</strong> <?= htmlspecialchars($d['driver_first'] . ' ' . $d['driver_last']) ?></p>

@@ -104,8 +104,6 @@ VALUES
     ('session_idle_timeout', '1800'),
     ('session_absolute_timeout', '28800'),
     ('choice_catalog_fingerprint', ''),
-    ('delivery_fee', '50'),
-    ('free_delivery_threshold', '500'),
     ('delivery_enabled', '1'),
     ('max_login_attempts', '3');
 
@@ -224,7 +222,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE TABLE IF NOT EXISTS orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    address_id INT NOT NULL,
+    address_id INT NULL,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 
@@ -455,10 +453,10 @@ CREATE TABLE IF NOT EXISTS recommendations (
         ON DELETE CASCADE
 );
 
--- ============================================================================
--- Migration-safe ALTER statements
--- Uses IF NOT EXISTS so re-running this file on an existing DB is safe.
--- ============================================================================
+
+
+
+
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS avatar_data LONGBLOB NULL AFTER email,
     ADD COLUMN IF NOT EXISTS avatar_mime_type VARCHAR(32) NULL AFTER avatar_data;
@@ -555,7 +553,7 @@ ALTER TABLE cart_items
 
 ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS user_id INT NOT NULL,
-    ADD COLUMN IF NOT EXISTS address_id INT NOT NULL,
+    ADD COLUMN IF NOT EXISTS address_id INT NULL,
     ADD COLUMN IF NOT EXISTS order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     ADD COLUMN IF NOT EXISTS order_status ENUM(

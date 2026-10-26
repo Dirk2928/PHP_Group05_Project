@@ -9,8 +9,8 @@ app.use(express.json({ limit: "100kb" }));
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST?.trim() || "0.0.0.0";
 
-// Mailjet is called over HTTPS (port 443). Render's free plan blocks the SMTP
-// ports (25, 465, 587), so Gmail SMTP cannot be used there.
+
+
 const MAILJET_API = "https://api.mailjet.com";
 const mailjetApiKey = process.env.MAILJET_API_KEY?.trim();
 const mailjetSecretKey = process.env.MAILJET_SECRET_KEY?.trim();
@@ -28,8 +28,8 @@ if (!consoleMode && (!mailjetApiKey || !mailjetSecretKey || !mailjetSender)) {
     process.exit(1);
 }
 
-// Kept for the "from" field the route handlers pass to deliver(); the actual
-// sender used is always the validated MAILJET_SENDER.
+
+
 const fromAddress = mailjetSender || "dev@brewski.local";
 
 const mailjetAuthHeader =
@@ -195,6 +195,8 @@ app.post("/send-order-receipt", async (req, res) => {
             total
         } = req.body;
 
+        const storePickup = address && address.addressLine === "Store pickup";
+
         if (
             !hasValidEmail(email) ||
             !hasText(customerName, 200) ||
@@ -203,9 +205,9 @@ app.post("/send-order-receipt", async (req, res) => {
             !address ||
             typeof address !== "object" ||
             !hasText(address.addressLine, 255) ||
-            !hasText(address.city, 100) ||
-            !hasText(address.province, 100) ||
-            !hasText(address.postalCode, 20) ||
+            (!storePickup && !hasText(address.city, 100)) ||
+            (!storePickup && !hasText(address.province, 100)) ||
+            (!storePickup && !hasText(address.postalCode, 20)) ||
             (
                 deliveryNotes !== undefined &&
                 (
@@ -241,7 +243,8 @@ app.post("/send-order-receipt", async (req, res) => {
             address.city,
             address.province,
             address.postalCode
-        ].join(", ");
+        ].filter(Boolean).join(", ");
+        const addressLabel = address.addressLine === "Store pickup" ? "Pickup" : "Delivery address";
 
         const safeDeliveryNotes =
             typeof deliveryNotes === "string"
@@ -289,12 +292,11 @@ Thank you for your order. Here is your receipt.
 
 Receipt: ${receiptNumber}
 Order date: ${orderDate}
-Delivery address: ${addressText}${deliveryNotesText}
+${addressLabel}: ${addressText}${deliveryNotesText}
 
 ${itemText}
 
 Subtotal: PHP ${formatAmount(subtotal)}
-Delivery fee: PHP ${formatAmount(deliveryFee)}
 Total: PHP ${formatAmount(total)}
 `,
             html: `
@@ -304,7 +306,7 @@ Total: PHP ${formatAmount(total)}
                     <p>
                         <strong>Receipt:</strong> ${safeReceiptNumber}<br>
                         <strong>Order date:</strong> ${safeOrderDate}<br>
-                        <strong>Delivery address:</strong> ${safeAddress}
+                        <strong>${addressLabel}:</strong> ${safeAddress}
                     </p>
                     ${deliveryNotesHtml}
                     <table style="width:100%;border-collapse:collapse">
@@ -319,7 +321,6 @@ Total: PHP ${formatAmount(total)}
                     </table>
                     <p style="text-align:right">
                         Subtotal: PHP ${formatAmount(subtotal)}<br>
-                        Delivery fee: PHP ${formatAmount(deliveryFee)}<br>
                         <strong>Total: PHP ${formatAmount(total)}</strong>
                     </p>
                 </div>

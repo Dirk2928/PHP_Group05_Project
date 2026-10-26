@@ -59,14 +59,14 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * Registry of the separate sign-in entry points.
- *
- * Each portal only declares routing facts: where its login lives, where its
- * authenticator steps live, and which roles it will accept. The authentication
- * logic itself is shared (see auth_core.php), so adding a portal is a data
- * change rather than a second copy of the login flow.
- */
+
+
+
+
+
+
+
+
 function brewski_portals(): array
 {
     static $portals = null;
@@ -123,10 +123,10 @@ function brewski_portal_login_url(string $portalKey, string $query = ''): string
     return BREWSKI_BASE_URL . brewski_portal($portalKey)['login_path'] . $query;
 }
 
-/**
- * URL for one of a portal's authenticator steps, so the shared 2FA pages can
- * send the browser back into the portal it started from.
- */
+
+
+
+
 function brewski_auth_step_url(string $portalKey, string $step): string
 {
     return BREWSKI_BASE_URL . brewski_portal($portalKey)['auth_path'] . $step;
@@ -153,13 +153,13 @@ function brewski_session_timeout_markup(): string
         . '<script src="' . $escape(BREWSKI_BASE_URL . '/login-signup/session-timeout.js') . '" defer></script>' . "\n";
 }
 
-/**
- * Which portal the browser is currently inside.
- *
- * The shared authenticator pages call this so they can render their own form
- * actions and cancel links, and send the user back to the sign-in page they
- * actually started from.
- */
+
+
+
+
+
+
+
 function brewski_auth_active_portal(): string
 {
     $loginPending = $_SESSION['totp_login_pending'] ?? null;
@@ -213,8 +213,8 @@ function brewski_end_session(string $query = '', ?string $role = null): void
         $role = (string) ($_SESSION['role'] ?? '');
     }
 
-    // Resolve the destination before the session is wiped, so an admin or
-    // staff session lands on the portal instead of the customer login.
+
+
     $loginUrl = brewski_login_url_for_role($role, $query);
 
     $_SESSION = [];

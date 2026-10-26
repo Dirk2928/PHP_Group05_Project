@@ -1006,7 +1006,7 @@ body {
     }
 }
 
-/* Full-height, collapsible staff navigation */
+
 .topbar {
     justify-content: flex-start;
     gap: 16px;
@@ -1765,9 +1765,9 @@ body.sidebar-open::after {
     }
 }
 
-/* =========================================
-   THEME SYNC OVERRIDES (Customer Match)
-   ========================================= */
+
+
+
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
 
 body, input, select, button, table, .toolbar-input {
@@ -1778,7 +1778,7 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     font-family: "Fredoka", sans-serif !important;
 }
 
-/* Make buttons pill-shaped */
+
 .btn {
     border-radius: 999px !important;
     padding: 0.6rem 1.2rem !important;
@@ -1799,7 +1799,7 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     color: var(--espresso) !important;
 }
 
-/* Soft rounded cards */
+
 .stat-card, .table-card, .order-summary-card, .toolbar {
     border-radius: 1.25rem !important;
     border: none !important;
@@ -1807,13 +1807,13 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     background-color: var(--surface) !important;
 }
 
-/* Fix table header colors */
+
 .data-table th, .orders-table th {
     background-color: var(--foam) !important;
     color: var(--dark-mocha) !important;
 }
 
-/* Pill-shaped search bar */
+
 .toolbar-input, .toolbar-select {
     border-radius: 999px !important;
     border: 1px solid var(--latte) !important;

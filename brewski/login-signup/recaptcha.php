@@ -1,9 +1,9 @@
 <?php
 
-/**
- * Brewski reCAPTCHA v2 helper.
- * Verifies the g-recaptcha-response token against Google's API.
- */
+
+
+
+
 
 define('RECAPTCHA_SITE_KEY',  '6LeAgvItAAAAANJmPUDzCAPi3vbUA3GtbxgZnIxm');
 define('RECAPTCHA_SECRET_KEY', '6LeAgvItAAAAAAqVRct761l9Z7YjSw2NoXvfK2DI');

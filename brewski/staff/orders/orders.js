@@ -175,9 +175,12 @@ document.addEventListener('DOMContentLoaded', function () {
         var html = '';
 
         if (advance) {
+            var advanceLabel = advance === 'COMPLETED' && order.payment_provider === 'in_store'
+                ? 'Payment collected & complete'
+                : (advanceLabels[advance] || advance);
             html += '<button type="button" class="btn btn-primary order-advance" data-order-id="' +
                 order.order_id + '" data-status="' + escapeHtml(advance) + '">' +
-                escapeHtml(advanceLabels[advance] || advance) + '</button>';
+                escapeHtml(advanceLabel) + '</button>';
         } else {
             html += '<span class="order-action-waiting">In progress</span>';
         }
@@ -253,6 +256,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong>' +
                         '<small>' + escapeHtml(formatPlaced(order.created_at)) + '</small></span></div>' +
                     '<ul class="order-items">' + items + '</ul>' +
+                    (order.payment_provider === 'in_store'
+                        ? '<p class="order-delivery-notes"><strong>Store pickup · Pay cash at counter</strong></p>'
+                        : '') +
                     (order.delivery_notes
                         ? '<p class="order-delivery-notes"><strong>Notes:</strong> ' +
                             escapeHtml(order.delivery_notes) + '</p>'
@@ -457,8 +463,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderCategoryOptions();
                 renderOrders();
                 renderProducts();
-                
-                // Clear any previous error messages on successful load
+
+
                 if (feedback.textContent && feedback.textContent.indexOf('could not') !== -1) {
                     feedback.textContent = '';
                 }
@@ -512,6 +518,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        if (button.dataset.status === 'COMPLETED' && button.textContent.includes('Payment collected')
+            && !window.confirm('Confirm you have collected cash for this pickup order?')) {
+            return;
+        }
+
         button.disabled = true;
         feedback.textContent = '';
 
@@ -532,7 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     feedback.textContent = '';
                 }
             }, 3000);
-            
+
             load();
         }).catch(function (error) {
             console.error('Error updating order:', error);
@@ -574,7 +585,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     productFeedback.textContent = '';
                 }
             }, 3000);
-            
+
             renderProducts();
         }).catch(function (error) {
             console.error('Error toggling product:', error);
@@ -587,12 +598,12 @@ document.addEventListener('DOMContentLoaded', function () {
         orderLanePages = {};
         renderOrders();
     });
-    
+
     statusFilter.addEventListener('change', function () {
         orderLanePages = {};
         renderOrders();
     });
-    
+
     productCategoryFilter.addEventListener('change', function () {
         productsPage = 1;
         renderProducts();
@@ -620,6 +631,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     load();
-    
+
     startAutoRefresh();
 });

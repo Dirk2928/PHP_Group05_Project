@@ -10,8 +10,8 @@ $loadError = '';
 $databaseName = '';
 
 try {
-    // TIMESTAMP values are returned in the connection timezone. Normalize the
-    // result to UTC before converting each row to Philippine time below.
+
+
     $pdo->exec("SET time_zone = '+00:00'");
     $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
     $statement = $pdo->query(
@@ -107,8 +107,8 @@ $categoryLabels = [
                     <?php foreach ($logs as $log): ?>
                         <?php
                         $role = strtoupper((string) $log['actor_role']);
-                        
-                        // Handle the badge colors for all 3 roles
+
+
                         if ($role === 'ADMIN') {
                             $roleClass = 'badge-role-admin';
                             $roleLabel = 'Admin';

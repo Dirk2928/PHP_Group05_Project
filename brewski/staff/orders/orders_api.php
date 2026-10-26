@@ -59,17 +59,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        $pdo->beginTransaction();
         $statement = $pdo->prepare(
-            'SELECT o.order_status, op.payment_status
+            'SELECT o.order_status, op.payment_status, op.provider
                FROM orders o
                LEFT JOIN order_payments op ON op.order_id = o.order_id
               WHERE o.order_id = ?
-              LIMIT 1'
+              LIMIT 1 FOR UPDATE'
         );
         $statement->execute([(int) $orderId]);
         $currentOrder = $statement->fetch();
 
         if (!$currentOrder) {
+            $pdo->rollBack();
             http_response_code(404);
             echo json_encode(['ok' => false, 'error' => 'That order no longer exists.']);
             exit;
@@ -78,7 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (
             $currentOrder['payment_status'] !== null
             && $currentOrder['payment_status'] !== 'PAID'
+            && $currentOrder['provider'] !== 'in_store'
         ) {
+            $pdo->rollBack();
             http_response_code(422);
             echo json_encode([
                 'ok' => false,
@@ -90,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $currentStatus = strtoupper((string) $currentOrder['order_status']);
 
         if (!in_array($newStatus, $transitions[$currentStatus] ?? [], true)) {
+            $pdo->rollBack();
             http_response_code(422);
             echo json_encode([
                 'ok'    => false,
@@ -100,6 +105,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE orders SET order_status = ? WHERE order_id = ?');
         $update->execute([$newStatus, (int) $orderId]);
+        if ($currentOrder['provider'] === 'in_store' && $currentOrder['payment_status'] === 'PENDING') {
+            if ($newStatus === 'COMPLETED') {
+                $pdo->prepare(
+                    "UPDATE order_payments SET payment_status = 'PAID' WHERE order_id = ? AND provider = 'in_store'"
+                )->execute([(int) $orderId]);
+            } elseif ($newStatus === 'CANCELLED') {
+                $pdo->prepare(
+                    "UPDATE order_payments SET payment_status = 'FAILED' WHERE order_id = ? AND provider = 'in_store'"
+                )->execute([(int) $orderId]);
+            }
+        }
         brewski_record_activity(
             $pdo,
             'orders',
@@ -108,6 +124,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'order',
             (int) $orderId
         );
+        $pdo->commit();
+
+        if ($currentOrder['provider'] === 'in_store' && $newStatus === 'COMPLETED') {
+            try {
+                require_once __DIR__ . '/../../customer/partials/order_support.php';
+                if (customer_send_order_receipt($pdo, (int) $orderId)) {
+                    $pdo->prepare('UPDATE order_payments SET receipt_email_sent = TRUE WHERE order_id = ?')
+                        ->execute([(int) $orderId]);
+                }
+            } catch (Throwable $error) {
+                error_log('Could not email store pickup receipt for order ' . (int) $orderId . ': ' . $error->getMessage());
+            }
+        }
 
         echo json_encode([
             'ok'      => true,
@@ -175,12 +204,14 @@ try {
                 o.total_amount,
                 o.order_date AS created_at,
                 TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
-                d.notes AS delivery_notes
+                d.notes AS delivery_notes,
+                op.provider AS payment_provider,
+                op.payment_status
            FROM orders o
           LEFT JOIN order_payments op ON op.order_id = o.order_id
            LEFT JOIN users u ON u.user_id = o.user_id
            LEFT JOIN deliveries d ON d.order_id = o.order_id
-          WHERE op.payment_status IS NULL OR op.payment_status = 'PAID'
+          WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
           ORDER BY o.order_date DESC, o.order_id DESC
           LIMIT 100"
     );

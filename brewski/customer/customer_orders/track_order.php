@@ -24,21 +24,23 @@ $deliverySelect = $hasDeliveries
        d.assigned_at, d.picked_up_at, d.delivered_at, d.failed_at,
        u.first_name AS driver_first, u.last_name AS driver_last'
     : 'NULL AS delivery_id, NULL AS delivery_status,
-       COALESCE(o.delivery_fee, 0) AS delivery_fee,
+       0 AS delivery_fee,
        NULL AS delivery_notes, NULL AS assigned_at, NULL AS picked_up_at,
        NULL AS delivered_at, NULL AS failed_at,
        NULL AS driver_first, NULL AS driver_last';
-       
+
 $deliveryJoins = $hasDeliveries
     ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id
        LEFT JOIN users u ON u.user_id = d.staff_id'
     : '';
 
 $stmt = $pdo->prepare(
-    "SELECT o.order_id, o.total_amount, o.order_status, o.order_date, o.delivery_fee,
+    "SELECT o.order_id, o.total_amount, o.order_status, o.order_date,
+            op.provider AS payment_provider, op.payment_status,
             a.address_line, a.city, a.province, a.postal_code,
             $deliverySelect
      FROM orders o
+     LEFT JOIN order_payments op ON op.order_id = o.order_id
      LEFT JOIN addresses a ON a.address_id = o.address_id
      $deliveryJoins
      WHERE o.order_id = ? AND o.user_id = ?"
@@ -99,7 +101,8 @@ if ($current_index === false) {
     $current_index = -1;
 }
 
-$showDeliverySection = $hasDeliveries || $order['order_status'] !== 'CANCELLED';
+$storePickup = ($order['payment_provider'] ?? '') === 'in_store';
+$showDeliverySection = !$storePickup && ($hasDeliveries || $order['order_status'] !== 'CANCELLED');
 $showTimeline = !in_array($initialStatus, ['FAILED', 'CANCELLED'], true);
 ?>
 
@@ -161,9 +164,11 @@ $showTimeline = !in_array($initialStatus, ['FAILED', 'CANCELLED'], true);
     <?php endif; ?>
 
     <section style="background:#faf5ee; border:1px solid #e8dac4; border-radius:1.25rem; padding:1.75rem; margin-bottom:1.5rem;">
-        <h2 style="margin:0 0 1rem;">Delivery to</h2>
+        <h2 style="margin:0 0 1rem;"><?= $storePickup ? 'Store pickup' : 'Delivery to' ?></h2>
         <p id="deliveryAddress" style="margin:0; color:#3b2218;"><?php
-            if (!empty($order['address_line'])) {
+            if ($storePickup) {
+                echo 'Pay cash at the counter when you collect your order.';
+            } elseif (!empty($order['address_line'])) {
                 echo htmlspecialchars($order['address_line']) . '<br>' .
                      htmlspecialchars($order['city'] . ', ' . $order['province'] . ' ' . $order['postal_code']);
             } else {
@@ -201,10 +206,6 @@ $showTimeline = !in_array($initialStatus, ['FAILED', 'CANCELLED'], true);
         <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
             <span>Subtotal</span>
             <span>₱<?= number_format(array_sum(array_column($items, 'subtotal')), 2) ?></span>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
-            <span>Delivery fee</span>
-            <span>₱<?= number_format((float)($order['delivery_fee'] ?? 0), 2) ?></span>
         </div>
         <div style="display:flex; justify-content:space-between; padding-top:1rem; border-top:1px solid #e8dac4; font-weight:700; font-size:1.1rem;">
             <span>Total</span>
