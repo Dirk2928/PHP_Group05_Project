@@ -167,9 +167,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             admin_staff_respond(false, 'That staff member no longer exists.', 404);
         }
 
-        $errors = admin_staff_identity_errors($_POST, $pdo, (int) $staffId);
-
         $newPassword = (string) ($_POST['new_password'] ?? '');
+        $errors = [];
+        $fieldLabels = [
+            'first_name' => 'first name',
+            'last_name' => 'last name',
+            'email' => 'email address',
+            'job_title' => 'job title',
+        ];
+        foreach ($fieldLabels as $field => $label) {
+            if (!array_key_exists($field, $_POST)) continue;
+
+            $value = trim((string) $_POST[$field]);
+            $valid = match ($field) {
+                'first_name', 'last_name' => $value !== ''
+                    && mb_strlen($value) <= 100
+                    && preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $value) === 1,
+                'email' => $value !== ''
+                    && mb_strlen($value) <= 255
+                    && filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+                'job_title' => $value !== ''
+                    && mb_strlen($value) <= 50
+                    && preg_match("/^[A-Za-z0-9À-ÿ\s'\-&\/]+$/u", $value) === 1,
+            };
+
+            if (!$valid) {
+                $errors[] = 'Please enter a valid ' . $label . '.';
+                continue;
+            }
+
+            if ($field === 'email') {
+                $duplicate = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1');
+                $duplicate->execute([$value, (int) $staffId]);
+                if ($duplicate->fetch()) $errors[] = 'That email address is already registered.';
+            }
+        }
 
         if ($newPassword !== '') {
             if (mb_strlen($newPassword) > 72) {
@@ -187,24 +219,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             admin_staff_respond(false, implode(' ', $errors), 422);
         }
 
-        $firstName = trim((string) $_POST['first_name']);
-        $lastName  = trim((string) $_POST['last_name']);
-        $email     = trim((string) $_POST['email']);
-        $jobTitle  = trim((string) $_POST['job_title']);
-        $statusRaw = (string) ($_POST['is_active'] ?? '');
-
-        if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
-            admin_staff_respond(false, 'Please choose a valid status.');
+        $sets = [];
+        $params = [];
+        $changed = [];
+        foreach (['first_name', 'last_name', 'email', 'job_title'] as $field) {
+            if (!array_key_exists($field, $_POST)) continue;
+            $value = trim((string) $_POST[$field]);
+            $sets[] = $field . ' = ?';
+            $params[] = $value;
+            $changed[$field] = $value;
         }
 
-        $sets   = ['first_name = ?', 'last_name = ?', 'email = ?', 'job_title = ?'];
-        $params = [$firstName, $lastName, $email, $jobTitle];
+        $statusRaw = isset($_POST['is_active']) ? (string) $_POST['is_active'] : null;
+        if ($statusRaw !== null && !in_array($statusRaw, ['1', '0', 'locked'], true)) {
+            admin_staff_respond(false, 'Please choose a valid status.');
+        }
 
         if ($statusRaw === 'locked') {
 
             $sets[] = 'is_locked = 1';
 
-        } else {
+        } elseif ($statusRaw !== null) {
 
             $sets[] = 'is_active = ?';
             $sets[] = 'is_locked = 0';
@@ -215,12 +250,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $params[] = (int) $staffId;
+        if (!$sets && $newPassword === '') {
+            admin_staff_respond(false, 'Change at least one staff field before saving.');
+        }
 
-        $update = $pdo->prepare(
-            "UPDATE users SET " . implode(', ', $sets) . " WHERE user_id = ? AND role = 'STAFF'"
-        );
-        $update->execute($params);
+        if ($sets) {
+            $params[] = (int) $staffId;
+
+            $update = $pdo->prepare(
+                "UPDATE users SET " . implode(', ', $sets) . " WHERE user_id = ? AND role = 'STAFF'"
+            );
+            $update->execute($params);
+        }
 
         if ($newPassword !== '') {
             $passwordUpdate = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
@@ -234,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo,
             'team',
             'Updated staff account',
-            'Updated staff account #' . (int) $staffId . ' (' . $firstName . ' ' . $lastName . ').',
+            'Updated staff account #' . (int) $staffId . ' (' . trim(($changed['first_name'] ?? '') . ' ' . ($changed['last_name'] ?? '')) . ').',
             'staff',
             (int) $staffId
         );
@@ -398,6 +439,8 @@ $staffMembers = $pdo->query(
                             data-last="<?= htmlspecialchars((string) $staff['last_name'], ENT_QUOTES, 'UTF-8') ?>"
                             data-job="<?= htmlspecialchars($staffJob, ENT_QUOTES, 'UTF-8') ?>"
                             data-status="<?= htmlspecialchars($staffStatusLabel, ENT_QUOTES, 'UTF-8') ?>"
+                            data-active="<?= (int) $staff['is_active'] ?>"
+                            data-locked="<?= (int) $staff['is_locked'] ?>"
                             data-created="<?= htmlspecialchars($staffCreatedStamp !== false ? date('M j, Y', $staffCreatedStamp) : '—', ENT_QUOTES, 'UTF-8') ?>"
                         >
                             <td class="col-check">
@@ -591,9 +634,9 @@ $staffMembers = $pdo->query(
                 '<option value="0"' + (selected ? '' : ' selected') + '>Inactive</option>';
         }
 
-        function statusOptions(current) {
-            return '<option value="1"' + (current === 'Active' ? ' selected' : '') + '>Active</option>' +
-                '<option value="0"' + (current === 'Inactive' ? ' selected' : '') + '>Inactive</option>' +
+        function statusOptions(current, active, locked) {
+            return '<option value="1"' + (locked !== '1' && active === '1' ? ' selected' : '') + '>Active</option>' +
+                '<option value="0"' + (locked !== '1' && active === '0' ? ' selected' : '') + '>Inactive</option>' +
                 '<option value="locked"' + (current === 'Locked' ? ' selected' : '') + '>Locked</option>';
         }
 
@@ -686,23 +729,23 @@ $staffMembers = $pdo->query(
                         '<input type="hidden" name="staff_id" value="' + escapeHtml(data.id) + '">' +
                         '<div class="form-field">' +
                             '<label for="staffEditFirst">First name</label>' +
-                            '<input id="staffEditFirst" name="first_name" maxlength="100" value="' + escapeHtml(data.first) + '" required>' +
+                            '<input id="staffEditFirst" name="first_name" maxlength="100" value="' + escapeHtml(data.first) + '">' +
                         '</div>' +
                         '<div class="form-field">' +
                             '<label for="staffEditLast">Last name</label>' +
-                            '<input id="staffEditLast" name="last_name" maxlength="100" value="' + escapeHtml(data.last) + '" required>' +
+                            '<input id="staffEditLast" name="last_name" maxlength="100" value="' + escapeHtml(data.last) + '">' +
                         '</div>' +
                         '<div class="form-field form-field-full">' +
                             '<label for="staffEditEmail">Email address</label>' +
-                            '<input type="email" id="staffEditEmail" name="email" maxlength="255" value="' + escapeHtml(data.email) + '" required>' +
+                            '<input type="email" id="staffEditEmail" name="email" maxlength="255" value="' + escapeHtml(data.email) + '">' +
                         '</div>' +
                         '<div class="form-field">' +
                             '<label for="staffEditJob">Job title</label>' +
-                            '<input id="staffEditJob" name="job_title" maxlength="50" value="' + escapeHtml(data.job) + '" required>' +
+                            '<input id="staffEditJob" name="job_title" maxlength="50" value="' + escapeHtml(data.job) + '">' +
                         '</div>' +
                         '<div class="form-field">' +
                             '<label for="staffEditStatus">Status</label>' +
-                            '<select id="staffEditStatus" name="is_active">' + statusOptions(data.status) + '</select>' +
+                            '<select id="staffEditStatus" name="is_active">' + statusOptions(data.status, data.active, data.locked) + '</select>' +
                         '</div>' +
                         '<div class="form-field form-field-full">' +
                             '<label for="staffEditPassword">New password</label>' +
@@ -717,6 +760,24 @@ $staffMembers = $pdo->query(
                         className: 'btn-primary',
                         onClick: function (handle) {
                             const form = handle.element.querySelector('#staffEditForm');
+
+                            Array.from(form.elements).forEach(function (field) {
+                                if (!field.name || ['csrf_token', 'action', 'staff_id'].includes(field.name) || field.disabled) return;
+                                const original = field.name === 'first_name' ? data.first
+                                    : field.name === 'last_name' ? data.last
+                                    : field.name === 'email' ? data.email
+                                    : field.name === 'job_title' ? data.job
+                                    : field.name === 'is_active' ? (data.locked === '1' ? 'locked' : data.active)
+                                    : '';
+                                if (field.name === 'new_password' ? field.value === '' : field.value === original) field.disabled = true;
+                            });
+
+                            if (!Array.from(form.elements).some(function (field) {
+                                return field.name && ['first_name', 'last_name', 'email', 'job_title', 'is_active', 'new_password'].includes(field.name) && !field.disabled;
+                            })) {
+                                setStatus('Change at least one staff field before saving.', 'error');
+                                return false;
+                            }
 
                             if (!form.reportValidity()) return false;
 
