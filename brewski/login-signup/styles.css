@@ -40,6 +40,9 @@
 .login-home-link svg {
     width: 1.35rem;
     height: 1.35rem;
+    display: block;
+    overflow: visible;
+    transform: translateX(-1px);
 }
 
 
