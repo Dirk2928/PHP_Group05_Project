@@ -285,6 +285,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     dynamicView.innerHTML = html;
 
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+
 
                     runScripts(dynamicView);
 

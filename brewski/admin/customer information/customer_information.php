@@ -264,18 +264,18 @@ $pageSize = 6;
 
     <div class="table-card">
         <div class="table-scroll">
-            <table class="data-table table-wide">
+            <table class="data-table table-wide customer-information-table">
                 <thead>
                     <tr>
                         <th class="col-check">
                             <input type="checkbox" id="selectAll" class="row-checkbox" aria-label="Select all customers on this page">
                         </th>
-                        <th>Customer No.</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Created Date</th>
-                        <th class="col-actions">Actions</th>
+                        <th><span class="table-heading-label"><i data-lucide="hash" aria-hidden="true"></i>Customer No.</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="user-round" aria-hidden="true"></i>Name</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="mail" aria-hidden="true"></i>Email</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="shield-check" aria-hidden="true"></i>Status</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="calendar-days" aria-hidden="true"></i>Created Date</span></th>
+                        <th class="col-actions"><span class="table-heading-label"><i data-lucide="ellipsis" aria-hidden="true"></i>Actions</span></th>
                     </tr>
                 </thead>
                 <tbody id="customerTableBody">
