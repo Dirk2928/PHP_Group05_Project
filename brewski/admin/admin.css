@@ -3054,17 +3054,16 @@ table td {
 }
 
 @media (min-width: 769px) {
-    .topbar,
-    .main-content {
-        transition: transform 0.24s ease, margin-left 0.24s ease, width 0.24s ease;
+    .topbar {
+        transition: transform 0.24s ease, width 0.24s ease;
     }
 
     body.sidebar-open .topbar {
         width: calc(100% - var(--sidebar-width));
         transform: translateX(var(--sidebar-width));
     }
+}
 
-    body.sidebar-open .main-content {
-        margin-left: var(--sidebar-width);
-    }
+.sidebar {
+    padding-top: 24px;
 }
