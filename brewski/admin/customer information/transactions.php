@@ -165,7 +165,7 @@ function admin_transaction_badge(string $status): string
 }
 ?>
 
-<div class="page-container">
+<div class="page-container customer-management-page">
 
     <div class="page-header">
         <h1 class="page-title">Transactions</h1>

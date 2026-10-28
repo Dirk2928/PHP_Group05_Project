@@ -3146,3 +3146,137 @@ body * {
 .system-activity-page .activity-action {
     font-weight: 400;
 }
+
+.system-activity-page .system-activity-filters {
+    border-color: rgba(30, 17, 10, .14);
+    background: #fffdf9;
+    box-shadow: 0 4px 14px rgba(30, 17, 10, .04);
+}
+
+.system-activity-page .system-activity-filters .toolbar-input,
+.system-activity-page .system-activity-filters .toolbar-select {
+    border-color: rgba(30, 17, 10, .16);
+    background-color: #fffdf9;
+}
+
+.system-activity-page .system-activity-filters .toolbar-input:focus,
+.system-activity-page .system-activity-filters .toolbar-select:focus {
+    border-color: #71492a;
+    box-shadow: 0 0 0 3px rgba(113, 73, 42, .13);
+}
+
+.system-activity-page .system-activity-table thead th {
+    background: #f5ebdf !important;
+    border-bottom-color: rgba(30, 17, 10, .18) !important;
+    color: #3c3027 !important;
+}
+
+.system-activity-page .system-activity-table tbody tr:hover {
+    background: #faf6ee;
+}
+
+.system-activity-page .activity-category {
+    display: table;
+    margin-top: 5px;
+    padding: 3px 7px;
+    border: 1px solid rgba(113, 73, 42, .14);
+    border-radius: 999px;
+    background: #f5ebdf;
+    color: #71492a;
+    font-size: 10px;
+    line-height: 1.2;
+}
+
+.customer-management-page,
+.staff-management-page {
+    --management-brown: #71492a;
+    --management-espresso: #1e110a;
+    --management-line: rgba(30, 17, 10, .14);
+    --management-surface: #fffdf9;
+    --management-warm: #f5ebdf;
+}
+
+.customer-management-page .toolbar,
+.staff-management-page .toolbar {
+    border-color: var(--management-line);
+    background: var(--management-surface);
+    box-shadow: 0 4px 14px rgba(30, 17, 10, .04);
+}
+
+.customer-management-page .toolbar-input,
+.customer-management-page .toolbar-select,
+.staff-management-page .toolbar-input,
+.staff-management-page .toolbar-select {
+    border-color: var(--management-line);
+    background-color: var(--management-surface);
+}
+
+.customer-management-page .toolbar-input:focus,
+.customer-management-page .toolbar-select:focus,
+.staff-management-page .toolbar-input:focus,
+.staff-management-page .toolbar-select:focus {
+    border-color: var(--management-brown) !important;
+    box-shadow: 0 0 0 3px rgba(113, 73, 42, .13) !important;
+}
+
+.customer-management-page .search-icon,
+.staff-management-page .search-icon {
+    color: var(--management-brown);
+}
+
+.customer-management-page .table-card,
+.staff-management-page .table-card {
+    border: 1px solid var(--management-line) !important;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(30, 17, 10, .05) !important;
+}
+
+.customer-management-page .data-table thead th,
+.staff-management-page .data-table thead th {
+    background: var(--management-warm) !important;
+    border-bottom-color: rgba(30, 17, 10, .18) !important;
+    color: #3c3027 !important;
+}
+
+.customer-management-page .data-table tbody tr:hover,
+.staff-management-page .data-table tbody tr:hover {
+    background: #faf6ee;
+}
+
+.customer-management-page .table-heading-label svg,
+.staff-management-page .table-heading-label svg {
+    color: var(--management-brown);
+}
+
+.customer-management-page .btn-view,
+.staff-management-page .btn-view {
+    border-color: #d9b892;
+    background: var(--management-warm);
+    color: #5d3b24;
+}
+
+.customer-management-page .btn-view:hover,
+.staff-management-page .btn-view:hover {
+    border-color: #c9a47d;
+    background: #f1e2ca;
+}
+
+.customer-management-page .btn-edit,
+.staff-management-page .btn-edit {
+    border-color: var(--management-line);
+    background: var(--management-surface);
+    color: var(--management-espresso);
+}
+
+.customer-management-page .btn-edit:hover,
+.staff-management-page .btn-edit:hover {
+    border-color: rgba(113, 73, 42, .3);
+    background: var(--management-warm);
+}
+
+.customer-management-page .bulk-actions-bar,
+.staff-management-page .bulk-actions-bar {
+    border-color: #d9b892;
+    background: var(--management-warm);
+    color: #3c3027;
+}

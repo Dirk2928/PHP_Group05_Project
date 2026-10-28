@@ -225,7 +225,7 @@ $customers = $pdo->query(
 $pageSize = 6;
 ?>
 
-<div class="page-container">
+<div class="page-container customer-management-page">
 
     <div class="page-header">
         <h1 class="page-title">Customer Information</h1>

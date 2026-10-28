@@ -356,7 +356,7 @@ $staffMembers = $pdo->query(
 )->fetchAll();
 ?>
 
-<div class="page-container">
+<div class="page-container staff-management-page">
 
     <div class="page-header">
         <h1 class="page-title">Staff Information</h1>

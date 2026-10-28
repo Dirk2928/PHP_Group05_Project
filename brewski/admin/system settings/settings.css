@@ -2,10 +2,10 @@
     width: 100%;
     max-width: 2200px;
     padding: 28px 32px;
-    background-color: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    background: #fffdf9;
+    border: 1px solid rgba(30, 17, 10, .14);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(30, 17, 10, .06);
     gap: 24px;
 }
 
@@ -15,12 +15,26 @@
 
 .settings-card .form-field label {
     font-weight: 600;
+    color: #1e110a;
 }
 
 .settings-card .form-field input {
     height: 48px;
     padding: 0 16px;
     font-size: 15px;
+    border-color: rgba(30, 17, 10, .18);
+    background-color: #fffdf9;
+    transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+.settings-card .form-field input:hover {
+    border-color: #71492a;
+}
+
+.settings-card .form-field input:focus {
+    border-color: #71492a;
+    box-shadow: 0 0 0 3px rgba(113, 73, 42, .14);
+    background-color: #fff;
 }
 
 .form-hint {
@@ -51,10 +65,18 @@
 }
 
 .settings-status.is-saved {
-    color: var(--accent-strong);
+    padding: 9px 12px;
+    border: 1px solid rgba(47, 107, 58, .2);
+    border-radius: 8px;
+    background: #eef6ed;
+    color: #2f6b3a;
 }
 
 .settings-status.is-error {
+    padding: 9px 12px;
+    border: 1px solid rgba(163, 42, 31, .2);
+    border-radius: 8px;
+    background: #fff0ed;
     color: #b91c1c;
 }
 
