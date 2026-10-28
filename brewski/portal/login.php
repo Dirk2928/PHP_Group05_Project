@@ -21,7 +21,6 @@ $conn = brewski_db_connect();
 
 $error = '';
 $email_value = '';
-$loginRedirect = '';
 $foreignSession = false;
 
 if (isset($_GET['msg']) && $_GET['msg'] === 'otp_cancelled') {
@@ -73,10 +72,6 @@ if (!$foreignSession && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result['status'] === BREWSKI_AUTH_TOTP || $result['status'] === BREWSKI_AUTH_ENROLL) {
             header('Location: ' . $result['redirect']);
             exit;
-        }
-
-        if ($result['status'] === BREWSKI_AUTH_WRONG_PORTAL) {
-            $loginRedirect = $result['redirect'];
         }
 
         $error = $result['message'];
@@ -207,21 +202,6 @@ $escape = static function (string $value): string {
 
                     </p>
 
-                    <?php if ($loginRedirect !== ''): ?>
-
-                        <p
-                            class="auth__switch"
-                            style="margin-top: -0.5rem;"
-                        >
-
-                            <a href="<?php echo $escape($loginRedirect); ?>">
-                                Go to the customer sign-in
-                            </a>
-
-                        </p>
-
-                    <?php endif; ?>
-
                 <?php else: ?>
 
                     <p
@@ -324,6 +304,12 @@ $escape = static function (string $value): string {
                     </button>
 
                 </form>
+
+                <p class="auth__switch" style="margin-top: 0.75rem;">
+                    <a href="<?php echo $escape(BREWSKI_BASE_URL . '/login-signup/login.php'); ?>">
+                        Back to customer
+                    </a>
+                </p>
 
             <?php endif; ?>
 
