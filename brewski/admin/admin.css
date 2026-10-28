@@ -3107,3 +3107,27 @@ body * {
 .nav-parent[aria-expanded="true"]:hover {
     background: rgba(241, 226, 202, 0.1);
 }
+
+/* Use espresso as a restrained accent across each admin page. */
+.page-header {
+    padding-left: 12px;
+    border-left: 3px solid rgba(30, 17, 10, 0.2);
+}
+
+.toolbar {
+    border-color: rgba(30, 17, 10, 0.2);
+}
+
+.dashboard-toolbar {
+    border-color: rgba(30, 17, 10, 0.2);
+}
+
+.nav-item.active .nav-icon {
+    color: #1e110a;
+}
+
+.nav-item:hover .nav-icon,
+.nav-parent[aria-expanded="true"] .nav-icon {
+    color: var(--cream);
+    filter: drop-shadow(0 1px 0 rgba(30, 17, 10, 0.2));
+}
