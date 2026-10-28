@@ -10,9 +10,9 @@
     --profile-danger: #a32a1f;
     --profile-success: #2f6b3a;
     width: 100%;
-    max-width: 1420px;
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem 4rem;
+    max-width: none;
+    margin: 0;
+    padding: 0;
     color: var(--profile-espresso);
 }
 .profile-page, .profile-page *, .profile-page *::before, .profile-page *::after { box-sizing: border-box; }
@@ -59,4 +59,4 @@
 .profile-page .btn-secondary:hover { border-color: var(--profile-latte); background: var(--profile-foam); }
 .profile-page [hidden] { display: none !important; }
 @media (max-width: 900px) { .profile-layout { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 720px) { .profile-page { padding: 1.75rem 1rem 3rem; } .profile-page .page-title { font-size: 1.75rem; } .profile-card { padding: 1.25rem; } }
+@media (max-width: 720px) { .profile-page { padding: 0; } .profile-page .page-title { font-size: 1.75rem; } .profile-card { padding: 1.25rem; } }
