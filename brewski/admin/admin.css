@@ -1119,7 +1119,7 @@ body.sidebar-open::after {
     min-width: 34px;
     height: 34px;
     padding: 0 10px;
-    background-color: transparent;
+    background-color: var(--surface);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
     color: var(--text-body);
@@ -3088,6 +3088,20 @@ body.sidebar-open .sidebar-toggle {
     top: 16px;
     left: -58px;
     z-index: 61;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.sidebar-open .sidebar-toggle:hover,
+body.sidebar-open .sidebar-toggle:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.sidebar-open .sidebar-toggle span {
+    background: var(--latte);
 }
 
 body,
