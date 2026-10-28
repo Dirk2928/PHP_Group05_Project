@@ -3067,3 +3067,19 @@ table td {
 .sidebar {
     padding-top: 24px;
 }
+
+body.sidebar-open .sidebar-toggle {
+    position: absolute;
+    top: 16px;
+    left: -58px;
+    z-index: 61;
+}
+
+body,
+body * {
+    font-family: "Century Gothic", CenturyGothic, sans-serif !important;
+}
+
+.sidebar-brand {
+    font-family: "Fredoka", "Century Gothic", sans-serif !important;
+}
