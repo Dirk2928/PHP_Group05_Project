@@ -3129,3 +3129,20 @@ body * {
     left: 14px;
     z-index: 1;
 }
+
+.system-activity-filters #activityRefresh,
+.system-activity-filters #activityReset {
+    background: #1e110a !important;
+    border-color: #1e110a !important;
+    color: var(--cream) !important;
+}
+
+.system-activity-filters #activityRefresh:hover,
+.system-activity-filters #activityReset:hover {
+    background: var(--dark-mocha) !important;
+    border-color: var(--dark-mocha) !important;
+}
+
+.system-activity-page .activity-action {
+    font-weight: 400;
+}

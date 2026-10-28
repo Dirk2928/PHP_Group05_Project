@@ -13,6 +13,10 @@
     gap: 8px;
 }
 
+.settings-card .form-field label {
+    font-weight: 600;
+}
+
 .settings-card .form-field input {
     height: 48px;
     padding: 0 16px;
