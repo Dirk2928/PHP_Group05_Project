@@ -307,6 +307,36 @@ body {
     color: var(--text);
 }
 
+.staff-welcome {
+    margin-bottom: 24px;
+    padding: 0 0 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+.staff-welcome__eyebrow {
+    margin: 0 0 6px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .13em;
+}
+
+.main-content .staff-welcome__title {
+    margin: 0 0 8px;
+    font-family: var(--font-brand);
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -.025em;
+}
+
+.staff-welcome__subtitle {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .page-header .subtitle {
     margin-top: 0;
 }

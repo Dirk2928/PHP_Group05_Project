@@ -145,14 +145,17 @@ html, body {
 }
 
 .greeting__text h1 {
-    font-size: 1.8rem;
-    margin: 0 0 0.5rem 0;
-    font-weight: 700;
+    font-family: var(--font-brand, "Fredoka", "Century Gothic", sans-serif);
+    font-size: clamp(1.75rem, 3vw, 2.35rem);
+    margin: 0 0 0.55rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
 }
 
 .greeting__text p {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: var(--dark-mocha);
     line-height: 1.5;
 }

@@ -166,13 +166,17 @@
 .dashboard-heading h1 {
     font-family: var(--font-brand);
     font-size: var(--type-page-title);
-    line-height: 1.2;
+    line-height: 1.15;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin: 0 0 8px;
 }
 
 .dashboard-subtitle {
-    margin-bottom: 0;
+    margin: 0;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .section-tag,

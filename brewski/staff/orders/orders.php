@@ -132,11 +132,15 @@ $csrf_token = $_SESSION['csrf_token'];
         <section id="ordersView">
 
             <div class="page-container staff-orders">
+                <div class="staff-welcome">
+                    <p class="staff-welcome__eyebrow">YOUR WORKSPACE</p>
+                    <h1 class="staff-welcome__title">Welcome, <?= $display_name ?></h1>
+                    <p class="staff-welcome__subtitle">Review customer orders and keep delivery status up to date.</p>
+                </div>
                 <div class="page-header">
-                    <h1 class="page-title">Orders</h1>
+                    <h2 class="page-title">Orders</h2>
                     <p class="subtitle">
-                        <?php if ($is_signed_in): ?>Signed in as <?= $display_name ?>. <?php endif; ?>
-                        Review customer orders and keep delivery status up to date.
+                        Manage active orders and delivery progress.
                     </p>
                 </div>
 
