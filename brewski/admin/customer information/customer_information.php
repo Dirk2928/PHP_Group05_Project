@@ -65,41 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update') {
 
         $customerId = filter_var($_POST['customer_id'] ?? null, FILTER_VALIDATE_INT);
-        $firstName  = trim((string) ($_POST['first_name'] ?? ''));
-        $lastName   = trim((string) ($_POST['last_name'] ?? ''));
-        $email      = trim((string) ($_POST['email'] ?? ''));
-        $statusRaw  = (string) ($_POST['is_active'] ?? '');
-
         if ($customerId === false || $customerId <= 0) {
             customer_information_respond(false, 'Please choose a customer to update.');
-        }
-
-        if (
-            $firstName === ''
-            || mb_strlen($firstName) > 100
-            || !preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $firstName)
-        ) {
-            customer_information_respond(false, 'Please enter a valid first name.');
-        }
-
-        if (
-            $lastName === ''
-            || mb_strlen($lastName) > 100
-            || !preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $lastName)
-        ) {
-            customer_information_respond(false, 'Please enter a valid last name.');
-        }
-
-        if (
-            $email === ''
-            || mb_strlen($email) > 255
-            || !filter_var($email, FILTER_VALIDATE_EMAIL)
-        ) {
-            customer_information_respond(false, 'Please enter a valid email address.');
-        }
-
-        if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
-            customer_information_respond(false, 'Please choose a valid status.');
         }
 
         $target = $pdo->prepare(
@@ -111,31 +78,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             customer_information_respond(false, 'That customer no longer exists.', 404);
         }
 
-        $duplicate = $pdo->prepare(
-            'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
-        );
-        $duplicate->execute([$email, (int) $customerId]);
+        $fields = [
+            'first_name' => [
+                'label' => 'first name',
+                'validate' => static fn(string $value): bool => $value !== ''
+                    && mb_strlen($value) <= 100
+                    && preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $value) === 1,
+            ],
+            'last_name' => [
+                'label' => 'last name',
+                'validate' => static fn(string $value): bool => $value !== ''
+                    && mb_strlen($value) <= 100
+                    && preg_match("/^[A-Za-zÀ-ÿ\s'\-]+$/u", $value) === 1,
+            ],
+            'email' => [
+                'label' => 'email address',
+                'validate' => static fn(string $value): bool => $value !== ''
+                    && mb_strlen($value) <= 255
+                    && filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+            ],
+        ];
+        $sets = [];
+        $params = [];
 
-        if ($duplicate->fetch()) {
-            customer_information_respond(false, 'That email address is already used by another account.');
+        foreach ($fields as $field => $config) {
+            if (!array_key_exists($field, $_POST)) {
+                continue;
+            }
+
+            $value = trim((string) $_POST[$field]);
+            if (!$config['validate']($value)) {
+                customer_information_respond(false, 'Please enter a valid ' . $config['label'] . '.');
+            }
+
+            if ($field === 'email') {
+                $duplicate = $pdo->prepare(
+                    'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
+                );
+                $duplicate->execute([$value, (int) $customerId]);
+                if ($duplicate->fetch()) {
+                    customer_information_respond(false, 'That email address is already used by another account.');
+                }
+            }
+
+            $sets[] = $field . ' = ?';
+            $params[] = $value;
         }
 
-        $sets   = ['first_name = ?', 'last_name = ?', 'email = ?'];
-        $params = [$firstName, $lastName, $email];
-
-        if ($statusRaw === 'locked') {
-
-            $sets[] = 'is_locked = 1';
-
-        } else {
-
-            $sets[] = 'is_active = ?';
-            $sets[] = 'is_locked = 0';
-            $params[] = $statusRaw === '1' ? 1 : 0;
-
-            if ($statusRaw === '1') {
-                $sets[] = 'failed_login_attempts = 0';
+        if (array_key_exists('is_active', $_POST)) {
+            $statusRaw = (string) $_POST['is_active'];
+            if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
+                customer_information_respond(false, 'Please choose a valid status.');
             }
+
+            if ($statusRaw === 'locked') {
+                $sets[] = 'is_locked = 1';
+            } else {
+                $sets[] = 'is_active = ?';
+                $sets[] = 'is_locked = 0';
+                $params[] = $statusRaw === '1' ? 1 : 0;
+                if ($statusRaw === '1') {
+                    $sets[] = 'failed_login_attempts = 0';
+                }
+            }
+        }
+
+        if (!$sets) {
+            customer_information_respond(false, 'Change at least one customer field before saving.');
         }
 
         $params[] = (int) $customerId;
@@ -144,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = ?'
         );
         $update->execute($params);
+
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
@@ -292,6 +302,8 @@ $pageSize = 6;
                             data-first="<?= htmlspecialchars((string) $customer['first_name'], ENT_QUOTES, 'UTF-8') ?>"
                             data-last="<?= htmlspecialchars((string) $customer['last_name'], ENT_QUOTES, 'UTF-8') ?>"
                             data-status="<?= $customerStatus ?>"
+                            data-active="<?= (int) $customer['is_active'] ?>"
+                            data-locked="<?= (int) $customer['is_locked'] ?>"
                             data-created="<?= htmlspecialchars($customerCreated, ENT_QUOTES, 'UTF-8') ?>"
                         >
                             <td class="col-check">
@@ -559,21 +571,21 @@ $pageSize = 6;
                         '<input type="hidden" name="customer_id" value="' + escapeHtml(data.id) + '">' +
                         '<div class="form-field">' +
                             '<label for="customerEditFirst">First name</label>' +
-                            '<input type="text" id="customerEditFirst" name="first_name" value="' + escapeHtml(data.first) + '" maxlength="100" required>' +
+                        '<input type="text" id="customerEditFirst" name="first_name" value="' + escapeHtml(data.first) + '" maxlength="100">' +
                         '</div>' +
                         '<div class="form-field">' +
                             '<label for="customerEditLast">Last name</label>' +
-                            '<input type="text" id="customerEditLast" name="last_name" value="' + escapeHtml(data.last) + '" maxlength="100" required>' +
+                        '<input type="text" id="customerEditLast" name="last_name" value="' + escapeHtml(data.last) + '" maxlength="100">' +
                         '</div>' +
                         '<div class="form-field form-field-full">' +
                             '<label for="customerEditEmail">Email address</label>' +
-                            '<input type="email" id="customerEditEmail" name="email" value="' + escapeHtml(data.email) + '" maxlength="255" required>' +
+                            '<input type="email" id="customerEditEmail" name="email" value="' + escapeHtml(data.email) + '" maxlength="255">' +
                         '</div>' +
                         '<div class="form-field form-field-full">' +
                             '<label for="customerEditStatus">Status</label>' +
                             '<select id="customerEditStatus" name="is_active">' +
-                                '<option value="1"' + (data.status === 'Active' ? ' selected' : '') + '>Active</option>' +
-                                '<option value="0"' + (data.status === 'Inactive' ? ' selected' : '') + '>Inactive</option>' +
+                                '<option value="1"' + (data.locked !== '1' && data.active === '1' ? ' selected' : '') + '>Active</option>' +
+                                '<option value="0"' + (data.locked !== '1' && data.active === '0' ? ' selected' : '') + '>Inactive</option>' +
                                 '<option value="locked"' + (data.status === 'Locked' ? ' selected' : '') + '>Locked</option>' +
                             '</select>' +
                         '</div>' +
@@ -585,6 +597,24 @@ $pageSize = 6;
                         className: 'btn-primary',
                         onClick: function (handle) {
                             const form = handle.element.querySelector('#customerEditForm');
+
+                            Array.from(form.elements).forEach(function (field) {
+                                if (field.name && !['csrf_token', 'action', 'customer_id'].includes(field.name) && !field.disabled) {
+                                    const original = field.name === 'first_name' ? data.first
+                                        : field.name === 'last_name' ? data.last
+                                        : field.name === 'email' ? data.email
+                                        : field.name === 'is_active' ? (data.locked === '1' ? 'locked' : data.active)
+                                        : '';
+                                    if (field.value === original) field.disabled = true;
+                                }
+                            });
+
+                            if (!Array.from(form.elements).some(function (field) {
+                                return field.name && ['first_name', 'last_name', 'email', 'is_active'].includes(field.name) && !field.disabled;
+                            })) {
+                                setStatus('Change at least one customer field before saving.', 'error');
+                                return false;
+                            }
 
                             if (!form.reportValidity()) return false;
 
