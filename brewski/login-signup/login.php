@@ -136,6 +136,10 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
 <body>
 
+<a class="login-home-link" href="<?= htmlspecialchars(BREWSKI_BASE_URL . '/Start-screen/start.php', ENT_QUOTES, 'UTF-8') ?>" aria-label="Back to home" title="Back to home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/><path d="M9 12h12"/></svg>
+</a>
+
 <main class="auth auth--centered">
 
     <section class="auth__panel">

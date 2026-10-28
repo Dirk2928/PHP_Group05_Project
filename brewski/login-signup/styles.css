@@ -9,6 +9,39 @@
     --font-body:  "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 }
 
+.login-home-link {
+    position: fixed;
+    z-index: 20;
+    left: max(1.25rem, env(safe-area-inset-left));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    place-items: center;
+    border: 1px solid rgb(241 226 202 / 30%);
+    border-radius: 50%;
+    background: rgb(113 73 42 / 72%);
+    color: var(--cream);
+    text-decoration: none;
+    box-shadow: 0 .5rem 1.2rem rgb(0 0 0 / 22%);
+    transition: background .2s ease, transform .2s ease;
+}
+
+.login-home-link:hover {
+    background: rgb(113 73 42 / 92%);
+    transform: translateX(-2px);
+}
+
+.login-home-link:focus-visible {
+    outline: 3px solid var(--latte);
+    outline-offset: 3px;
+}
+
+.login-home-link svg {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
 
 *, *::before, *::after { box-sizing: border-box; }
 
