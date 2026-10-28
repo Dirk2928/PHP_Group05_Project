@@ -267,7 +267,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (viewIdentifier.includes('.php') || viewIdentifier.startsWith('../')) {
 
 
-            dynamicView.innerHTML = '<div style="padding: 20px; text-align: center;"><p>Loading...</p></div>';
+            dynamicView.innerHTML = '<div class="admin-loading" role="status" aria-live="polite"><i data-lucide="coffee" aria-hidden="true"></i><span>Loading...</span></div>';
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
 
 
             homeView.classList.add('hidden');

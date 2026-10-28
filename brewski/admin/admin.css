@@ -672,6 +672,31 @@ body.sidebar-open::after {
     animation: fadeIn 0.2s ease-in;
 }
 
+.admin-loading {
+    display: flex;
+    min-height: 220px;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.admin-loading svg {
+    width: 24px;
+    height: 24px;
+    color: var(--mocha);
+    animation: admin-loading-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes admin-loading-pulse {
+    50% { opacity: .5; transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-loading svg { animation: none; }
+}
+
 .page-header {
     display: flex;
     flex-direction: column;
@@ -3217,6 +3242,11 @@ body * {
     --management-line: rgba(30, 17, 10, .14);
     --management-surface: #fffdf9;
     --management-warm: #f5ebdf;
+}
+
+.customer-management-page .table-status,
+.staff-management-page .table-status {
+    margin: 0;
 }
 
 .customer-management-page .toolbar,
