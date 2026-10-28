@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function addButton(label, disabled, active, onClick) {
             var button = document.createElement('button');
             button.type = 'button';
-            button.className = 'page-link' + (active ? ' active' : '');
+            button.className = 'page-link' + (label === 'Previous' || label === 'Next' ? ' pagination-control' : '') + (active ? ' active' : '');
             button.textContent = label;
             button.disabled = disabled;
             if (active) {

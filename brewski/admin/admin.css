@@ -1119,8 +1119,8 @@ body.sidebar-open::after {
     min-width: 34px;
     height: 34px;
     padding: 0 10px;
-    background-color: var(--surface);
-    border: 1px solid var(--line-strong);
+    background-color: transparent;
+    border: 1px solid transparent;
     border-radius: var(--radius-sm);
     color: var(--text-body);
     font-family: inherit;
@@ -1132,7 +1132,18 @@ body.sidebar-open::after {
 
 .page-link:hover:not(:disabled) {
     background-color: var(--surface-muted);
-    border-color: var(--text-faint);
+    border-color: transparent;
+}
+
+.page-link.pagination-control {
+    background-color: var(--surface);
+    border-color: var(--accent-line);
+    color: var(--accent-strong);
+}
+
+.page-link.pagination-control:hover:not(:disabled) {
+    background-color: var(--surface-muted);
+    border-color: var(--accent);
 }
 
 .page-link:focus-visible {
@@ -1145,6 +1156,10 @@ body.sidebar-open::after {
     background-color: var(--surface-muted);
     border-color: var(--line);
     cursor: not-allowed;
+}
+
+.page-link.pagination-control:disabled {
+    border-color: var(--accent-line);
 }
 
 .page-link.active {
@@ -3164,12 +3179,6 @@ body * {
 .system-activity-page .system-activity-filters .toolbar-select:focus {
     border-color: #71492a;
     box-shadow: 0 0 0 3px rgba(113, 73, 42, .13);
-}
-
-.system-activity-page .system-activity-table thead th {
-    background: #f5ebdf !important;
-    border-bottom-color: rgba(30, 17, 10, .18) !important;
-    color: #3c3027 !important;
 }
 
 .system-activity-page .system-activity-table tbody tr:hover {

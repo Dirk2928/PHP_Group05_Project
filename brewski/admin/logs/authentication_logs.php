@@ -131,7 +131,7 @@ $pageSize = 5;
         function pageButton(label, disabled, active, handler) {
             const item = document.createElement('button');
             item.type = 'button';
-            item.className = 'page-link' + (active ? ' active' : '');
+            item.className = 'page-link' + (label === 'Previous' || label === 'Next' ? ' pagination-control' : '') + (active ? ' active' : '');
             item.textContent = label;
             item.disabled = disabled;
             item.addEventListener('click', handler);

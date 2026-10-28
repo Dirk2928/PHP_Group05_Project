@@ -473,7 +473,7 @@ $pageSize = 6;
         function pageButton(label, disabled, isActive, onClick) {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'page-link' + (isActive ? ' active' : '');
+            button.className = 'page-link' + (label === 'Previous' || label === 'Next' ? ' pagination-control' : '') + (isActive ? ' active' : '');
             button.textContent = label;
             button.disabled = disabled;
             if (isActive) button.setAttribute('aria-current', 'page');

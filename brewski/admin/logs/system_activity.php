@@ -187,7 +187,7 @@ function initializeSystemActivity() {
     function addPageButton(label, disabled, active, handler) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'page-link' + (active ? ' active' : '');
+        button.className = 'page-link' + (label === 'Previous' || label === 'Next' ? ' pagination-control' : '') + (active ? ' active' : '');
         button.textContent = label;
         button.disabled = disabled;
         button.addEventListener('click', handler);
