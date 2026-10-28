@@ -401,13 +401,13 @@ $staffMembers = $pdo->query(
                 <thead>
                     <tr>
                         <th class="col-check"><input type="checkbox" id="staffSelectAll" class="row-checkbox" aria-label="Select all staff"></th>
-                        <th>Staff No.</th>
-                        <th>Name</th>
-                        <th>Job Title</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Created Date</th>
-                        <th class="col-actions">Actions</th>
+                        <th><span class="table-heading-label"><i data-lucide="hash" aria-hidden="true"></i>Staff No.</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="user-round" aria-hidden="true"></i>Name</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="briefcase-business" aria-hidden="true"></i>Job Title</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="mail" aria-hidden="true"></i>Email</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="shield-check" aria-hidden="true"></i>Status</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="calendar-days" aria-hidden="true"></i>Created Date</span></th>
+                        <th class="col-actions"><span class="table-heading-label"><i data-lucide="ellipsis" aria-hidden="true"></i>Actions</span></th>
                     </tr>
                 </thead>
                 <tbody id="staffTableBody">

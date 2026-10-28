@@ -3108,12 +3108,6 @@ body * {
     background: rgba(241, 226, 202, 0.1);
 }
 
-.customer-information-table thead th {
-    background: #1e110a !important;
-    color: var(--cream) !important;
-    border-bottom-color: rgba(241, 226, 202, 0.24) !important;
-}
-
 .table-heading-label {
     display: inline-flex;
     align-items: center;
@@ -3125,4 +3119,13 @@ body * {
     height: 15px;
     flex: 0 0 15px;
     stroke-width: 1.8;
+}
+
+.search-field .toolbar-input {
+    padding-left: 42px !important;
+}
+
+.search-field .search-icon {
+    left: 14px;
+    z-index: 1;
 }

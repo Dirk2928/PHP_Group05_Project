@@ -202,13 +202,13 @@ function admin_transaction_badge(string $status): string
             <table class="data-table table-wide">
                 <thead>
                     <tr>
-                        <th>Date / Time</th>
-                        <th>Customer Name</th>
-                        <th>Items</th>
-                        <th>Status</th>
-                        <th>Total</th>
-                        <th>Staff</th>
-                        <th class="col-actions">Actions</th>
+                        <th><span class="table-heading-label"><i data-lucide="calendar-clock" aria-hidden="true"></i>Date / Time</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="user-round" aria-hidden="true"></i>Customer Name</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="package" aria-hidden="true"></i>Items</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="circle-check" aria-hidden="true"></i>Status</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="banknote" aria-hidden="true"></i>Total</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="user-round-cog" aria-hidden="true"></i>Staff</span></th>
+                        <th class="col-actions"><span class="table-heading-label"><i data-lucide="ellipsis" aria-hidden="true"></i>Actions</span></th>
                     </tr>
                 </thead>
                 <tbody id="txnTableBody">

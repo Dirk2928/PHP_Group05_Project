@@ -96,11 +96,11 @@ $categoryLabels = [
             <table class="data-table system-activity-table">
                 <thead>
                     <tr>
-                        <th>Date / time</th>
-                        <th>Person</th>
-                        <th>Role</th>
-                        <th>Activity</th>
-                        <th>Details</th>
+                        <th><span class="table-heading-label"><i data-lucide="calendar-clock" aria-hidden="true"></i>Date / time</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="user-round" aria-hidden="true"></i>Person</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="shield" aria-hidden="true"></i>Role</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="activity" aria-hidden="true"></i>Activity</span></th>
+                        <th><span class="table-heading-label"><i data-lucide="file-text" aria-hidden="true"></i>Details</span></th>
                     </tr>
                 </thead>
                 <tbody id="activityTableBody">
