@@ -113,7 +113,7 @@ require __DIR__ . '/../partials/header.php';
 
 <script>
     try {
-        localStorage.removeItem('brewski_cart');
+        sessionStorage.removeItem('brewski_cart');
     } catch (error) {
         console.error('Order placed, but the browser cart could not be cleared:', error);
     }

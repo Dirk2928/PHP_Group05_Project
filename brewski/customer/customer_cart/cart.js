@@ -49,7 +49,7 @@
 
     function load() {
         try {
-            var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            var data = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
             return Array.isArray(data) ? mergeDuplicates(data) : [];
         } catch (error) {
             return [];
@@ -58,7 +58,7 @@
 
     function persist(items) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
         } catch (error) {
             console.warn('Could not save cart:', error);
         }
@@ -560,34 +560,18 @@
             event.stopPropagation();
 
             var checkoutLink = event.target.closest('.cart-checkout');
-            if (!checkoutLink || !syncEnabled || syncEnabled.content !== '1') return;
-
-            event.preventDefault();
-            checkoutLink.setAttribute('aria-disabled', 'true');
-            checkoutLink.textContent = 'Saving your order...';
-            syncWithDatabase(load()).then(function () {
-                var checkoutDestination = new URL(checkoutLink.href);
-                checkoutDestination.searchParams.set('cart_synced', '1');
-                window.location.assign(checkoutDestination.href);
-            }).catch(function (error) {
-
-                if (error && error.status === 401) {
-                    var loginMeta = document.querySelector('meta[name="login-url"]');
-                    window.location.assign(loginMeta ? loginMeta.content : '../../login-signup/login.php');
-                    return;
-                }
-                console.error('Could not sync cart with checkout:', error);
-                window.alert(error.message);
-                checkoutLink.removeAttribute('aria-disabled');
-                checkoutLink.textContent = 'Proceed to checkout';
-            });
+            if (!checkoutLink) return;
+            if (!load().length) {
+                event.preventDefault();
+                return;
+            }
         });
     }
 
     document.querySelectorAll('[data-cart-logout]').forEach(function (link) {
         link.addEventListener('click', function () {
             try {
-                localStorage.removeItem(STORAGE_KEY);
+                sessionStorage.removeItem(STORAGE_KEY);
             } catch (error) {
                 console.warn('Could not clear cart from browser storage:', error);
             }

@@ -10,7 +10,7 @@
 
     function load() {
         try {
-            const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            const data = JSON.parse(sessionStorage.getItem(STORAGE_KEY));
             return Array.isArray(data) ? data : [];
         } catch (error) {
             return [];
@@ -19,7 +19,7 @@
 
     function save(items) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
         } catch (error) {}
     }
 

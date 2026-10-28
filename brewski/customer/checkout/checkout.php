@@ -414,7 +414,8 @@ require __DIR__ . '/../partials/header.php';
 <script>
 (function () {
     var params = new URLSearchParams(window.location.search);
-    if (params.get('cart_synced') === '1') {
+    var syncedThisSession = sessionStorage.getItem('brewski_checkout_sync_complete') === '1';
+    if (params.get('cart_synced') === '1' && syncedThisSession) {
         return;
     }
 
@@ -429,18 +430,20 @@ require __DIR__ . '/../partials/header.php';
 
     var items;
     try {
-        items = JSON.parse(localStorage.getItem('brewski_cart') || '[]');
+        items = JSON.parse(sessionStorage.getItem('brewski_cart') || '[]');
     } catch (error) {
         console.error('Could not read the browser cart on checkout:', error);
         return;
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items)) {
         return;
     }
 
-    status.hidden = false;
-    status.textContent = 'Updating your cart before checkout...';
+    if (items.length > 0) {
+        status.hidden = false;
+        status.textContent = 'Updating your cart before checkout...';
+    }
 
     window.brewskiCheckoutCartSync = fetch(syncUrl.content, {
         method: 'POST',
@@ -456,12 +459,17 @@ require __DIR__ . '/../partials/header.php';
             }
         });
     }).then(function () {
+        sessionStorage.setItem('brewski_checkout_sync_complete', '1');
         params.set('cart_synced', '1');
         var syncedUrl = new URL(window.location.href);
         syncedUrl.pathname = syncedUrl.pathname.replace(/^\/{2,}/, '/');
         syncedUrl.search = params.toString();
-        window.history.replaceState(null, '', syncedUrl.href);
+        if (items.length === 0) {
+            window.location.replace(syncedUrl.href);
+            return;
+        }
         status.hidden = true;
+        window.location.replace(syncedUrl.href);
     }).catch(function (error) {
         console.error('Could not sync the cart on checkout:', error);
         status.style.background = '#f8e3e0';
