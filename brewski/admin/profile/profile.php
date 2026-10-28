@@ -246,7 +246,7 @@ $escape = static function (string $value): string {
                         <img class="profile-avatar__image" data-profile-avatar-image src="<?= $escape($avatarUrl) ?>" alt="Profile picture"<?= $avatarUrl === '' ? ' hidden' : '' ?>>
                         <span data-profile-initials<?= $avatarUrl !== '' ? ' hidden' : '' ?>><?= $escape($initials) ?></span>
                     </span>
-                    <span class="profile-avatar-label__text">Change photo</span>
+                    <span class="profile-avatar-label__text" aria-hidden="true">Change photo</span>
                 </label>
                 <input id="admin-avatar-input" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                 <p class="profile-avatar-hint">JPG, PNG, or WebP only. Maximum file size: 5 MB.</p>
@@ -275,7 +275,7 @@ $escape = static function (string $value): string {
                 ><?= $hasAuthenticator ? 'Reset authenticator' : 'Set up authenticator' ?></a>
 
                 <a
-                    class="btn btn-primary"
+                    class="btn btn-secondary"
                     href="<?= $escape(BREWSKI_BASE_URL . '/login-signup/logout.php') ?>"
                 >Log out</a>
 
