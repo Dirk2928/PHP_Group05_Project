@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function () {
+function initializeBrewskiSessionTimeout() {
     'use strict';
 
     var timeoutMeta = document.querySelector('meta[name="session-timeout-seconds"]');
@@ -39,4 +39,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     resetTimeout();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeBrewskiSessionTimeout, { once: true });
+} else {
+    initializeBrewskiSessionTimeout();
+}
