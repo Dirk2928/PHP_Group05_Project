@@ -170,7 +170,7 @@ require __DIR__ . '/../partials/header.php';
             <div class="greeting__text">
 
                 <h1>
-                    Order Up, Bro <?= $display_first_name ?>!
+                    Order Up, Customer <?= $display_first_name ?>!
                 </h1>
 
                 <p>

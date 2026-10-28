@@ -74,7 +74,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
             <div class="dashboard-heading">
                 <div>
                     <p class="dashboard-eyebrow">STORE OVERVIEW</p>
-                    <h1>Welcome, @<?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
+                    <h1>Welcome, <?= htmlspecialchars($adminName, ENT_QUOTES, 'UTF-8') ?></h1>
                     <p class="dashboard-subtitle">Sales, orders, and store activity at a glance.</p>
                 </div>
             </div>
