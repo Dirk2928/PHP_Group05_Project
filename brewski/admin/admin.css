@@ -10,7 +10,7 @@
     --sidebar-background: var(--espresso);
     --sidebar-hover: var(--dark-mocha);
 
-    --font-brand: "Fredoka", "Century Gothic", sans-serif;
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
     --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 
     --surface: #fffdf9;
@@ -1393,7 +1393,7 @@ body.sidebar-open::after {
     --white: #ffffff;
     --shadow-sm: 0 2px 8px rgba(30, 17, 10, 0.08);
     --shadow-md: 0 8px 24px rgba(30, 17, 10, 0.12);
-    --font-brand: "Fredoka", "Century Gothic", sans-serif;
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
     --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 }
 
@@ -2983,11 +2983,11 @@ body.sidebar-open::after {
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
 
 body, input, select, button, table, .form-control {
-    font-family: "Questrial", sans-serif !important;
+    font-family: "Century Gothic", CenturyGothic, sans-serif !important;
 }
 
 h1, h2, h3, .page-title, .card-title, .sidebar-brand {
-    font-family: "Fredoka", sans-serif !important;
+    font-family: "Century Gothic", CenturyGothic, sans-serif !important;
 }
 
 
@@ -3082,4 +3082,28 @@ body * {
 
 .sidebar-brand {
     font-family: "Fredoka", "Century Gothic", sans-serif !important;
+}
+
+:root {
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
+    --font-body: "Century Gothic", CenturyGothic, sans-serif;
+}
+
+.product-management-page {
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
+    --font-body: "Century Gothic", CenturyGothic, sans-serif;
+}
+
+.nav-parent:hover,
+.nav-parent[aria-expanded="true"] {
+    color: var(--cream);
+    background: rgba(241, 226, 202, 0.1);
+}
+
+.nav-parent:hover {
+    transform: translateX(2px);
+}
+
+.nav-parent[aria-expanded="true"]:hover {
+    background: rgba(241, 226, 202, 0.1);
 }
