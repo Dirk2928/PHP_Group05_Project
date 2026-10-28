@@ -3144,6 +3144,7 @@ body * {
 }
 
 .system-activity-page .activity-action {
+    font-size: 12px;
     font-weight: 400;
 }
 
@@ -3176,15 +3177,14 @@ body * {
 }
 
 .system-activity-page .activity-category {
-    display: table;
-    margin-top: 5px;
-    padding: 3px 7px;
-    border: 1px solid rgba(113, 73, 42, .14);
-    border-radius: 999px;
-    background: #f5ebdf;
-    color: #71492a;
-    font-size: 10px;
-    line-height: 1.2;
+    display: block;
+    margin-top: 3px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .customer-management-page,
@@ -3229,13 +3229,6 @@ body * {
     border: 1px solid var(--management-line) !important;
     border-radius: 14px;
     box-shadow: 0 8px 24px rgba(30, 17, 10, .05) !important;
-}
-
-.customer-management-page .data-table thead th,
-.staff-management-page .data-table thead th {
-    background: var(--management-warm) !important;
-    border-bottom-color: rgba(30, 17, 10, .18) !important;
-    color: #3c3027 !important;
 }
 
 .customer-management-page .data-table tbody tr:hover,
