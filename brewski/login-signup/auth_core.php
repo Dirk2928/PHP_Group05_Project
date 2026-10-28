@@ -202,7 +202,10 @@ function brewski_authenticate($conn, string $email, string $password, string $po
     }
 
     if ($accountLocked) {
-        return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
+        return brewski_auth_result(
+            BREWSKI_AUTH_LOCKED,
+            'Your account has been locked due to multiple failed sign-in attempts. Please contact an administrator for help.'
+        );
     }
 
     if (!$passwordOk) {
@@ -220,7 +223,10 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             }
             brewski_record_login_attempt($conn, $email, $attempts, true);
 
-            return brewski_auth_result(BREWSKI_AUTH_INVALID, $genericLoginMessage);
+            return brewski_auth_result(
+                BREWSKI_AUTH_LOCKED,
+                'Your account has been locked due to multiple failed sign-in attempts. Please contact an administrator for help.'
+            );
         }
 
         $attemptUpdate = $conn->prepare(

@@ -81,6 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $portalRedirect = $result['redirect'];
         }
 
+        if ($result['status'] === BREWSKI_AUTH_LOCKED) {
+            $portalRedirect = '';
+        }
+
         if ($result['status'] === BREWSKI_AUTH_SUCCESS) {
             header('Location: ' . brewski_home_for_role(brewski_current_role()));
             exit;
