@@ -145,7 +145,7 @@ html, body {
 }
 
 .greeting__text h1 {
-    font-family: var(--font-brand, "Fredoka", "Century Gothic", sans-serif);
+    font-family: var(--font-body, "Century Gothic", CenturyGothic, sans-serif);
     font-size: 1.8rem;
     margin: 0 0 0.5rem;
     font-weight: 700;
