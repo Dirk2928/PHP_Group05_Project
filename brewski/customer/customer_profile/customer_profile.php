@@ -277,12 +277,12 @@ require __DIR__ . '/../partials/header.php';
 
     <style>
         :root {
-            --espresso: #1a0f0a;
-            --mocha: #3b2218;
-            --dark-mocha: #5c4033;
-            --latte: #e8dac4;
-            --cream: #faf5ee;
-            --foam: #f2e4cc;
+            --espresso: #1e110a;
+            --mocha: #71492a;
+            --dark-mocha: #3c3027;
+            --latte: #f1e2ca;
+            --cream: #faf6ee;
+            --foam: #f5ebdf;
             --danger: #a32a1f;
             --success: #2f6b3a;
         }
@@ -306,9 +306,9 @@ require __DIR__ . '/../partials/header.php';
         }
 
         .page {
-            max-width: calc(1420px + 3rem);
+            max-width: none;
             margin: 0 auto;
-            padding: 2.5rem 1.5rem 4rem;
+            padding: 2rem 1.5rem 4rem;
             color: var(--espresso);
         }
 
@@ -326,14 +326,15 @@ require __DIR__ . '/../partials/header.php';
         }
 
         .page__header h1 {
-            font-size: 2.25rem;
+            font-size: 24px;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            line-height: 1.3;
         }
 
         .page__header p {
             color: var(--dark-mocha);
-            font-size: 1rem;
+            font-size: 14px;
             line-height: 1.5;
         }
 
@@ -359,7 +360,7 @@ require __DIR__ . '/../partials/header.php';
 
         .profile-grid {
             display: grid;
-            grid-template-columns: 340px 1fr;
+            grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
             gap: 1.5rem;
             align-items: start;
         }
@@ -371,9 +372,15 @@ require __DIR__ . '/../partials/header.php';
         }
 
         .card {
-            background-color: var(--foam);
+            background-color: #fffdf9;
+            border: 1px solid rgba(30, 17, 10, .12);
             border-radius: 1.25rem;
             padding: 1.75rem;
+            box-shadow: 0 8px 24px rgba(30, 17, 10, .06);
+        }
+
+        .profile-summary {
+            background: linear-gradient(160deg, #f5ebdf, #fffdf9 78%);
         }
 
         .card__title {
@@ -510,6 +517,18 @@ require __DIR__ . '/../partials/header.php';
             word-break: break-word;
         }
 
+        .profile-role {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 0.75rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            background: #ede9fe;
+            color: #5b21b6;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
         .profile-summary__actions {
             display: flex;
             flex-direction: column;
@@ -546,18 +565,19 @@ require __DIR__ . '/../partials/header.php';
         }
 
         .form__group label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--mocha);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--dark-mocha);
         }
 
         .form__group input {
             font-family: inherit;
-            font-size: 0.95rem;
-            padding: 0.85rem 1rem;
-            border: 1px solid var(--latte);
-            border-radius: 0.75rem;
-            background-color: var(--cream);
+            font-size: 14px;
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid #e5dccf;
+            border-radius: 6px;
+            background-color: #fffdf9;
             color: var(--espresso);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
@@ -569,13 +589,13 @@ require __DIR__ . '/../partials/header.php';
         }
 
         .form__group input[readonly] {
-            background-color: var(--latte);
-            color: var(--mocha);
+            background-color: #f8f2e9;
+            color: var(--dark-mocha);
             cursor: default;
         }
 
         .form__group input[readonly]:focus {
-            border-color: var(--latte);
+            border-color: #e5dccf;
             box-shadow: none;
         }
 
@@ -724,7 +744,7 @@ require __DIR__ . '/../partials/header.php';
             }
 
             .page__header h1 {
-                font-size: 1.75rem;
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -808,6 +828,7 @@ require __DIR__ . '/../partials/header.php';
                 <h2><?= e($display_first_name . ' ' . $display_last_name) ?></h2>
 
                 <p class="profile-summary__email"><?= e($display_email) ?></p>
+                <span class="profile-role">Customer</span>
 
                 <div class="profile-summary__actions">
                     <a href="../../login-signup/setup-authenticator.php" class="btn btn--light">
