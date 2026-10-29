@@ -46,6 +46,11 @@ body {
 .profile-page .form-field input:focus { outline: none; border-color: var(--profile-mocha); box-shadow: 0 0 0 3px rgb(113 73 42 / 12%); }
 .profile-page .profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem; }
 .profile-page .profile-actions .btn { min-width: 10rem; }
+.profile-page .badge { display: inline-flex; align-items: center; margin-top: 0.75rem; padding: 0.25rem 0.65rem; border-radius: 999px; background: #ede9fe; color: #5b21b6; font-size: 0.75rem; font-weight: 700; }
+.profile-page .profile-status { min-height: 1.2em; margin: 0.65rem 0 0; color: var(--profile-dark-mocha); font-size: 0.82rem; line-height: 1.45; }
+.profile-page .profile-status.is-saved { color: var(--profile-success); }
+.profile-page .profile-status.is-error { color: var(--profile-danger); }
+.profile-page .profile-avatar-form .profile-status { margin-top: 0.5rem; }
 .profile-page .alert { padding: 0.85rem 1rem; margin-bottom: 1rem; border: 1px solid; border-radius: 0.7rem; font-size: 0.9rem; line-height: 1.5; }
 .profile-page .alert--success { border-color: #b9d8bf; background: #e3f0e5; color: var(--success); }
 .profile-page .alert--error { border-color: #e6b8b2; background: #f8e3e0; color: var(--danger); }

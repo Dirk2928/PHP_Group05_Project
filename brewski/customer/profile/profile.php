@@ -3,6 +3,7 @@ session_start();
 
 require_once __DIR__ . '/../../Db/db_config.php';
 require_once __DIR__ . '/../../Db/activity_log.php';
+require_once __DIR__ . '/../../Db/user_avatars.php';
 
 if (!function_exists('e')) {
     function e($value)
@@ -24,6 +25,9 @@ if (empty($_SESSION['user_id'])) {
 }
 
 $userId = (int) $_SESSION['user_id'];
+$avatarConnection = brewski_db_connection();
+brewski_ensure_user_avatar_columns($avatarConnection);
+$avatarConnection->close();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -38,12 +42,36 @@ if (!empty($_SESSION['flash_success'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $isAjaxRequest = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    if ($isAjaxRequest) {
+        header('Content-Type: text/plain; charset=utf-8');
+    }
+
     $token = $_POST['csrf_token'] ?? '';
 
     if (!is_string($token) || !hash_equals($_SESSION['csrf_token'], $token)) {
+        if ($isAjaxRequest) {
+            echo 'Invalid request. Please refresh the page and try again.';
+            exit;
+        }
         $errors[] = 'Invalid request. Please refresh the page and try again.';
     } else {
         $action = $_POST['action'] ?? '';
+
+        if ($action === 'update_avatar') {
+            try {
+                if (!isset($_FILES['avatar'])) {
+                    throw new RuntimeException('Choose an image to upload.');
+                }
+                $avatar = brewski_read_avatar_upload($_FILES['avatar']);
+                $update = $pdo->prepare('UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?');
+                $update->execute([$avatar['data'], $avatar['mime'], $userId]);
+                echo 'ok';
+            } catch (Throwable $exception) {
+                echo $exception->getMessage();
+            }
+            exit;
+        }
 
         if ($action === 'update_profile') {
             $firstName = trim((string) ($_POST['first_name'] ?? ''));
@@ -83,8 +111,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Updated profile',
                     'Updated account profile details.'
                 );
+                if ($isAjaxRequest) {
+                    echo 'ok';
+                    exit;
+                }
                 $_SESSION['flash_success'] = 'Your profile has been updated.';
                 header('Location: profile.php');
+                exit;
+            }
+
+            if ($isAjaxRequest) {
+                echo $errors[0];
                 exit;
             }
         }
@@ -128,15 +165,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Changed password',
                     'Changed the account password.'
                 );
+                if ($isAjaxRequest) {
+                    echo 'ok';
+                    exit;
+                }
                 $_SESSION['flash_success'] = 'Your password has been changed.';
                 header('Location: profile.php');
+                exit;
+            }
+
+            if ($isAjaxRequest) {
+                echo $errors[0];
                 exit;
             }
         }
     }
 }
 
-$stmt = $pdo->prepare('SELECT user_id, first_name, last_name, email FROM users WHERE user_id = ?');
+$stmt = $pdo->prepare('SELECT user_id, first_name, last_name, email, role, totp_enabled_at, avatar_mime_type FROM users WHERE user_id = ?');
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
@@ -150,6 +196,8 @@ if (!$user) {
 $display_first_name = e($user['first_name']);
 $display_last_name = e($user['last_name']);
 $display_email = e($user['email']);
+$hasAuthenticator = !empty($user['totp_enabled_at']);
+$avatarUrl = !empty($user['avatar_mime_type']) ? '../user_avatar.php?id=' . $userId : '';
 
 $initials = strtoupper(
     mb_substr($user['first_name'], 0, 1) .
@@ -230,8 +278,10 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
     <main class="profile-page">
         <section class="page-header">
+            <div>
             <h1 class="page-title">My Profile</h1>
-            <p>Manage your account details and keep your Brewski orders up to date.</p>
+            <p class="subtitle">Manage your account details and keep your Brewski account secure.</p>
+            </div>
         </section>
 
         <?php if ($success): ?>
@@ -248,58 +298,73 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
         <div class="profile-layout">
             <aside class="profile-card profile-summary">
-                <span class="profile-avatar" aria-hidden="true"><?= e($initials) ?></span>
-                <h2 class="profile-summary__name"><?= $display_first_name . ' ' . $display_last_name ?></h2>
-                <p class="profile-summary__email"><?= $display_email ?></p>
+                <form class="profile-avatar-form" method="post" action="profile.php" enctype="multipart/form-data" data-avatar-form data-avatar-url="../user_avatar.php?id=<?= e($userId) ?>">
+                    <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
+                    <input type="hidden" name="action" value="update_avatar">
+                    <label class="profile-avatar-label" for="customer-avatar-input">
+                        <span class="profile-avatar">
+                            <img class="profile-avatar__image" data-profile-avatar-image src="<?= e($avatarUrl) ?>" alt="Profile picture"<?= $avatarUrl === '' ? ' hidden' : '' ?>>
+                            <span data-profile-initials<?= $avatarUrl !== '' ? ' hidden' : '' ?>><?= e($initials) ?></span>
+                        </span>
+                        <span class="profile-avatar-label__text" aria-hidden="true">Change photo</span>
+                    </label>
+                    <input id="customer-avatar-input" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                    <p class="profile-avatar-hint">JPG, PNG, or WebP only. Maximum file size: 5 MB.</p>
+                    <p class="profile-status" data-avatar-status role="status" aria-live="polite"></p>
+                </form>
+                <h2 class="profile-summary__name" data-profile-name><?= $display_first_name . ' ' . $display_last_name ?></h2>
+                <p class="profile-summary__email" data-profile-email><?= $display_email ?></p>
+                <span class="badge badge-role-customer">Customer</span>
 
                 <div class="profile-summary__actions">
-                    <a href="../customer-home/orders.php" class="btn btn-secondary">
-                        <i data-lucide="receipt"></i>
-                        <span>View orders</span>
+                    <a href="../../login-signup/setup-authenticator.php" class="btn btn-secondary">
+                        <span><?= $hasAuthenticator ? 'Reset authenticator' : 'Set up authenticator' ?></span>
                     </a>
-                    <a href="../customer-home/logout.php" class="btn btn-primary">
+                    <a href="../customer-home/logout.php" class="btn btn-secondary">
                         <i data-lucide="log-out"></i>
-                        <span>Logout</span>
+                        <span>Log out</span>
                     </a>
                 </div>
             </aside>
 
             <div class="profile-forms">
                 <section class="profile-card">
-                    <h3 class="profile-card__title">Personal information</h3>
+                    <div class="profile-card__header">
+                        <h3 class="profile-card__title">Personal information</h3>
+                        <button type="button" class="btn btn-secondary" data-profile-edit>Edit</button>
+                    </div>
 
-                    <form method="post" action="profile.php" class="form-grid" novalidate>
+                    <form method="post" action="profile.php" class="form-grid" data-profile-form novalidate>
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
                         <input type="hidden" name="action" value="update_profile">
 
                         <div class="form-field">
                             <label for="first_name">First name</label>
-                            <input type="text" id="first_name" name="first_name" value="<?= $display_first_name ?>" required maxlength="50">
+                            <input type="text" id="first_name" name="first_name" value="<?= $display_first_name ?>" required maxlength="50" autocomplete="given-name" readonly data-profile-field>
                         </div>
 
                         <div class="form-field">
                             <label for="last_name">Last name</label>
-                            <input type="text" id="last_name" name="last_name" value="<?= $display_last_name ?>" required maxlength="50">
+                            <input type="text" id="last_name" name="last_name" value="<?= $display_last_name ?>" required maxlength="50" autocomplete="family-name" readonly data-profile-field>
                         </div>
 
                         <div class="form-field form-field-full">
                             <label for="email">Email address</label>
-                            <input type="email" id="email" name="email" value="<?= $display_email ?>" required>
+                            <input type="email" id="email" name="email" value="<?= $display_email ?>" required autocomplete="email" readonly data-profile-field>
                         </div>
 
-                        <div class="form-field-full profile-actions">
-                            <button type="submit" class="btn btn-primary">
-                                <i data-lucide="check"></i>
-                                <span>Save changes</span>
-                            </button>
+                        <div class="form-field-full profile-actions" data-profile-actions hidden>
+                            <button type="button" class="btn btn-secondary" data-profile-cancel>Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
                         </div>
                     </form>
+                    <p class="profile-status" data-profile-status role="status" aria-live="polite"></p>
                 </section>
 
                 <section class="profile-card">
                     <h3 class="profile-card__title">Change password</h3>
 
-                    <form method="post" action="profile.php" class="form-grid" novalidate>
+                    <form method="post" action="profile.php" class="form-grid" data-password-form novalidate>
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
                         <input type="hidden" name="action" value="change_password">
 
@@ -318,6 +383,10 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                             <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
                         </div>
 
+                        <div class="form-field-full">
+                            <p class="profile-hint">Use 8 to 72 characters and choose a password you have not used before.</p>
+                        </div>
+
                         <div class="form-field-full profile-actions">
                             <button type="submit" class="btn btn-primary">
                                 <i data-lucide="lock"></i>
@@ -325,6 +394,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                             </button>
                         </div>
                     </form>
+                    <p class="profile-status" data-password-status role="status" aria-live="polite"></p>
                 </section>
             </div>
         </div>
@@ -332,6 +402,114 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
     <script>
         lucide.createIcons();
+
+        (function () {
+            function setStatus(element, text, modifier) {
+                if (!element) return;
+                element.textContent = text;
+                element.classList.remove('is-saved', 'is-error');
+                if (modifier) element.classList.add(modifier);
+            }
+
+            function postForm(form, status, onSuccess) {
+                const submit = form.querySelector('button[type="submit"]');
+                if (submit) submit.disabled = true;
+                fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(response => response.text())
+                    .then(text => text.trim() === 'ok'
+                        ? onSuccess()
+                        : setStatus(status, text.trim() || 'Could not save. Please try again.', 'is-error'))
+                    .catch(() => setStatus(status, 'Could not save. Please try again.', 'is-error'))
+                    .finally(() => { if (submit) submit.disabled = false; });
+            }
+
+            const avatarForm = document.querySelector('[data-avatar-form]');
+            if (avatarForm) {
+                const input = avatarForm.querySelector('input[type="file"]');
+                const status = avatarForm.querySelector('[data-avatar-status]');
+                input.addEventListener('change', function () {
+                    if (!input.files.length) return;
+                    setStatus(status, 'Uploading photo...', '');
+                    postForm(avatarForm, status, function () {
+                        const image = document.querySelector('[data-profile-avatar-image]');
+                        const initials = document.querySelector('[data-profile-initials]');
+                        if (image) {
+                            image.src = avatarForm.dataset.avatarUrl + '&v=' + Date.now();
+                            image.hidden = false;
+                        }
+                        if (initials) initials.hidden = true;
+                        input.value = '';
+                        setStatus(status, 'Your profile picture has been updated.', 'is-saved');
+                    });
+                });
+            }
+
+            const profileForm = document.querySelector('[data-profile-form]');
+            if (profileForm) {
+                const status = document.querySelector('[data-profile-status]');
+                const actions = document.querySelector('[data-profile-actions]');
+                const edit = document.querySelector('[data-profile-edit]');
+                const cancel = document.querySelector('[data-profile-cancel]');
+                const fields = Array.from(profileForm.querySelectorAll('[data-profile-field]'));
+                let originals = fields.map(field => field.value);
+
+                function setEditing(editing) {
+                    fields.forEach((field, index) => {
+                        if (editing) field.removeAttribute('readonly');
+                        else {
+                            field.setAttribute('readonly', 'readonly');
+                            field.value = originals[index];
+                        }
+                    });
+                    edit.hidden = editing;
+                    actions.hidden = !editing;
+                    if (editing && fields.length) fields[0].focus();
+                }
+
+                edit.addEventListener('click', function () {
+                    setStatus(status, '', '');
+                    setEditing(true);
+                });
+                cancel.addEventListener('click', function () {
+                    setEditing(false);
+                    setStatus(status, '', '');
+                    edit.focus();
+                });
+                profileForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    setStatus(status, 'Saving...', '');
+                    postForm(profileForm, status, function () {
+                        originals = fields.map(field => field.value);
+                        document.querySelector('[data-profile-name]').textContent =
+                            (fields[0].value.trim() + ' ' + fields[1].value.trim()).trim();
+                        document.querySelector('[data-profile-email]').textContent = fields[2].value.trim();
+                        const initials = document.querySelector('[data-profile-initials]');
+                        if (initials) initials.textContent =
+                            (fields[0].value.trim().charAt(0) + fields[1].value.trim().charAt(0)).toUpperCase();
+                        setEditing(false);
+                        setStatus(status, 'Your profile has been updated.', 'is-saved');
+                    });
+                });
+            }
+
+            const passwordForm = document.querySelector('[data-password-form]');
+            if (passwordForm) {
+                const status = document.querySelector('[data-password-status]');
+                passwordForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    setStatus(status, 'Updating...', '');
+                    postForm(passwordForm, status, function () {
+                        passwordForm.reset();
+                        setStatus(status, 'Your password has been updated.', 'is-saved');
+                    });
+                });
+            }
+        })();
 
         const profileMenu = document.getElementById('profileMenu');
         const profileButton = document.getElementById('profileButton');
