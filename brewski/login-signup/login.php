@@ -218,7 +218,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                         style="margin-top: -0.5rem;"
                     >
 
-                        <a href="<?php echo htmlspecialchars($portalRedirect, ENT_QUOTES, 'UTF-8'); ?>" style="text-decoration: underline !important;">
+                        <a href="<?php echo htmlspecialchars($portalRedirect, ENT_QUOTES, 'UTF-8'); ?>">
                             Go to the staff &amp; admin portal
                         </a>
 
@@ -307,7 +307,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
                     </div>
 
                     <p class="auth__switch" style="margin: 0.4rem 0 0; text-align: right; font-size: 0.72rem;">
-                        <a href="forgot-password.php" style="color: var(--espresso); text-decoration: underline !important;">
+                        <a href="forgot-password.php">
                             Forgot your password?
                         </a>
                     </p>
@@ -333,7 +333,7 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
                 Don't have an account?
 
-                <a href="signup.php" style="text-decoration: underline !important;">
+                <a href="signup.php">
                     Click here to sign up.
                 </a>
 
@@ -341,13 +341,13 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
             <p class="auth__switch">
                 Staff or administrator?
-                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>" style="text-decoration: underline !important;">
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/portal/login.php', ENT_QUOTES, 'UTF-8'); ?>">
                     Open the staff &amp; admin sign-in.
                 </a>
             </p>
 
             <div class="auth__legal">
-                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>" style="text-decoration: underline !important;">Privacy &amp; cookie policy</a>
+                <a href="<?php echo htmlspecialchars(BREWSKI_BASE_URL . '/cookie-consent/privacy.php', ENT_QUOTES, 'UTF-8'); ?>">Privacy &amp; cookie policy</a>
             </div>
 
         </div>
