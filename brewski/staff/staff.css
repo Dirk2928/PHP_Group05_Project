@@ -10,7 +10,7 @@
     --sidebar-background: var(--espresso);
     --sidebar-hover: var(--dark-mocha);
 
-    --font-brand: "Fredoka", "Century Gothic", sans-serif;
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
     --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 
     --surface: #fffdf9;
@@ -1122,7 +1122,7 @@ body {
 .sidebar {
     top: 0;
     height: 100vh;
-    padding: 88px 12px 24px;
+    padding: 24px 12px;
     background: linear-gradient(180deg, #26170f 0%, var(--espresso) 55%, #190e09 100%);
     box-shadow: 8px 0 24px rgba(30, 17, 10, 0.08);
     z-index: 40;
@@ -1798,14 +1798,19 @@ body.sidebar-open::after {
 
 
 
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
-
-body, input, select, button, table, .toolbar-input {
-    font-family: "Questrial", sans-serif !important;
+/* Match the admin interface font system throughout the staff workspace. */
+body,
+body * {
+    font-family: "Century Gothic", CenturyGothic, sans-serif !important;
 }
 
-h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
-    font-family: "Fredoka", sans-serif !important;
+.sidebar-brand {
+    font-family: "Fredoka", "Century Gothic", sans-serif !important;
+}
+
+:root {
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
+    --font-body: "Century Gothic", CenturyGothic, sans-serif;
 }
 
 
@@ -2079,6 +2084,38 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
 .order-status--cancelled {
     background: #fbe9e7;
     color: #9a4238;
+}
+
+@media (min-width: 769px) {
+    .topbar {
+        transition: transform 0.24s ease, width 0.24s ease;
+    }
+
+    body.sidebar-open .topbar {
+        width: calc(100% - var(--sidebar-width));
+        transform: translateX(var(--sidebar-width));
+    }
+}
+
+body.sidebar-open .sidebar-toggle {
+    position: absolute;
+    top: 16px;
+    left: -58px;
+    z-index: 61;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.sidebar-open .sidebar-toggle:hover,
+body.sidebar-open .sidebar-toggle:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+body.sidebar-open .sidebar-toggle span {
+    background: var(--latte);
 }
 
 @media (max-width: 768px) {
