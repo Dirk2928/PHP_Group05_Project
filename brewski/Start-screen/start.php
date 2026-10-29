@@ -35,14 +35,6 @@ require_once __DIR__ . '/../login-signup/session_init.php';
 
         <nav class="topbar__nav">
             <a
-                href="../customer/customer_home/customerhome.php"
-                class="topbar__link"
-            >
-                <i data-lucide="home"></i>
-                Home
-            </a>
-
-            <a
                 href="../customer/customer_menu/customermenu.php"
                 class="topbar__link"
             >
@@ -80,7 +72,7 @@ require_once __DIR__ . '/../login-signup/session_init.php';
                 Brewed to Perfection. Fueling Your Inner Brew.
             </h1>
 
-            <a href="../customer/customer_home/customerhome.php" class="start-button">
+            <a href="../login-signup/signup.php" class="start-button">
                 Get Started
             </a>
         </div>
