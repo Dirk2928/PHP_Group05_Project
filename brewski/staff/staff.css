@@ -1,5 +1,5 @@
 :root {
-    --sidebar-width: clamp(220px, 12.5vw, 320px);
+    --sidebar-width: 280px;
     --transition-speed: 0.2s;
 
     --espresso: #1e110a;
@@ -324,7 +324,7 @@ body {
 .main-content .staff-welcome__title {
     margin: 0 0 8px;
     font-family: var(--font-brand);
-    font-size: clamp(28px, 3vw, 38px);
+    font-size: clamp(24px, 2.4vw, 30px);
     font-weight: 600;
     line-height: 1.15;
     letter-spacing: -.025em;
@@ -1299,9 +1299,19 @@ body.sidebar-open::after {
 }
 
 .order-summary-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     color: var(--text-muted);
     font-size: 13px;
     font-weight: 500;
+}
+
+.order-summary-label svg {
+    width: 16px;
+    height: 16px;
+    color: var(--mocha);
+    stroke-width: 1.8;
 }
 
 .order-summary-card strong {
@@ -1535,6 +1545,12 @@ body.sidebar-open::after {
     font-size: 19px;
 }
 
+.orders-empty-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.8;
+}
+
 .orders-empty .empty-hint,
 .orders-empty .empty-title {
     margin-right: 0;
@@ -1591,6 +1607,12 @@ body.sidebar-open::after {
     color: #2c6b51;
     font-size: 20px;
     font-weight: 600;
+}
+
+.availability-overview-icon svg {
+    width: 21px;
+    height: 21px;
+    stroke-width: 1.8;
 }
 
 .product-search-field {
@@ -1899,10 +1921,73 @@ body * {
 }
 
 .order-lane-heading h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin: 0;
     color: var(--text);
     font-size: 15px;
     font-weight: 600;
+}
+
+.order-lane-heading h2 svg,
+.order-card .order-id svg,
+.order-customer strong svg,
+.order-customer small svg,
+.order-items-label svg,
+.order-pickup-note > svg,
+.order-total svg,
+.availability-state svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    stroke-width: 1.8;
+}
+
+.order-lane-heading h2 svg,
+.order-card .order-id svg,
+.order-customer strong svg,
+.order-items-label svg,
+.order-total svg {
+    color: var(--mocha);
+}
+
+.order-customer strong,
+.order-customer small,
+.order-items-label,
+.order-pickup-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-customer small {
+    display: flex;
+}
+
+.order-items-label {
+    margin-bottom: -8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.order-pickup-note > svg {
+    align-self: flex-start;
+    color: var(--mocha);
+}
+
+.order-card .order-action-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.order-card .order-action-done svg,
+.order-card-actions .btn svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
 }
 
 .order-lane-heading > span {
@@ -2193,9 +2278,9 @@ body.sidebar-open .sidebar-toggle span {
 }
 
 .staff-order-history .data-table th {
-    background: var(--surface-muted);
-    border-bottom-color: var(--line);
-    color: var(--text-muted);
+    background: #f2e4cc;
+    border-bottom-color: #e8dcc9;
+    color: #1e110a;
 }
 
 .staff-order-history .table-heading-label {
@@ -2212,11 +2297,11 @@ body.sidebar-open .sidebar-toggle span {
 }
 
 .staff-order-history .data-table tbody td {
-    background: #fffdf9;
+    background: #faf6ee;
 }
 
 .staff-order-history .data-table tbody tr:hover td {
-    background: #faf6ee;
+    background: #f5ebdf;
 }
 
 .staff-order-history .pagination-footer {

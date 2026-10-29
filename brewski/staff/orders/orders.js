@@ -30,12 +30,12 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     var orderStatuses = [
-        { key: 'PENDING', label: 'Pending' },
-        { key: 'CONFIRMED', label: 'Confirmed' },
-        { key: 'PREPARING', label: 'Preparing' },
-        { key: 'READY', label: 'Ready' },
-        { key: 'COMPLETED', label: 'Completed' },
-        { key: 'CANCELLED', label: 'Cancelled' }
+        { key: 'PENDING', label: 'Pending', icon: 'clock-3' },
+        { key: 'CONFIRMED', label: 'Confirmed', icon: 'badge-check' },
+        { key: 'PREPARING', label: 'Preparing', icon: 'coffee' },
+        { key: 'READY', label: 'Ready', icon: 'package-check' },
+        { key: 'COMPLETED', label: 'Completed', icon: 'circle-check' },
+        { key: 'CANCELLED', label: 'Cancelled', icon: 'circle-x' }
     ];
 
     var advanceLabels = {
@@ -164,8 +164,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!nextSteps.length) {
             return order.status === 'COMPLETED'
-                ? '<span class="order-action-done">Order complete</span>'
-                : '<span class="order-action-done">Order cancelled</span>';
+                ? '<span class="order-action-done"><i data-lucide="circle-check" aria-hidden="true"></i>Order complete</span>'
+                : '<span class="order-action-done"><i data-lucide="circle-x" aria-hidden="true"></i>Order cancelled</span>';
         }
 
         var advance = nextSteps.filter(function (status) {
@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 : (advanceLabels[advance] || advance);
             html += '<button type="button" class="btn btn-primary order-advance" data-order-id="' +
                 order.order_id + '" data-status="' + escapeHtml(advance) + '">' +
+                '<i data-lucide="' + (advance === 'COMPLETED' ? 'circle-check' : 'arrow-right') + '" aria-hidden="true"></i>' +
                 escapeHtml(advanceLabel) + '</button>';
         } else {
             html += '<span class="order-action-waiting">In progress</span>';
@@ -187,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (nextSteps.indexOf('CANCELLED') !== -1) {
             html += ' <button type="button" class="btn btn-secondary order-cancel" data-order-id="' +
-                order.order_id + '" data-status="CANCELLED">Cancel</button>';
+                order.order_id + '" data-status="CANCELLED"><i data-lucide="x" aria-hidden="true"></i>Cancel</button>';
         }
 
         return html;
@@ -249,24 +250,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 return '<article class="order-card">' +
                     '<div class="order-card-heading">' +
-                        '<span class="order-id">#' + escapeHtml(order.order_id) + '</span>' +
+                        '<span class="order-id"><i data-lucide="receipt-text" aria-hidden="true"></i>#' + escapeHtml(order.order_id) + '</span>' +
                         '<span class="order-status order-status--' + String(order.status).toLowerCase() + '">' +
                             escapeHtml(orderStatus.label) + '</span>' +
                     '</div>' +
                     '<div class="order-customer"><span class="customer-avatar">' +
                         escapeHtml(initialsOf(order.customer || 'Guest')) +
-                        '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong>' +
-                        '<small>' + escapeHtml(formatPlaced(order.created_at)) + '</small></span></div>' +
+                        '</span><span><strong><i data-lucide="user-round" aria-hidden="true"></i>' + escapeHtml(order.customer || 'Guest') + '</strong>' +
+                        '<small><i data-lucide="calendar-clock" aria-hidden="true"></i>' + escapeHtml(formatPlaced(order.created_at)) + '</small></span></div>' +
+                    '<div class="order-items-label"><i data-lucide="package" aria-hidden="true"></i>Items</div>' +
                     '<ul class="order-items">' + items + '</ul>' +
                     (order.order_notes
-                        ? '<p class="order-pickup-note"><strong>Order notes:</strong> ' +
+                        ? '<p class="order-pickup-note"><i data-lucide="message-square-text" aria-hidden="true"></i><strong>Order notes:</strong> ' +
                             escapeHtml(order.order_notes) + '</p>'
                         : '') +
                     (order.payment_provider === 'in_store'
-                        ? '<p class="order-pickup-note"><strong>Store pickup · Pay cash at counter</strong></p>'
+                        ? '<p class="order-pickup-note"><i data-lucide="store" aria-hidden="true"></i><strong>Store pickup · Pay cash at counter</strong></p>'
                         : '') +
                     '<div class="order-card-footer">' +
-                        '<strong class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</strong>' +
+                        '<strong class="order-total"><i data-lucide="banknote" aria-hidden="true"></i>₱' + Number(order.total_amount).toFixed(2) + '</strong>' +
                         '<div class="order-card-actions">' + actionCell(order) + '</div>' +
                     '</div>' +
                 '</article>';
@@ -275,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return '<section class="order-lane order-lane--' + orderStatus.key.toLowerCase() +
                 '" aria-label="' + escapeHtml(orderStatus.label) + ' orders">' +
                 '<div class="order-lane-heading">' +
-                    '<h2>' + escapeHtml(orderStatus.label) + '</h2>' +
+                    '<h2><i data-lucide="' + orderStatus.icon + '" aria-hidden="true"></i>' + escapeHtml(orderStatus.label) + '</h2>' +
                     '<span aria-label="' + laneOrders.length + ' orders">' + laneOrders.length + '</span>' +
                 '</div>' +
                 '<div class="order-lane-cards">' + (cards || '<p class="order-lane-empty">No orders</p>') + '</div>' +
@@ -298,6 +300,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
 
         ordersBoard.innerHTML = lanes;
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
         ordersBoard.classList.toggle('hidden', visibleOrders.length === 0);
 
         ordersEmpty.classList.toggle('hidden', visibleOrders.length > 0);
@@ -349,8 +354,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<div class="availability-product-details"><strong>' + escapeHtml(product.name) +
                     '</strong><span>' + escapeHtml(product.category) + '</span></div>' +
                 '<span class="availability-product-price">₱' + Number(product.price).toFixed(2) + '</span>' +
-                '<span class="availability-state' + (product.available ? ' is-available' : '') + '">' +
-                    state + '</span>' +
+                '<span class="availability-state' + (product.available ? ' is-available' : '') + '"><i data-lucide="' +
+                    (product.available ? 'circle-check' : 'circle-minus') + '" aria-hidden="true"></i>' + state + '</span>' +
                 '<button type="button" class="availability-toggle' + (product.available ? ' is-on' : '') +
                     '" role="switch" aria-checked="' + String(product.available) +
                     '" aria-label="' + (product.available ? 'Disable ' : 'Enable ') +
@@ -358,6 +363,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<span></span></button>' +
                 '</article>';
         }).join('');
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
 
         if (productsEmpty) {
             productsEmpty.classList.toggle('hidden', visibleProducts.length > 0);
