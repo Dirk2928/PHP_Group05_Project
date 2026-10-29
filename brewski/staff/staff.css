@@ -10,7 +10,7 @@
     --sidebar-background: var(--espresso);
     --sidebar-hover: var(--dark-mocha);
 
-    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
+    --font-brand: "Fredoka", "Century Gothic", sans-serif;
     --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 
     --surface: #fffdf9;
@@ -1798,19 +1798,24 @@ body.sidebar-open::after {
 
 
 
-/* Match the admin interface font system throughout the staff workspace. */
-body,
-body * {
+/* Keep the original staff-home typography outside the aligned navigation. */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
+
+body, input, select, button, table, .toolbar-input {
+    font-family: "Questrial", sans-serif !important;
+}
+
+h1, h2, h3, .topbar-title, .page-title {
+    font-family: "Fredoka", sans-serif !important;
+}
+
+.sidebar,
+.sidebar .nav-item {
     font-family: "Century Gothic", CenturyGothic, sans-serif !important;
 }
 
 .sidebar-brand {
     font-family: "Fredoka", "Century Gothic", sans-serif !important;
-}
-
-:root {
-    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
-    --font-body: "Century Gothic", CenturyGothic, sans-serif;
 }
 
 
@@ -2127,50 +2132,4 @@ body.sidebar-open .sidebar-toggle span {
     .order-lane-cards {
         grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
     }
-}
-
-/* Use the admin home palette: latte KPI cards, warm section headers, white content. */
-.staff-orders .order-summary-card,
-.staff-products .availability-overview {
-    background: var(--latte) !important;
-    border-color: transparent;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08);
-}
-
-.staff-orders .order-board-card,
-.staff-products .product-table-card {
-    background: #ffffff !important;
-    border: 1px solid var(--line) !important;
-    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08) !important;
-}
-
-.staff-orders .order-lane {
-    background: #fffdf9;
-    border-color: var(--line);
-}
-
-.staff-orders .order-lane-heading {
-    margin: -12px -12px 12px;
-    padding: 10px 12px;
-    border-radius: 12px 12px 0 0;
-    background: var(--latte);
-}
-
-.staff-orders .order-card {
-    overflow: hidden;
-    border-color: var(--line);
-    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08);
-}
-
-.staff-orders .order-card-heading {
-    margin: -14px -14px 0;
-    padding: 10px 14px;
-    border-radius: 11px 11px 0 0;
-    background: var(--latte);
-}
-
-.staff-products .product-list-heading {
-    background: var(--latte);
-    border-bottom-color: var(--line);
 }
