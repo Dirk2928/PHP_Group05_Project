@@ -339,10 +339,6 @@ try {
                 o.order_date,
                 o.total_amount,
                 o.order_status,
-                (SELECT d.notes
-                   FROM deliveries d
-                  WHERE d.order_id = o.order_id
-                  LIMIT 1) AS delivery_notes,
                 COALESCE(GROUP_CONCAT(
                     CONCAT(oi.quantity, 'x ', p.product_name)
                     ORDER BY oi.order_item_id SEPARATOR ', '

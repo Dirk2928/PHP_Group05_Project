@@ -205,14 +205,13 @@ try {
                 o.order_status AS status,
                 o.total_amount,
                 o.order_date AS created_at,
+                o.order_notes,
                 TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
-                d.notes AS delivery_notes,
                 op.provider AS payment_provider,
                 op.payment_status
            FROM orders o
           LEFT JOIN order_payments op ON op.order_id = o.order_id
            LEFT JOIN users u ON u.user_id = o.user_id
-           LEFT JOIN deliveries d ON d.order_id = o.order_id
           WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
           ORDER BY o.order_date DESC, o.order_id DESC
           LIMIT 100"

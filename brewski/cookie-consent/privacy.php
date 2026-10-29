@@ -291,12 +291,12 @@ if ($currentChoice === 'accept') {
         </li>
     </ul>
 
-    <h3>Orders and delivery</h3>
+    <h3>Orders and pickup</h3>
 
     <ul>
         <li>Your cart and the items, sizes, and add-ons you choose.</li>
-        <li>Your order history, totals, and payment method label (cash on delivery).</li>
-        <li>Your delivery address, contact number, and any delivery notes you add.</li>
+        <li>Your order history, totals, and payment method label.</li>
+        <li>Your pickup order status and receipt information.</li>
         <li>Delivery status updates made by staff.</li>
     </ul>
 
@@ -361,7 +361,7 @@ if ($currentChoice === 'accept') {
         <li>Account details stay until you ask us to delete the account.</li>
         <li>Activation tokens expire after 24 hours; one-time sign-in codes expire within minutes.</li>
         <li>
-            Order, delivery, and transaction records are kept for the life of the account so staff
+            Order and transaction records are kept for the life of the account so staff
             can look up past orders and handle disputes.
         </li>
         <li>The cookie choice above is forgotten after 12 months, and then we ask again.</li>
@@ -372,7 +372,7 @@ if ($currentChoice === 'accept') {
     <ul>
         <li>Accept or reject the cookie notice, as described at the top of this page.</li>
         <li>
-            Update your name, email, password, and address yourself on your
+            Update your name, email, and password yourself on your
             <a href="<?php echo htmlspecialchars($accountUrl, ENT_QUOTES, 'UTF-8'); ?>">account</a>
             page.
         </li>

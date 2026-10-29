@@ -234,31 +234,21 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
         $customerName = $payload['customerName'] ?? null;
         $receiptNumber = $payload['receiptNumber'] ?? null;
         $orderDate = $payload['orderDate'] ?? null;
-        $address = $payload['address'] ?? null;
-        $deliveryNotes = $payload['deliveryNotes'] ?? '';
+        $fulfillment = $payload['fulfillment'] ?? null;
         $items = $payload['items'] ?? null;
         $subtotal = $payload['subtotal'] ?? null;
-        $deliveryFee = $payload['deliveryFee'] ?? null;
         $total = $payload['total'] ?? null;
-        $storePickup = is_array($address) && ($address['addressLine'] ?? '') === 'Store pickup';
 
         if (
             !brewski_mail_email_ok($email)
             || !brewski_mail_text_ok($customerName, 200)
             || !brewski_mail_text_ok($receiptNumber, 40)
             || !brewski_mail_text_ok($orderDate, 40)
-            || !is_array($address)
-            || !brewski_mail_text_ok($address['addressLine'] ?? null, 255)
-            || (!$storePickup && !brewski_mail_text_ok($address['city'] ?? null, 100))
-            || (!$storePickup && !brewski_mail_text_ok($address['province'] ?? null, 100))
-            || (!$storePickup && !brewski_mail_text_ok($address['postalCode'] ?? null, 20))
-            || !is_string($deliveryNotes)
-            || mb_strlen($deliveryNotes, 'UTF-8') > 500
+            || $fulfillment !== 'Store pickup'
             || !is_array($items)
             || count($items) === 0
             || count($items) > 100
             || !brewski_mail_amount_ok($subtotal)
-            || !brewski_mail_amount_ok($deliveryFee)
             || !brewski_mail_amount_ok($total)
         ) {
             return null;
@@ -279,15 +269,6 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
             }
         }
 
-        $addressText = implode(', ', array_filter([
-            $address['addressLine'],
-            $address['city'],
-            $address['province'],
-            $address['postalCode'],
-        ], static fn ($value): bool => trim((string) $value) !== ''));
-        $addressLabel = $storePickup ? 'Pickup' : 'Delivery address';
-
-        $notes = trim($deliveryNotes);
         $itemLines = [];
         $itemRows = '';
 
@@ -305,17 +286,11 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
                 . '</tr>';
         }
 
-        $notesText = $notes !== '' ? "\nDelivery notes: {$notes}\n" : '';
-        $notesHtml = $notes !== ''
-            ? '<p><strong>Delivery notes:</strong><br>'
-                . nl2br(brewski_mail_h($notes), false) . '</p>'
-            : '';
-
         $text = "Hello {$customerName},\n\n"
             . "Thank you for your order. Here is your receipt.\n\n"
             . "Receipt: {$receiptNumber}\n"
             . "Order date: {$orderDate}\n"
-            . "{$addressLabel}: {$addressText}{$notesText}\n\n"
+            . "Pickup: Store counter\n\n"
             . implode("\n", $itemLines) . "\n\n"
             . 'Subtotal: PHP ' . brewski_mail_amount($subtotal) . "\n"
             . 'Total: PHP ' . brewski_mail_amount($total) . "\n";
@@ -325,8 +300,7 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
             . '<p>Hello ' . brewski_mail_h($customerName) . ', thank you for your order.</p>'
             . '<p><strong>Receipt:</strong> ' . brewski_mail_h($receiptNumber) . '<br>'
             . '<strong>Order date:</strong> ' . brewski_mail_h($orderDate) . '<br>'
-            . '<strong>' . $addressLabel . ':</strong> ' . brewski_mail_h($addressText) . '</p>'
-            . $notesHtml
+            . '<strong>Pickup:</strong> Store counter</p>'
             . '<table style="width:100%;border-collapse:collapse"><thead><tr>'
             . '<th style="padding:10px;text-align:left;border-bottom:2px solid #5c4033">Item</th>'
             . '<th style="padding:10px;border-bottom:2px solid #5c4033">Qty</th>'

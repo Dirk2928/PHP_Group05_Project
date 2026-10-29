@@ -1448,7 +1448,7 @@ body.sidebar-open::after {
     line-height: 1.65;
 }
 
-.order-delivery-notes {
+.order-pickup-note {
     max-width: 280px;
     margin: 0.45rem 0 0;
     color: var(--text-muted);
@@ -1458,7 +1458,7 @@ body.sidebar-open::after {
     overflow-wrap: anywhere;
 }
 
-.order-delivery-notes strong {
+.order-pickup-note strong {
     color: var(--text);
 }
 
@@ -1976,7 +1976,7 @@ h1, h2, h3, .topbar-title, .page-title {
 .order-card .order-customer strong,
 .order-card .order-items,
 .order-card .order-total,
-.order-card .order-delivery-notes strong {
+.order-card .order-pickup-note strong {
     color: var(--text);
 }
 
@@ -2010,7 +2010,7 @@ h1, h2, h3, .topbar-title, .page-title {
     overflow-wrap: anywhere;
 }
 
-.order-card .order-delivery-notes {
+.order-card .order-pickup-note {
     max-width: none;
     margin: -4px 0 0;
     color: var(--text-muted);

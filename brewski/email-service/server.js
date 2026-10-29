@@ -187,34 +187,18 @@ app.post("/send-order-receipt", async (req, res) => {
             customerName,
             receiptNumber,
             orderDate,
-            address,
-            deliveryNotes,
+            fulfillment,
             items,
             subtotal,
-            deliveryFee,
             total
         } = req.body;
-
-        const storePickup = address && address.addressLine === "Store pickup";
 
         if (
             !hasValidEmail(email) ||
             !hasText(customerName, 200) ||
             !hasText(receiptNumber, 40) ||
             !hasText(orderDate, 40) ||
-            !address ||
-            typeof address !== "object" ||
-            !hasText(address.addressLine, 255) ||
-            (!storePickup && !hasText(address.city, 100)) ||
-            (!storePickup && !hasText(address.province, 100)) ||
-            (!storePickup && !hasText(address.postalCode, 20)) ||
-            (
-                deliveryNotes !== undefined &&
-                (
-                    typeof deliveryNotes !== "string" ||
-                    deliveryNotes.length > 500
-                )
-            ) ||
+            fulfillment !== "Store pickup" ||
             !Array.isArray(items) ||
             items.length === 0 ||
             items.length > 100 ||
@@ -229,7 +213,6 @@ app.post("/send-order-receipt", async (req, res) => {
                 hasAmount(item.lineTotal)
             ) ||
             !hasAmount(subtotal) ||
-            !hasAmount(deliveryFee) ||
             !hasAmount(total)
         ) {
             return res.status(400).json({
@@ -238,26 +221,9 @@ app.post("/send-order-receipt", async (req, res) => {
             });
         }
 
-        const addressText = [
-            address.addressLine,
-            address.city,
-            address.province,
-            address.postalCode
-        ].filter(Boolean).join(", ");
-        const addressLabel = address.addressLine === "Store pickup" ? "Pickup" : "Delivery address";
-
-        const safeDeliveryNotes =
-            typeof deliveryNotes === "string"
-                ? deliveryNotes.trim()
-                : "";
-
         const itemText = items.map((item) =>
             `${item.name} (${item.size}) x ${item.quantity} - PHP ${formatAmount(item.lineTotal)}`
         ).join("\n");
-
-        const deliveryNotesText = safeDeliveryNotes
-            ? `\nDelivery notes: ${safeDeliveryNotes}\n`
-            : "";
 
         const itemRows = items.map((item) => `
             <tr>
@@ -276,12 +242,6 @@ app.post("/send-order-receipt", async (req, res) => {
         const safeCustomerName = escapeHtml(customerName);
         const safeReceiptNumber = escapeHtml(receiptNumber);
         const safeOrderDate = escapeHtml(orderDate);
-        const safeAddress = escapeHtml(addressText);
-
-        const deliveryNotesHtml = safeDeliveryNotes
-            ? `<p><strong>Delivery notes:</strong><br>${escapeHtml(safeDeliveryNotes).replace(/\r?\n/g, "<br>")}</p>`
-            : "";
-
         const info = await deliver({
             from: `"Brewski" <${fromAddress}>`,
             to: email,
@@ -292,7 +252,7 @@ Thank you for your order. Here is your receipt.
 
 Receipt: ${receiptNumber}
 Order date: ${orderDate}
-${addressLabel}: ${addressText}${deliveryNotesText}
+Pickup: Store counter
 
 ${itemText}
 
@@ -306,9 +266,8 @@ Total: PHP ${formatAmount(total)}
                     <p>
                         <strong>Receipt:</strong> ${safeReceiptNumber}<br>
                         <strong>Order date:</strong> ${safeOrderDate}<br>
-                        <strong>${addressLabel}:</strong> ${safeAddress}
+                        <strong>Pickup:</strong> Store counter
                     </p>
-                    ${deliveryNotesHtml}
                     <table style="width:100%;border-collapse:collapse">
                         <thead>
                             <tr>

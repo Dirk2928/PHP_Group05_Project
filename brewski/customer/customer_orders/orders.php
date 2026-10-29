@@ -40,14 +40,6 @@ if ($search !== '') {
 }
 
 $where = implode(' AND ', $conditions);
-$hasDeliveries = customer_has_deliveries_table($pdo);
-$deliverySelect = $hasDeliveries
-    ? 'd.delivery_status, d.notes AS delivery_notes'
-    : 'NULL AS delivery_status, NULL AS delivery_notes';
-$deliveryJoin = $hasDeliveries
-    ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id'
-    : '';
-
 $countStatement = $pdo->prepare("SELECT COUNT(*) FROM orders o WHERE $where");
 $countStatement->execute($parameters);
 $totalOrders = (int) $countStatement->fetchColumn();
@@ -58,7 +50,6 @@ $offset = ($page - 1) * $perPage;
 $ordersStatement = $pdo->prepare(
     "SELECT o.order_id, o.order_date, o.total_amount, o.order_status,
             op.payment_status, op.provider AS payment_provider,
-            $deliverySelect,
             (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count,
             (SELECT p.product_name
                FROM order_items oi
@@ -68,7 +59,6 @@ $ordersStatement = $pdo->prepare(
               LIMIT 1) AS first_item
        FROM orders o
        LEFT JOIN order_payments op ON op.order_id = o.order_id
-       $deliveryJoin
       WHERE $where
       ORDER BY o.order_date DESC, o.order_id DESC
       LIMIT $perPage OFFSET $offset"
@@ -101,30 +91,12 @@ $statusLabels = [
     'COMPLETED' => 'Completed',
     'CANCELLED' => 'Cancelled',
 ];
-$deliveryLabels = [
-    'UNASSIGNED' => 'Finding a rider',
-    'ASSIGNED' => 'Rider assigned',
-    'PICKED_UP' => 'Picked up',
-    'IN_TRANSIT' => 'On the way',
-    'DELIVERED' => 'Delivered',
-    'FAILED' => 'Delivery issue',
-    'CANCELLED' => 'Cancelled',
-];
 $statusIcons = [
     'PENDING' => 'clock-3',
     'CONFIRMED' => 'badge-check',
     'PREPARING' => 'chef-hat',
     'READY' => 'package-check',
     'COMPLETED' => 'circle-check',
-    'CANCELLED' => 'circle-x',
-];
-$deliveryIcons = [
-    'UNASSIGNED' => 'search',
-    'ASSIGNED' => 'bike',
-    'PICKED_UP' => 'package-check',
-    'IN_TRANSIT' => 'truck',
-    'DELIVERED' => 'circle-check',
-    'FAILED' => 'triangle-alert',
     'CANCELLED' => 'circle-x',
 ];
 ?>
@@ -141,13 +113,6 @@ $deliveryIcons = [
             <i data-lucide="arrow-up-right" aria-hidden="true"></i>
         </a>
     </div>
-
-    <?php if (!$hasDeliveries): ?>
-        <p class="orders-notice" role="status">
-            <i data-lucide="info" aria-hidden="true"></i>
-            Order history is available, but delivery updates are not set up yet.
-        </p>
-    <?php endif; ?>
 
     <form class="orders-search" method="get" action="orders.php">
         <?php if ($status !== 'ALL'): ?>
@@ -200,15 +165,7 @@ $deliveryIcons = [
                     $orderStatus = (string) $order['order_status'];
                     $paymentStatus = (string) ($order['payment_status'] ?? '');
                     $storePickup = ($order['payment_provider'] ?? '') === 'in_store';
-                    $deliveryStatus = (string) ($order['delivery_status'] ?? '');
                     $itemCount = (int) $order['item_count'];
-                    $deliveryLabel = $orderStatus === 'CANCELLED'
-                        ? 'Order cancelled'
-                        : ($storePickup
-                            ? 'Store pickup · Pay at counter'
-                            : (!$hasDeliveries
-                            ? 'Delivery updates unavailable'
-                            : ($deliveryLabels[$deliveryStatus] ?? 'Delivery details pending')));
                 ?>
                 <article class="order-card">
                     <div class="order-card__top">
@@ -250,17 +207,10 @@ $deliveryIcons = [
                         </div>
                     </div>
 
-                    <?php if (!empty($order['delivery_notes'])): ?>
-                        <p class="order-card__notes">
-                            <strong>Delivery notes:</strong>
-                            <?= htmlspecialchars($order['delivery_notes'], ENT_QUOTES, 'UTF-8') ?>
-                        </p>
-                    <?php endif; ?>
-
                     <div class="order-card__bottom">
-                        <span class="order-delivery">
-                            <i data-lucide="<?= htmlspecialchars($orderStatus === 'CANCELLED' ? 'circle-x' : ($storePickup ? 'store' : (!$hasDeliveries ? 'info' : ($deliveryIcons[$deliveryStatus] ?? 'truck'))), ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i>
-                            <?= htmlspecialchars($deliveryLabel, ENT_QUOTES, 'UTF-8') ?>
+                        <span class="order-pickup">
+                            <i data-lucide="store" aria-hidden="true"></i>
+                            Store pickup
                         </span>
                         <a href="track_order.php?order_id=<?= (int) $order['order_id'] ?>">
                             View order <i data-lucide="arrow-right" aria-hidden="true"></i>

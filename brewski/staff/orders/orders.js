@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var haystack = (
                 order.order_id + ' ' +
                 (order.customer || '') + ' ' +
-                (order.delivery_notes || '') + ' ' +
+                (order.order_notes || '') + ' ' +
                 (order.items || []).map(function (item) { return item.name || ''; }).join(' ')
             ).toLowerCase();
 
@@ -258,12 +258,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         '</span><span><strong>' + escapeHtml(order.customer || 'Guest') + '</strong>' +
                         '<small>' + escapeHtml(formatPlaced(order.created_at)) + '</small></span></div>' +
                     '<ul class="order-items">' + items + '</ul>' +
-                    (order.payment_provider === 'in_store'
-                        ? '<p class="order-delivery-notes"><strong>Store pickup · Pay cash at counter</strong></p>'
+                    (order.order_notes
+                        ? '<p class="order-pickup-note"><strong>Order notes:</strong> ' +
+                            escapeHtml(order.order_notes) + '</p>'
                         : '') +
-                    (order.delivery_notes
-                        ? '<p class="order-delivery-notes"><strong>Notes:</strong> ' +
-                            escapeHtml(order.delivery_notes) + '</p>'
+                    (order.payment_provider === 'in_store'
+                        ? '<p class="order-pickup-note"><strong>Store pickup · Pay cash at counter</strong></p>'
                         : '') +
                     '<div class="order-card-footer">' +
                         '<strong class="order-total">₱' + Number(order.total_amount).toFixed(2) + '</strong>' +

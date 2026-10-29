@@ -102,7 +102,6 @@ VALUES
     ('session_idle_timeout', '1800'),
     ('session_absolute_timeout', '28800'),
     ('choice_catalog_fingerprint', ''),
-    ('delivery_enabled', '1'),
     ('max_login_attempts', '3');
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -161,21 +160,6 @@ CREATE TABLE IF NOT EXISTS product_sizes (
         UNIQUE (product_id, size_id)
 );
 
-CREATE TABLE IF NOT EXISTS addresses (
-    address_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    address_line VARCHAR(255) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    province VARCHAR(100) NOT NULL,
-    postal_code VARCHAR(20) NOT NULL,
-
-    CONSTRAINT fk_addresses_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(user_id)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS carts (
     cart_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -221,9 +205,9 @@ CREATE TABLE IF NOT EXISTS cart_items (
 CREATE TABLE IF NOT EXISTS orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    address_id INT NULL,
     order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    order_notes TEXT NULL,
 
     order_status ENUM(
         'PENDING',
@@ -241,12 +225,6 @@ CREATE TABLE IF NOT EXISTS orders (
     CONSTRAINT fk_orders_user
         FOREIGN KEY (user_id)
         REFERENCES users(user_id)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT fk_orders_address
-        FOREIGN KEY (address_id)
-        REFERENCES addresses(address_id)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 );
@@ -301,46 +279,6 @@ CREATE TABLE IF NOT EXISTS order_items (
         REFERENCES sizes(size_id)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
-);
-
-CREATE TABLE IF NOT EXISTS deliveries (
-    delivery_id INT AUTO_INCREMENT PRIMARY KEY,
-    order_id INT NOT NULL,
-    staff_id INT NULL,
-    delivery_status ENUM(
-        'UNASSIGNED',
-        'ASSIGNED',
-        'PICKED_UP',
-        'IN_TRANSIT',
-        'DELIVERED',
-        'FAILED',
-        'CANCELLED'
-    ) NOT NULL DEFAULT 'UNASSIGNED',
-    delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    notes TEXT NULL,
-    assigned_at DATETIME NULL,
-    picked_up_at DATETIME NULL,
-    delivered_at DATETIME NULL,
-    failed_at DATETIME NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP,
-
-    UNIQUE KEY unique_delivery_per_order (order_id),
-    KEY idx_deliveries_status (delivery_status),
-    KEY idx_deliveries_staff (staff_id),
-
-    CONSTRAINT fk_deliveries_order
-        FOREIGN KEY (order_id)
-        REFERENCES orders(order_id)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT fk_deliveries_staff
-        FOREIGN KEY (staff_id)
-        REFERENCES users(user_id)
-        ON UPDATE CASCADE
-        ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS preferences (

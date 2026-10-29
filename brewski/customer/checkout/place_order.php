@@ -75,31 +75,18 @@ $paymentMode = (string) ($_POST['payment_mode'] ?? 'online');
 if (!in_array($paymentMode, ['online', 'in_store'], true)) {
     customer_place_order_respond(422, ['ok' => false, 'error' => 'Please choose a payment method.']);
 }
-$addressId = $paymentMode === 'online' ? filter_var(
-    $_POST['address_id'] ?? null,
-    FILTER_VALIDATE_INT,
-    ['options' => ['min_range' => 1]]
-) : null;
-$notes = trim((string) ($_POST['notes'] ?? ''));
-if ($paymentMode === 'in_store') {
-    $notes = '';
-}
-if ($paymentMode === 'online' && $addressId === false) {
+$submittedOrderNotes = $_POST['order_notes'] ?? '';
+if (!is_string($submittedOrderNotes)) {
     customer_place_order_respond(422, [
         'ok' => false,
-        'error' => 'Please select a delivery address.',
+        'error' => 'Order notes must be plain text.',
     ]);
 }
-if (mb_strlen($notes) > 500) {
+$orderNotes = trim($submittedOrderNotes);
+if (mb_strlen($orderNotes, 'UTF-8') > 1000) {
     customer_place_order_respond(422, [
         'ok' => false,
-        'error' => 'Delivery notes must be 500 characters or fewer.',
-    ]);
-}
-if ($paymentMode === 'online' && $notes !== '' && !customer_has_deliveries_table($pdo)) {
-    customer_place_order_respond(503, [
-        'ok' => false,
-        'error' => 'Custom delivery notes are unavailable right now. Please try again later.',
+        'error' => 'Order notes must be 1,000 characters or fewer.',
     ]);
 }
 
@@ -117,16 +104,6 @@ $publicBase = $publicBase !== null ? rtrim($publicBase, '/') : null;
 try {
     brewski_ensure_order_customization_columns($pdo);
     $pdo->beginTransaction();
-
-    if ($paymentMode === 'online') {
-        $addressStatement = $pdo->prepare(
-            'SELECT address_id FROM addresses WHERE address_id = ? AND user_id = ? LIMIT 1'
-        );
-        $addressStatement->execute([(int) $addressId, $userId]);
-        if (!$addressStatement->fetchColumn()) {
-            throw new RuntimeException('Please select one of your saved delivery addresses.');
-        }
-    }
 
     $cartStatement = $pdo->prepare(
         'SELECT cart_id FROM carts WHERE user_id = ? ORDER BY cart_id ASC LIMIT 1 FOR UPDATE'
@@ -251,13 +228,13 @@ try {
     $totalCents = $subtotalCents;
 
     $orderStatement = $pdo->prepare(
-        "INSERT INTO orders (user_id, address_id, total_amount, order_status)
-         VALUES (?, ?, ?, 'PENDING')"
+        "INSERT INTO orders (user_id, total_amount, order_status, order_notes)
+         VALUES (?, ?, 'PENDING', ?)"
     );
     $orderStatement->execute([
         $userId,
-        $addressId === null ? null : (int) $addressId,
         number_format($totalCents / 100, 2, '.', ''),
+        $orderNotes !== '' ? $orderNotes : null,
     ]);
     $orderId = (int) $pdo->lastInsertId();
 
@@ -275,19 +252,6 @@ try {
             number_format((float) $item['unit_price'], 2, '.', ''),
             number_format($lineCents / 100, 2, '.', ''),
             $item['customization_summary'],
-        ]);
-    }
-
-    $hasDeliveries = customer_has_deliveries_table($pdo);
-    if ($hasDeliveries && $paymentMode === 'online') {
-        $deliveryStatement = $pdo->prepare(
-            "INSERT INTO deliveries (order_id, delivery_status, delivery_fee, notes)
-             VALUES (?, 'UNASSIGNED', ?, ?)"
-        );
-        $deliveryStatement->execute([
-            $orderId,
-            '0.00',
-            $notes !== '' ? $notes : null,
         ]);
     }
 

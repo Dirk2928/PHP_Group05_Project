@@ -26,13 +26,6 @@ if (empty($_SESSION['csrf_token'])) {
 $csrfToken = $_SESSION['csrf_token'];
 
 $stmt = $pdo->prepare(
-    'SELECT address_id, address_line, city, province, postal_code
-     FROM addresses WHERE user_id = ? ORDER BY address_id DESC'
-);
-$stmt->execute([$userId]);
-$addresses = $stmt->fetchAll();
-
-$stmt = $pdo->prepare(
     'SELECT cart_id FROM carts
      WHERE user_id = ?
      ORDER BY cart_id ASC
@@ -93,35 +86,11 @@ require __DIR__ . '/../partials/header.php';
 
         <section>
 
-            <h2 data-delivery-only style="font-size:1.15rem; margin-bottom:1rem;">Delivery address</h2>
-
-            <?php if (!$addresses): ?>
-
-                <div data-delivery-only style="padding:1rem; background:#faf5ee; border:1px solid #e8dac4; border-radius:0.75rem; margin-bottom:1.5rem;">
-                    You have no saved addresses yet.
-                    <a href="../customer_profile/customer_profile.php">Add one in your profile</a>.
-                </div>
-
-            <?php endif; ?>
-
                 <form id="checkout-form" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:2rem;">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-
-                    <?php if ($addresses): ?>
-                    <?php foreach ($addresses as $i => $a): ?>
-                        <label data-delivery-only style="display:flex; gap:0.75rem; padding:1rem; background:#f2e4cc; border-radius:0.75rem; cursor:pointer;">
-                            <input type="radio" name="address_id" value="<?= (int)$a['address_id'] ?>" <?= $i === 0 ? 'checked' : '' ?> required>
-                            <span>
-                                <strong><?= htmlspecialchars($a['address_line']) ?></strong><br>
-                                <small><?= htmlspecialchars($a['city'] . ', ' . $a['province'] . ' ' . $a['postal_code']) ?></small>
-                            </span>
-                        </label>
-                    <?php endforeach; ?>
-                    <?php endif; ?>
-
-                    <label data-delivery-only style="display:flex; flex-direction:column; gap:0.4rem; margin-top:0.5rem;">
-                        <span style="font-size:0.85rem; font-weight:600; color:#3b2218;">Delivery notes (optional)</span>
-                        <textarea name="notes" rows="2" placeholder="e.g. Leave at the front desk"
+                    <label style="display:flex; flex-direction:column; gap:0.4rem; margin-top:0.5rem;">
+                        <span style="font-size:0.9rem; font-weight:600; color:#3b2218;">Order notes (optional)</span>
+                        <textarea name="order_notes" rows="3" maxlength="1000" placeholder="Anything the café should know about your order?"
                             style="padding:0.75rem; border:1px solid #e8dac4; border-radius:0.75rem; font-family:inherit; background:#faf5ee;"></textarea>
                     </label>
                 </form>
@@ -318,9 +287,6 @@ require __DIR__ . '/../partials/header.php';
 
     function updatePaymentMode() {
         var inStore = selectedMode() === 'in_store';
-        document.querySelectorAll('[data-delivery-only]').forEach(function (element) {
-            element.hidden = inStore;
-        });
         placeOrderButton.textContent = inStore ? 'Place pickup order' : 'Continue to payment';
         paymentNotice.textContent = inStore
             ? 'Pay cash when you collect your order at the store.'
@@ -370,10 +336,6 @@ require __DIR__ . '/../partials/header.php';
     }
 
     placeOrderButton.addEventListener('click', function () {
-        if (selectedMode() === 'online' && !checkoutForm.querySelector('input[name="address_id"]:checked')) {
-            showError('Please add and select a delivery address for online payment.', checkoutMessage);
-            return;
-        }
         checkoutMessage.textContent = '';
         confirmationMessage.textContent = '';
         confirmationDescription.textContent = selectedMode() === 'in_store'

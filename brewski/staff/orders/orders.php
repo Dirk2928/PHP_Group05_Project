@@ -135,12 +135,12 @@ $csrf_token = $_SESSION['csrf_token'];
                 <div class="staff-welcome">
                     <p class="staff-welcome__eyebrow">YOUR WORKSPACE</p>
                     <h1 class="staff-welcome__title">Welcome, <?= $display_name ?></h1>
-                    <p class="staff-welcome__subtitle">Review customer orders and keep delivery status up to date.</p>
+                    <p class="staff-welcome__subtitle">Review customer orders and keep pickup status up to date.</p>
                 </div>
                 <div class="page-header">
                     <h2 class="page-title">Orders</h2>
                     <p class="subtitle">
-                        Manage active orders and delivery progress.
+                        Manage active orders and pickup progress.
                     </p>
                 </div>
 
@@ -151,7 +151,7 @@ $csrf_token = $_SESSION['csrf_token'];
                         <span class="order-summary-note">Currently being handled</span>
                     </article>
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Ready for delivery</span>
+                        <span class="order-summary-label">Ready for pickup</span>
                         <strong id="readyOrderCount">0</strong>
                         <span class="order-summary-note">Ready to leave the counter</span>
                     </article>

@@ -11,19 +11,12 @@ if (empty($_SESSION['user_id'])) {
 
 $orderId = (int) ($_GET['order_id'] ?? 0);
 $userId  = (int) $_SESSION['user_id'];
-$hasDeliveries = customer_has_deliveries_table($pdo);
-$deliverySelect = $hasDeliveries
-    ? 'd.delivery_status, d.notes AS delivery_notes'
-    : 'NULL AS delivery_status, NULL AS delivery_notes';
-$deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id' : '';
-
 $stmt = $pdo->prepare(
-    "SELECT o.order_id, o.total_amount, o.order_status, u.email,
-            op.payment_status, op.provider AS payment_provider, $deliverySelect
+    "SELECT o.order_id, o.total_amount, o.order_status, o.order_notes, u.email,
+            op.payment_status, op.provider AS payment_provider
      FROM orders o
      INNER JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_payments op ON op.order_id = o.order_id
-     $deliveryJoin
      WHERE o.order_id = ? AND o.user_id = ?"
 );
 $stmt->execute([$orderId, $userId]);
@@ -68,17 +61,10 @@ require __DIR__ . '/../partials/header.php';
             <?php endif; ?>
         </div>
 
-    <?php if (!$hasDeliveries && $order['payment_provider'] !== 'in_store'): ?>
-        <p class="order-success-notice" role="status">
-            <i data-lucide="info" aria-hidden="true"></i>
-            <span>Delivery tracking is not set up yet. You can still view your order details and status.</span>
-        </p>
-    <?php endif; ?>
-
-        <?php if (!empty($order['delivery_notes'])): ?>
+        <?php if (!empty($order['order_notes'])): ?>
             <p class="order-success-notes">
-                <strong>Delivery notes:</strong>
-                <?= htmlspecialchars($order['delivery_notes'], ENT_QUOTES, 'UTF-8') ?>
+                <strong>Order notes:</strong>
+                <?= htmlspecialchars($order['order_notes'], ENT_QUOTES, 'UTF-8') ?>
             </p>
         <?php endif; ?>
 
@@ -88,8 +74,8 @@ require __DIR__ . '/../partials/header.php';
                 <span class="order-success-detail__copy"><small>Order status</small><strong><?= htmlspecialchars($order['order_status']) ?></strong></span>
             </div>
             <div class="order-success-detail">
-                <span class="order-success-detail__icon"><i data-lucide="<?= $order['payment_provider'] === 'in_store' ? 'store' : 'bike' ?>" aria-hidden="true"></i></span>
-                <span class="order-success-detail__copy"><small><?= $order['payment_provider'] === 'in_store' ? 'Fulfillment' : 'Delivery' ?></small><strong><?= $order['payment_provider'] === 'in_store' ? 'Store pickup' : htmlspecialchars($order['delivery_status'] ?? ($hasDeliveries ? 'UNASSIGNED' : 'Not available')) ?></strong></span>
+                <span class="order-success-detail__icon"><i data-lucide="store" aria-hidden="true"></i></span>
+                <span class="order-success-detail__copy"><small>Fulfillment</small><strong>Store pickup</strong></span>
             </div>
             <div class="order-success-detail order-success-detail--total">
                 <span class="order-success-detail__icon"><i data-lucide="wallet" aria-hidden="true"></i></span>

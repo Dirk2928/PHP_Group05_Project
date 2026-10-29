@@ -324,7 +324,7 @@
 .order-status svg,
 .order-card__items > div > span svg,
 .order-card__total > span svg,
-.order-delivery svg,
+.order-pickup svg,
 .order-card__bottom a svg,
 .orders-pagination a svg,
 .orders-empty a svg,
@@ -637,7 +637,7 @@
     gap: 0.4rem;
 }
 
-.order-delivery {
+.order-pickup {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;

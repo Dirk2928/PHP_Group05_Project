@@ -214,7 +214,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
                     <div class="table-scroll">
                         <table class="dashboard-table">
                             <thead>
-                                <tr><th>Order</th><th>Time</th><th>Items</th><th>Delivery notes</th><th>Total</th><th>Status</th></tr>
+                                <tr><th>Order</th><th>Time</th><th>Items</th><th>Total</th><th>Status</th></tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
                         </table>

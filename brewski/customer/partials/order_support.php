@@ -1,23 +1,5 @@
 <?php
 
-function customer_has_deliveries_table(PDO $pdo): bool
-{
-    static $exists = null;
-
-    if ($exists === null) {
-        $statement = $pdo->prepare(
-            'SELECT COUNT(*)
-               FROM information_schema.tables
-              WHERE table_schema = DATABASE()
-                AND table_name = ?'
-        );
-        $statement->execute(['deliveries']);
-        $exists = (int) $statement->fetchColumn() > 0;
-    }
-
-    return $exists;
-}
-
 function customer_paymongo_session_is_paid(array $attributes): bool
 {
     $payments = $attributes['payments'] ?? [];
@@ -59,17 +41,11 @@ function customer_send_order_receipt(PDO $pdo, int $orderId): bool
 {
     require_once __DIR__ . '/../../login-signup/email-service-client.php';
 
-    $hasDeliveries = customer_has_deliveries_table($pdo);
-    $notesSelect = $hasDeliveries ? 'd.notes AS delivery_notes' : 'NULL AS delivery_notes';
-    $deliveryJoin = $hasDeliveries ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id' : '';
     $statement = $pdo->prepare(
         'SELECT u.email, u.first_name, u.last_name, o.order_date, o.total_amount,
-                a.address_line, a.city, a.province, a.postal_code,
-                ' . $notesSelect . '
+                o.order_status
            FROM orders o
            INNER JOIN users u ON u.user_id = o.user_id
-           LEFT JOIN addresses a ON a.address_id = o.address_id
-           ' . $deliveryJoin . '
           WHERE o.order_id = ?
           LIMIT 1'
     );
@@ -111,23 +87,14 @@ function customer_send_order_receipt(PDO $pdo, int $orderId): bool
     }
 
     $totalCents = (int) round((float) $order['total_amount'] * 100);
-    $deliveryFee = max(0, $totalCents - $subtotalCents);
-
     return email_service_send('send-order-receipt', [
         'email' => (string) $order['email'],
         'customerName' => trim($order['first_name'] . ' ' . $order['last_name']),
         'receiptNumber' => 'BRW-' . str_pad((string) $orderId, 8, '0', STR_PAD_LEFT),
         'orderDate' => (string) $order['order_date'],
-        'address' => [
-            'addressLine' => $order['address_line'] === null ? 'Store pickup' : (string) $order['address_line'],
-            'city' => (string) $order['city'],
-            'province' => (string) $order['province'],
-            'postalCode' => (string) $order['postal_code'],
-        ],
-        'deliveryNotes' => (string) ($order['delivery_notes'] ?? ''),
+        'fulfillment' => 'Store pickup',
         'items' => $emailItems,
         'subtotal' => number_format($subtotalCents / 100, 2, '.', ''),
-        'deliveryFee' => number_format($deliveryFee / 100, 2, '.', ''),
         'total' => number_format($totalCents / 100, 2, '.', ''),
     ]);
 }

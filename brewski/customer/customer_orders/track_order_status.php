@@ -27,28 +27,9 @@ if ($orderId <= 0) {
 }
 
 try {
-    $hasDeliveries = false;
-    $checkTable = $pdo->query("SHOW TABLES LIKE 'deliveries'");
-    if ($checkTable && $checkTable->rowCount() > 0) {
-        $hasDeliveries = true;
-    }
-
-    $deliverySelect = $hasDeliveries
-        ? 'd.delivery_status, d.notes AS delivery_notes,
-           u.first_name AS driver_first, u.last_name AS driver_last'
-        : 'NULL AS delivery_status, NULL AS delivery_notes,
-           NULL AS driver_first, NULL AS driver_last';
-    
-    $deliveryJoin = $hasDeliveries
-        ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id
-           LEFT JOIN users u ON u.user_id = d.staff_id'
-        : '';
-
     $stmt = $pdo->prepare(
-        "SELECT o.order_status,
-                $deliverySelect
+        "SELECT o.order_status
          FROM orders o
-         $deliveryJoin
          WHERE o.order_id = ? AND o.user_id = ?
          LIMIT 1"
     );
@@ -64,10 +45,6 @@ try {
     $response = [
         'ok' => true,
         'order_status' => $order['order_status'],
-        'delivery_status' => $order['delivery_status'],
-        'delivery_notes' => $order['delivery_notes'],
-        'driver_first' => $order['driver_first'],
-        'driver_last' => $order['driver_last'],
     ];
 
     echo json_encode($response);

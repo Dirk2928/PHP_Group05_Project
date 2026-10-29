@@ -49,28 +49,13 @@ if ($orderId === false) {
 
 try {
     $userId = (int) $_SESSION['user_id'];
-    $hasDeliveries = customer_has_deliveries_table($pdo);
-    $deliveryFeeSelect = $hasDeliveries
-        ? 'd.delivery_fee'
-        : 'NULL AS delivery_fee';
-    $deliveryJoin = $hasDeliveries
-        ? 'LEFT JOIN deliveries d ON d.order_id = o.order_id'
-        : '';
-    $deliveryNotesSelect = $hasDeliveries
-        ? 'd.notes AS delivery_notes'
-        : 'NULL AS delivery_notes';
-
     $orderStatement = $pdo->prepare(
         "SELECT o.order_id, o.order_date, o.order_status, o.total_amount,
                 op.payment_status, op.provider AS payment_provider,
-                u.first_name, u.last_name, u.email,
-                a.address_line, a.city, a.province, a.postal_code,
-                $deliveryFeeSelect, $deliveryNotesSelect
+                u.first_name, u.last_name, u.email
          FROM orders o
          LEFT JOIN order_payments op ON op.order_id = o.order_id
          INNER JOIN users u ON u.user_id = o.user_id
-         LEFT JOIN addresses a ON a.address_id = o.address_id
-         $deliveryJoin
          WHERE o.order_id = ? AND o.user_id = ?
          LIMIT 1"
     );
@@ -119,10 +104,6 @@ try {
     }
 
     $totalCents = (int) round((float) $order['total_amount'] * 100);
-    $deliveryFeeCents = $order['delivery_fee'] !== null
-        ? (int) round((float) $order['delivery_fee'] * 100)
-        : max(0, $totalCents - $subtotalCents);
-
     customer_receipt_respond(200, [
         'ok' => true,
         'receipt' => [
@@ -136,17 +117,9 @@ try {
                 'name' => trim($order['first_name'] . ' ' . $order['last_name']),
                 'email' => $order['email'],
             ],
-            'delivery_address' => [
-                'address_line' => $order['address_line'],
-                'city' => $order['city'],
-                'province' => $order['province'],
-                'postal_code' => $order['postal_code'],
-            ],
-            'fulfillment' => $order['payment_provider'] === 'in_store' ? 'Store pickup' : 'Delivery',
-            'delivery_notes' => $order['delivery_notes'],
+            'fulfillment' => 'Store pickup',
             'items' => $items,
             'subtotal' => customer_receipt_money($subtotalCents),
-            'delivery_fee' => customer_receipt_money($deliveryFeeCents),
             'total' => customer_receipt_money($totalCents),
         ],
     ]);
