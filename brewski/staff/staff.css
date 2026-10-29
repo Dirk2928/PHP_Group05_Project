@@ -2128,3 +2128,49 @@ body.sidebar-open .sidebar-toggle span {
         grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
     }
 }
+
+/* Use the admin home palette: latte KPI cards, warm section headers, white content. */
+.staff-orders .order-summary-card,
+.staff-products .availability-overview {
+    background: var(--latte) !important;
+    border-color: transparent;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08);
+}
+
+.staff-orders .order-board-card,
+.staff-products .product-table-card {
+    background: #ffffff !important;
+    border: 1px solid var(--line) !important;
+    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08) !important;
+}
+
+.staff-orders .order-lane {
+    background: #fffdf9;
+    border-color: var(--line);
+}
+
+.staff-orders .order-lane-heading {
+    margin: -12px -12px 12px;
+    padding: 10px 12px;
+    border-radius: 12px 12px 0 0;
+    background: var(--latte);
+}
+
+.staff-orders .order-card {
+    overflow: hidden;
+    border-color: var(--line);
+    box-shadow: 0 2px 8px rgba(30, 17, 10, 0.08);
+}
+
+.staff-orders .order-card-heading {
+    margin: -14px -14px 0;
+    padding: 10px 14px;
+    border-radius: 11px 11px 0 0;
+    background: var(--latte);
+}
+
+.staff-products .product-list-heading {
+    background: var(--latte);
+    border-bottom-color: var(--line);
+}
