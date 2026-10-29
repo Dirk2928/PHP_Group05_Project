@@ -113,16 +113,14 @@
         return pendingSync;
     }
 
-    // Not signed in: send the customer to the login page. After they log in,
-    // the login page sends them straight to checkout (?next=checkout).
+    // Not signed in: go through the server-side gate, which remembers
+    // "checkout" and sends the customer to the login page.
     function goToLogin() {
         try {
             sessionStorage.removeItem('brewski_checkout_sync_complete');
         } catch (error) {}
 
-        var loginMeta = document.querySelector('meta[name="login-url"]');
-        var loginUrl = loginMeta ? loginMeta.content : '../../login-signup/login.php';
-        window.location.assign(loginUrl + (loginUrl.indexOf('?') === -1 ? '?' : '&') + 'next=checkout');
+        window.location.assign('../customer_cart/go_checkout.php');
     }
 
 
