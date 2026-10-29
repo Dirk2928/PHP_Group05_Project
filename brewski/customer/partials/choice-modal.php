@@ -1,7 +1,7 @@
 <?php
 
-$choiceQuestions = brewski_choice_questions();
-$recommendationQuestions = brewski_recommendation_questions();
+$drinkQuestions = brewski_questions_for_mode('first-timer');
+$preferenceQuestions = brewski_questions_for_mode('recommendation');
 $choiceValues = $choiceValues ?? [];
 $choiceAutoOpen = $choiceAutoOpen ?? false;
 $choiceMode = $choiceMode ?? 'first-timer';
@@ -85,11 +85,11 @@ $renderQuestions = static function (array $questionSet, array $values): void {
         <div class="modal__body">
 
             <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($choiceQuestions, []); ?>
+                <?php $renderQuestions($drinkQuestions, []); ?>
             </div>
 
             <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($recommendationQuestions, $choiceValues); ?>
+                <?php $renderQuestions($preferenceQuestions, $choiceValues); ?>
             </div>
 
             <p

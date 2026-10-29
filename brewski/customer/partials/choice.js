@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', function () {
             : [];
     }
 
-    function resetRecommendationAnswers() {
-        var panel = panels.recommendation;
+    function resetDrinkRecommendationAnswers() {
+        var panel = panels['first-timer'];
 
         if (!panel) {
             return;
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function open(mode) {
         setMode(mode || currentMode);
         if (currentMode === 'first-timer') {
-            resetRecommendationAnswers();
+            resetDrinkRecommendationAnswers();
         }
         setStatus('', '');
         if (status) {
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setStatus(
                         result.data && result.data.message
                             ? result.data.message
-                            : (result.ok && result.text.indexOf('<') === -1
+                            : (result.text && result.text.indexOf('<') === -1
                                 ? result.text
                                 : 'Could not complete the request. Please try again.'),
                         'is-error'

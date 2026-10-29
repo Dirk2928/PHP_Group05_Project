@@ -41,7 +41,7 @@ function brewski_custom_option_values(string $group, array $fallback): array
     }
 }
 
-function brewski_choice_questions(): array
+function brewski_drink_recommendation_questions(): array
 {
     static $questions = null;
 
@@ -119,7 +119,7 @@ function brewski_choice_questions(): array
     ];
 }
 
-function brewski_recommendation_questions(): array
+function brewski_menu_preference_questions(): array
 {
     static $questions = null;
 
@@ -189,6 +189,15 @@ function brewski_recommendation_questions(): array
     ];
 }
 
+function brewski_questions_for_mode(string $mode): array
+{
+    return match ($mode) {
+        'first-timer' => brewski_drink_recommendation_questions(),
+        'recommendation' => brewski_menu_preference_questions(),
+        default => throw new InvalidArgumentException('Unknown drink choice mode.'),
+    };
+}
+
 function brewski_preference_definitions(): array
 {
     $definitions = [
@@ -222,7 +231,7 @@ function brewski_preference_definitions(): array
         'avoid:nuts' => 'Avoid nuts',
         'avoid:gluten' => 'Avoid gluten',
     ];
-    $questions = brewski_choice_questions();
+    $questions = brewski_drink_recommendation_questions();
 
     foreach (['bean', 'milk', 'flavor', 'caffeine', 'dietary'] as $group) {
         foreach ($questions[$group]['answers'] as $answers) {
@@ -981,7 +990,7 @@ function brewski_user_choice_scores(int $userId, array $products): array
 
 function brewski_answers_valid(array $answers, ?array $questions = null): bool
 {
-    $questions = $questions ?? brewski_choice_questions();
+    $questions = $questions ?? brewski_drink_recommendation_questions();
 
     foreach ($questions as $questionKey => $question) {
         if (!isset($answers[$questionKey])) {
@@ -1012,7 +1021,7 @@ function brewski_answers_valid(array $answers, ?array $questions = null): bool
 
 function brewski_answers_to_preferences(array $answers, ?array $questions = null): array
 {
-    $questions = $questions ?? brewski_choice_questions();
+    $questions = $questions ?? brewski_drink_recommendation_questions();
     $preferences = [];
 
     foreach ($questions as $questionKey => $question) {
@@ -1052,7 +1061,7 @@ function brewski_answers_from_preferences(array $stored): array
 {
     $selected = [];
 
-    foreach (brewski_choice_questions() as $questionKey => $question) {
+    foreach (brewski_menu_preference_questions() as $questionKey => $question) {
         $isMulti = !empty($question['multi']);
         $universe = [];
 
