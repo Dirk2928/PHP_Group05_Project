@@ -2,6 +2,11 @@
 
 require_once __DIR__ . '/../login-signup/session_init.php';
 
+$startIsLoggedIn = brewski_is_logged_in();
+$startRole = brewski_current_role();
+$startHomeUrl = brewski_home_for_role($startRole);
+$startIsCustomer = $startRole === 'CUSTOMER';
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,6 +39,13 @@ require_once __DIR__ . '/../login-signup/session_init.php';
         </div>
 
         <nav class="topbar__nav">
+            <?php if ($startIsLoggedIn): ?>
+            <a href="<?= htmlspecialchars($startHomeUrl, ENT_QUOTES, 'UTF-8') ?>" class="topbar__link">
+                <i data-lucide="home"></i>
+                <?= $startIsCustomer ? 'Home' : 'Dashboard' ?>
+            </a>
+            <?php endif; ?>
+            <?php if (!$startIsLoggedIn || $startIsCustomer): ?>
             <a
                 href="../customer/customer_menu/customermenu.php"
                 class="topbar__link"
@@ -43,12 +55,13 @@ require_once __DIR__ . '/../login-signup/session_init.php';
             </a>
 
             <a
-                href="../login-signup/signup.php"
+                href="<?= htmlspecialchars($startIsLoggedIn ? '../customer/customer_menu/customermenu.php' : '../login-signup/signup.php', ENT_QUOTES, 'UTF-8') ?>"
                 class="topbar__link"
             >
                 <i data-lucide="shopping-bag"></i>
                 Order Now
             </a>
+            <?php endif; ?>
         </nav>
     </header>
 
@@ -72,8 +85,8 @@ require_once __DIR__ . '/../login-signup/session_init.php';
                 Brewed to Perfection. Fueling Your Inner Brew.
             </h1>
 
-            <a href="../login-signup/signup.php" class="start-button">
-                Get Started
+            <a href="<?= htmlspecialchars($startIsLoggedIn ? $startHomeUrl : '../login-signup/signup.php', ENT_QUOTES, 'UTF-8') ?>" class="start-button">
+                <?= $startIsLoggedIn ? ($startIsCustomer ? 'Back to Home' : 'Go to Dashboard') : 'Get Started' ?>
             </a>
         </div>
     </div>
