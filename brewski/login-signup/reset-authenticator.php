@@ -229,8 +229,15 @@ $escape = static function (string $value): string {
 <main class="auth auth--centered auth--content-sized auth--compact">
     <section class="auth__panel" aria-labelledby="auth-title">
       <div class="auth__content">
-        <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski">
-        <p class="brand__name">BRE<span>SKI</span></p>
+            <img
+                class="brand__logo"
+                src="../images/brewskilogo.png"
+                alt="Brewski Logo"
+            >
+
+            <p class="brand__name">
+                brew<span>ski</span>
+            </p>
     <h1 class="auth__title" id="auth-title">Reset authenticator</h1>
     <p class="auth__intro">
         Enter your current password and the verification code sent to your email.
