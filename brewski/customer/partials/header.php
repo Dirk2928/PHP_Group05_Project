@@ -213,6 +213,12 @@ if ($headerInitials === '') {
                 <i data-lucide="<?= e($navItems['menu']['icon']) ?>"></i> <?= e($navItems['menu']['label']) ?>
             </a>
 
+            <?php if (!$isLoggedIn): ?>
+            <a href="<?= e(BREWSKI_BASE_URL . '/login-signup/signup.php') ?>" class="topbar__link">
+                <i data-lucide="shopping-bag"></i> Order Now
+            </a>
+            <?php endif; ?>
+
             <?php if ($isLoggedIn): ?>
             <div class="cart-menu" id="cart-menu">
                 <button type="button" class="topbar__link cart-button" id="cart-button" aria-haspopup="true" aria-expanded="false">
