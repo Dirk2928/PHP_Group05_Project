@@ -203,40 +203,16 @@ $escape = static function (string $value): string {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            color-scheme: light;
-            --font-brand: "Fredoka", "Century Gothic", sans-serif;
-            --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
-            font-family: var(--font-body);
-            color: #1a0f0a;
-            background: #faf5ee;
-        }
-        h1, h2 { font-family: var(--font-brand); font-weight: 600; }
-        body { margin: 0; padding: 2rem 1rem; }
-        main { width: min(100%, 38rem); margin: 2rem auto; padding: 2rem; box-sizing: border-box; background: #fff; border: 1px solid #e8dac4; border-radius: 1rem; }
-        h1 { margin-top: 0; }
-        li { margin: 0.65rem 0; line-height: 1.5; }
-        .notice { padding: 0.9rem 1rem; border-radius: 0.65rem; line-height: 1.5; }
-        .notice--error { color: #7f1d1d; background: #fef2f2; border: 1px solid #fecaca; }
-        .notice--success { color: #14532d; background: #f0fdf4; border: 1px solid #bbf7d0; }
-        .secret { display: block; margin: 1rem 0; padding: 1rem; border: 1px solid #e8dac4; border-radius: 0.65rem; background: #faf5ee; font: 700 1.1rem/1.5 monospace; overflow-wrap: anywhere; user-select: all; }
-        .recovery-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; padding: 1rem; border: 1px solid #e8dac4; border-radius: 0.65rem; background: #faf5ee; list-style: none; }
-        .recovery-codes code { font-weight: 700; }
-        .uri { overflow-wrap: anywhere; font: 0.85rem/1.5 monospace; }
-        label { display: block; margin: 1.5rem 0 0.4rem; font-weight: 700; }
-        input { width: 100%; box-sizing: border-box; padding: 0.8rem; border: 1px solid #b8a58e; border-radius: 0.6rem; font: inherit; font-size: 1.2rem; letter-spacing: 0.25rem; }
-        .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
-        button, .button { display: inline-block; padding: 0.75rem 1rem; border: 1px solid #1a0f0a; border-radius: 0.6rem; background: #1a0f0a; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
-        button.secondary, .button.secondary { background: #fff; color: #1a0f0a; }
-        details { margin-top: 1rem; }
-        @media (max-width: 480px) { main { padding: 1.25rem; } }
-    </style>
+    <link rel="stylesheet" href="<?= $escape($portalKey === 'portal' ? '../login-signup/styles.css' : 'styles.css') ?>">
 </head>
 <body>
-<main>
-    <h1>Set up an authenticator</h1>
-    <p>Use Google Authenticator or another TOTP-compatible app to add Brewski.</p>
+<main class="auth auth--centered auth--content-sized auth--compact">
+    <section class="auth__panel" aria-labelledby="auth-title">
+      <div class="auth__content">
+        <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski">
+        <p class="brand__name">BRE<span>SKI</span></p>
+    <h1 class="auth__title" id="auth-title">Set up an authenticator</h1>
+    <p class="auth__intro">Use Google Authenticator or another compatible app to secure your Brewski account.</p>
 
     <?php if ($error !== ''): ?>
         <p class="notice notice--error" role="alert"><?= $escape($error) ?></p>
@@ -247,7 +223,7 @@ $escape = static function (string $value): string {
     <?php endif; ?>
 
     <?php if ($user === null): ?>
-        <a class="button secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>
+        <a class="btn btn--secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>
     <?php elseif (!empty($user['totp_enabled_at']) || !empty($user['totp_secret_encrypted'])): ?>
         <?php if ($recoveryCodes): ?>
             <h2>Save your recovery codes</h2>
@@ -260,8 +236,8 @@ $escape = static function (string $value): string {
         <?php else: ?>
             <p>This account already has an authenticator configured.</p>
         <?php endif; ?>
-        <p><a class="button secondary" href="<?= $escape($resetUrl) ?>">Reset authenticator</a></p>
-        <a class="button secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>
+        <p><a class="btn btn--secondary" href="<?= $escape($resetUrl) ?>">Reset authenticator</a></p>
+        <a class="btn btn--secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>
     <?php elseif ($secret !== ''): ?>
         <?php if ($isPendingEnrollment): ?>
             <p>Set up an authenticator to complete your first sign-in.</p>
@@ -290,15 +266,17 @@ $escape = static function (string $value): string {
                 required
             >
             <div class="actions">
-                <button type="submit">Confirm setup</button>
+                <button class="btn" type="submit">Confirm setup</button>
             </div>
         </form>
         <form method="post" action="<?= $escape($setupUrl) ?>" class="actions">
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
             <input type="hidden" name="action" value="cancel_setup">
-            <button class="secondary" type="submit">Cancel</button>
+            <button class="btn btn--secondary" type="submit">Cancel setup</button>
         </form>
     <?php endif; ?>
+      </div>
+    </section>
 </main>
 </body>
 </html>

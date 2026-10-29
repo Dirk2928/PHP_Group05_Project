@@ -581,6 +581,62 @@ body {
 
 .auth__legal a { color: #755b43; text-underline-offset: 2px; }
 
+/* Authenticator setup and recovery screens share the login/signup card. */
+.auth__content > p { line-height: 1.5; }
+.auth__content h2 { margin: 1.2rem 0 0.45rem; font-family: var(--font-brand); font-size: 1.1rem; }
+.auth__content ol { margin: 0 0 1rem; padding-left: 1.25rem; color: #755b43; text-align: left; font-size: 0.8rem; }
+.auth__content li { margin: 0.45rem 0; line-height: 1.45; }
+.auth__content details { margin: 0.8rem 0 1rem; text-align: left; color: #755b43; font-size: 0.78rem; }
+.auth__content summary { cursor: pointer; font-weight: 700; }
+.auth__content .uri { overflow-wrap: anywhere; font: 0.72rem/1.45 ui-monospace, monospace; }
+.auth__content .secret {
+    display: block;
+    margin: 0.9rem 0;
+    padding: 0.85rem;
+    border: 1px solid #e2d6c5;
+    border-radius: 0.55rem;
+    background: #fff;
+    color: var(--espresso);
+    font: 700 1rem/1.5 ui-monospace, "Cascadia Code", monospace;
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+    user-select: all;
+}
+.auth__content .recovery-codes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin: 0.8rem 0;
+    padding: 0.75rem;
+    border: 1px solid #e2d6c5;
+    border-radius: 0.55rem;
+    background: #fff;
+    list-style: none;
+    text-align: left;
+}
+.auth__content .recovery-codes li { margin: 0; font-size: 0.75rem; }
+.auth__content .recovery-codes code { font-weight: 700; color: var(--espresso); }
+.auth__content .notice { padding: 0.7rem 0.8rem; border: 1px solid; border-radius: 0.5rem; font-size: 0.76rem; line-height: 1.45; text-align: left; }
+.auth__content .notice--error { color: #7f1d1d; background: #fef2f2; border-color: #fecaca; }
+.auth__content .notice--success { color: #14532d; background: #f0fdf4; border-color: #bbf7d0; }
+.auth__content .btn--secondary { color: var(--espresso); background: #fff; border: 1px solid #d8c6ad; }
+.auth__content .btn--secondary:hover { background: var(--latte); }
+.auth__content .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.auth__content form { margin-top: 0.85rem; }
+.auth__content form .field { margin-bottom: 0.75rem; }
+.auth__content form label { display: block; margin-bottom: 0.3rem; color: #624832; font-size: 0.8rem; font-weight: 600; text-align: left; }
+.auth__content form input:not([type="hidden"]) { width: 100%; height: 2.4rem; padding: 0 0.8rem; border: 1px solid #e2d6c5; border-radius: 0.5rem; background: #fff; color: var(--espresso); font: inherit; font-size: 0.9rem; }
+.auth__content form input:not([type="hidden"]):focus { border-color: var(--mocha); outline: none; box-shadow: 0 0 0 3px rgb(113 73 42 / 12%); }
+.auth__content form .otp-inputs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.4rem; width: 100%; margin-top: 0.45rem; }
+.auth__content form .otp-inputs .otp-input { height: 2.8rem; padding: 0; border: 1px solid #d8c6ad; border-radius: 0.45rem; font-size: 1.1rem; font-weight: 700; text-align: center; }
+.auth__content form .auth__code-input { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.18em; text-align: center; }
+.auth__content .actions { display: grid; gap: 0.55rem; margin-top: 0.85rem; }
+.auth__content .actions .btn { width: 100%; margin: 0; }
+.auth__content .auth__switch { margin-top: 0.6rem; }
+.auth__content .auth__back { display: inline-block; margin-top: 0.5rem; color: #755b43; font-size: 0.76rem; text-underline-offset: 2px; }
+.auth--content-sized.auth--compact .auth__content { max-width: 27rem; }
+.auth--content-sized.auth--compact .auth__content { max-height: calc(100svh - 2.5rem); }
+
 @media (max-width: 520px) {
     .auth--centered { padding: 0.75rem; }
     .auth--centered .auth__content {
