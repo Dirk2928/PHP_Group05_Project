@@ -2,28 +2,45 @@ function initializeBrewskiSessionTimeout() {
     'use strict';
 
     var timeoutMeta = document.querySelector('meta[name="session-timeout-seconds"]');
+    var absoluteMeta = document.querySelector('meta[name="session-absolute-remaining-seconds"]');
     var logoutMeta = document.querySelector('meta[name="logout-url"]');
     var timeoutSeconds = timeoutMeta ? Number(timeoutMeta.content) : 0;
+    var absoluteRemainingSeconds = absoluteMeta ? Number(absoluteMeta.content) : 0;
 
-    if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0 || !logoutMeta || !logoutMeta.content) {
+    if (!Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0 ||
+        !Number.isFinite(absoluteRemainingSeconds) || !logoutMeta || !logoutMeta.content) {
         return;
     }
 
     var timeoutId;
     var lastActivityAt = Date.now();
+    var absoluteDeadline = Date.now() + Math.max(0, absoluteRemainingSeconds) * 1000;
 
     function redirectToLogin() {
         window.location.assign(logoutMeta.content);
     }
 
-    function resetTimeout() {
-        lastActivityAt = Date.now();
+    function scheduleTimeout() {
+        var now = Date.now();
+        var idleDeadline = lastActivityAt + timeoutSeconds * 1000;
+        var nextDeadline = Math.min(idleDeadline, absoluteDeadline);
+
         window.clearTimeout(timeoutId);
-        timeoutId = window.setTimeout(redirectToLogin, timeoutSeconds * 1000);
+        if (nextDeadline <= now) {
+            redirectToLogin();
+            return;
+        }
+
+        timeoutId = window.setTimeout(redirectToLogin, nextDeadline - now);
+    }
+
+    function recordActivity() {
+        lastActivityAt = Date.now();
+        scheduleTimeout();
     }
 
     ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) {
-        document.addEventListener(eventName, resetTimeout, { passive: true });
+        document.addEventListener(eventName, recordActivity, { passive: true });
     });
 
     document.addEventListener('visibilitychange', function () {
@@ -31,14 +48,14 @@ function initializeBrewskiSessionTimeout() {
             return;
         }
 
-        if (Date.now() - lastActivityAt >= timeoutSeconds * 1000) {
+        if (Date.now() >= absoluteDeadline || Date.now() - lastActivityAt >= timeoutSeconds * 1000) {
             redirectToLogin();
         } else {
-            resetTimeout();
+            scheduleTimeout();
         }
     });
 
-    resetTimeout();
+    scheduleTimeout();
 }
 
 if (document.readyState === 'loading') {

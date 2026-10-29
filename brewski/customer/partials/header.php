@@ -63,6 +63,7 @@ if ($headerInitials === '') {
     <meta name="checkout-url" content="../checkout/checkout.php">
     <meta name="cart-sync-enabled" content="1">
     <meta name="login-url" content="<?= e(BREWSKI_BASE_URL . '/login-signup/login.php') ?>">
+    <?= brewski_session_timeout_markup() ?>
 
     <title><?= e($pageTitle) ?></title>
 

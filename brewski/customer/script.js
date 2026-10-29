@@ -15,41 +15,6 @@ window.brewskiImageFallback = function (image) {
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
-    var sessionTimeout = document.querySelector('meta[name="session-timeout-seconds"]');
-    var logoutUrl = document.querySelector('meta[name="logout-url"]');
-    var timeoutSeconds = sessionTimeout ? Number(sessionTimeout.content) : 0;
-
-    if (timeoutSeconds > 0 && logoutUrl && logoutUrl.content) {
-        var timeoutId;
-        var lastActivityAt = Date.now();
-
-        function redirectAfterTimeout() {
-            window.location.assign(logoutUrl.content);
-        }
-
-        function resetSessionTimeout() {
-            lastActivityAt = Date.now();
-            window.clearTimeout(timeoutId);
-            timeoutId = window.setTimeout(redirectAfterTimeout, timeoutSeconds * 1000);
-        }
-
-        ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) {
-            document.addEventListener(eventName, resetSessionTimeout, { passive: true });
-        });
-
-        document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState === 'visible') {
-                if (Date.now() - lastActivityAt >= timeoutSeconds * 1000) {
-                    redirectAfterTimeout();
-                } else {
-                    resetSessionTimeout();
-                }
-            }
-        });
-
-        resetSessionTimeout();
-    }
-
     if (window.lucide) {
         window.lucide.createIcons();
     }
