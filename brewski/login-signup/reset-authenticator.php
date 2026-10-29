@@ -223,41 +223,16 @@ $escape = static function (string $value): string {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset authenticator | Brewski</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            color-scheme: light;
-            --font-brand: "Fredoka", "Century Gothic", sans-serif;
-            --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
-            font-family: var(--font-body);
-            color: #1a0f0a;
-            background: #faf5ee;
-        }
-        h1, h2 { font-family: var(--font-brand); font-weight: 600; }
-        body { margin: 0; padding: 2rem 1rem; }
-        main { width: min(100%, 38rem); margin: 2rem auto; padding: 2rem; box-sizing: border-box; background: #fff; border: 1px solid #e8dac4; border-radius: 1rem; }
-        h1 { margin-top: 0; }
-        p { line-height: 1.5; }
-        .notice { padding: 0.9rem 1rem; border-radius: 0.65rem; line-height: 1.5; }
-        .notice--error { color: #7f1d1d; background: #fef2f2; border: 1px solid #fecaca; }
-        .notice--success { color: #14532d; background: #f0fdf4; border: 1px solid #bbf7d0; }
-        label { display: block; margin: 1.2rem 0 0.4rem; font-weight: 700; }
-        input { width: 100%; box-sizing: border-box; padding: 0.8rem; border: 1px solid #b8a58e; border-radius: 0.6rem; font: inherit; }
-        .otp-inputs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); width: min(100%, 19.5rem); margin-top: 0.55rem; }
-        .otp-inputs .otp-input { min-width: 0; height: 3rem; padding: 0; border-radius: 0; font-size: 1.25rem; font-weight: 700; text-align: center; }
-        .otp-inputs .otp-input + .otp-input { margin-left: -1px; }
-        .otp-inputs .otp-input:first-child { border-radius: 0.6rem 0 0 0.6rem; }
-        .otp-inputs .otp-input:last-child { border-radius: 0 0.6rem 0.6rem 0; }
-        .otp-inputs .otp-input:focus { position: relative; z-index: 1; outline: 2px solid rgb(113 73 42 / 20%); border-color: #71492a; }
-        .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
-        button, .button { display: inline-block; padding: 0.75rem 1rem; border: 1px solid #1a0f0a; border-radius: 0.6rem; background: #1a0f0a; color: #fff; font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
-        button.secondary, .button.secondary { background: #fff; color: #1a0f0a; }
-        @media (max-width: 480px) { main { padding: 1.25rem; } }
-    </style>
+    <link rel="stylesheet" href="<?= $escape($portalKey === 'portal' ? '../login-signup/styles.css' : 'styles.css') ?>">
 </head>
 <body>
-<main>
-    <h1>Reset authenticator</h1>
-    <p>
+<main class="auth auth--centered auth--content-sized auth--compact">
+    <section class="auth__panel" aria-labelledby="auth-title">
+      <div class="auth__content">
+        <img class="brand__logo" src="../images/brewskilogo.png" alt="Brewski">
+        <p class="brand__name">BRE<span>SKI</span></p>
+    <h1 class="auth__title" id="auth-title">Reset authenticator</h1>
+    <p class="auth__intro">
         Enter your current password and the verification code sent to your email.
         The code expires in 10 minutes. Resetting will invalidate your existing recovery codes
         and require authenticator setup again.
@@ -275,8 +250,8 @@ $escape = static function (string $value): string {
         <form method="post" action="<?= $escape($resetUrl) ?>" class="actions">
             <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
             <input type="hidden" name="action" value="send_code">
-            <button type="submit">Send verification code</button>
-            <a class="button secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
+            <button class="btn" type="submit">Send verification code</button>
+            <a class="btn btn--secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
         </form>
     <?php elseif ($canReset): ?>
         <form id="otp-form" method="post" action="<?= $escape($resetUrl) ?>">
@@ -310,14 +285,16 @@ $escape = static function (string $value): string {
             <input id="otp" name="otp" type="hidden" value="">
 
             <div class="actions">
-                <button type="submit">Verify and reset</button>
-                <button class="secondary" type="submit" name="action" value="send_code" formnovalidate>Send a new code</button>
-                <a class="button secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
+                <button class="btn" type="submit">Verify and reset</button>
+                <button class="btn btn--secondary" type="submit" name="action" value="send_code" formnovalidate>Send a new code</button>
+                <a class="btn btn--secondary" href="<?= $escape($setupUrl) ?>">Cancel</a>
             </div>
         </form>
     <?php else: ?>
-        <a class="button secondary" href="<?= $escape($setupUrl) ?>">Return to Brewski</a>
+        <a class="btn btn--secondary" href="<?= $escape($setupUrl) ?>">Return to Brewski</a>
     <?php endif; ?>
+      </div>
+    </section>
 </main>
 <script src="<?= $escape($otpScript) ?>"></script>
 </body>
