@@ -134,6 +134,7 @@ require __DIR__ . '/../partials/header.php';
                         class="product-card"
                         data-id="<?= (int) $product['product_id'] ?>"
                         data-name="<?= e($product['product_name']) ?>"
+                        data-description="<?= e($product['description'] ?? '') ?>"
                         data-image="<?= e($image) ?>"
                         data-base-price="<?= e($product['price']) ?>"
                         data-category="<?= (int) $product['category_id'] ?>"

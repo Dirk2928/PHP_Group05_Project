@@ -40,8 +40,6 @@ if ($mode === 'recommendation' && $userId <= 0) {
     exit;
 }
 
-$questions = brewski_questions_for_mode($mode);
-
 if (($_POST['action'] ?? '') === 'skip') {
     if ($mode === 'recommendation') {
         $_SESSION['choice_skipped'] = true;
@@ -59,6 +57,13 @@ if (!is_array($rawAnswers)) {
     echo 'Invalid answer format';
     exit;
 }
+
+$baseAnswer = is_string($rawAnswers['base'] ?? null)
+    ? trim($rawAnswers['base'])
+    : '';
+$questions = $mode === 'first-timer'
+    ? brewski_drink_recommendation_questions_for_base($baseAnswer)
+    : brewski_questions_for_mode($mode);
 
 $normalizedAnswers = [];
 
@@ -122,9 +127,21 @@ $productImage = static function (array $product): string {
 
 if ($mode === 'first-timer') {
     try {
-        $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
-        $ranking = brewski_rank_products($preferences, brewski_preference_links($catalog));
-        $best = brewski_best_match($ranking);
+        $productTags = brewski_preference_links($catalog);
+        $surprise = $normalizedAnswers['base'] === 'Surprise me';
+        $best = null;
+        $product = null;
+
+        if ($surprise) {
+            $product = brewski_random_drink_product($catalog, $productTags);
+        } else {
+            $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
+            $ranking = brewski_rank_products($preferences, $productTags);
+            $best = brewski_best_match($ranking);
+            if ($best) {
+                $product = $productIndex[(int) $best['product_id']] ?? null;
+            }
+        }
     } catch (Throwable $error) {
         error_log('Brewski recommendation error: ' . $error->getMessage());
         http_response_code(500);
@@ -136,16 +153,15 @@ if ($mode === 'first-timer') {
     }
     $bestMatch = null;
 
-    if ($best && isset($productIndex[(int) $best['product_id']])) {
-        $product = $productIndex[(int) $best['product_id']];
+    if ($product) {
         $bestMatch = [
             'product_id' => (int) $product['product_id'],
             'name' => $product['product_name'],
             'price' => (float) $product['price'],
             'image' => $productImage($product),
-            'percent' => (int) $best['percent'],
-            'label' => 'Your drink recommendation',
-            'matched' => array_slice($best['matched'], 0, 3),
+            'percent' => (int) ($best['percent'] ?? 0),
+            'label' => $surprise ? 'Your surprise drink' : 'Your drink recommendation',
+            'matched' => array_slice($best['matched'] ?? [], 0, 3),
         ];
     }
 
@@ -153,7 +169,9 @@ if ($mode === 'first-timer') {
         'ok' => true,
         'mode' => $mode,
         'best_match' => $bestMatch,
-        'message' => $bestMatch ? 'Your drink recommendation is ready.' : 'No recommendation is available right now.',
+        'message' => $bestMatch
+            ? ($surprise ? 'Your surprise drink is ready.' : 'Your drink recommendation is ready.')
+            : 'No recommendation is available right now.',
     ], JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
 }

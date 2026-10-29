@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 
 brewski_require_role(['STAFF', 'ADMIN']);
 
@@ -10,6 +11,7 @@ $transactions = [];
 $loadError = '';
 
 try {
+    brewski_ensure_order_customization_columns($pdo);
 	$statement = $pdo->query(
 		"SELECT o.order_id,
 		        o.order_date,
@@ -19,6 +21,7 @@ try {
 		        TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
 		        oi.order_item_id,
 		        oi.quantity,
+		        oi.customization_summary,
 		        COALESCE(p.product_name, 'Unknown item') AS product_name,
 		        COALESCE(s.size_name, 'Standard') AS size_name
 		   FROM orders o
@@ -47,7 +50,8 @@ try {
 
 		if ($row['order_item_id'] !== null) {
 			$transactions[$orderId]['items'][] =
-				(string) $row['product_name'] . ' (' . (string) $row['size_name'] . ') x ' . (int) $row['quantity'];
+				(string) $row['product_name'] . ' (' . (string) $row['size_name'] . ') x ' . (int) $row['quantity']
+				. (!empty($row['customization_summary']) ? ' — ' . (string) $row['customization_summary'] : '');
 		}
 	}
 } catch (PDOException $exception) {

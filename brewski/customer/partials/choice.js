@@ -49,8 +49,47 @@ document.addEventListener('DOMContentLoaded', function () {
         var panel = activePanel();
 
         return panel
-            ? Array.prototype.slice.call(panel.querySelectorAll('[data-choice-question]'))
+            ? Array.prototype.slice.call(panel.querySelectorAll('[data-choice-question]:not([hidden])'))
             : [];
+    }
+
+    function syncDrinkQuestions() {
+        var panel = panels['first-timer'];
+        if (!panel || currentMode !== 'first-timer') {
+            return;
+        }
+
+        var base = panel.querySelector('[data-choice-question="base"] .choice-answer.active');
+        var choice = base ? base.dataset.choiceAnswer : '';
+        panel.querySelectorAll('[data-choice-question]').forEach(function (question) {
+            if (question.dataset.choiceQuestion === 'base') {
+                return;
+            }
+
+            if (question.dataset.choiceNonCoffeeTitle) {
+                question.querySelector('h3').textContent = choice === 'Non-coffee'
+                    ? question.dataset.choiceNonCoffeeTitle
+                    : question.dataset.choiceDefaultTitle;
+            }
+
+            var branch = question.dataset.choiceBranch || '';
+            question.hidden = !choice || choice === 'Surprise me'
+                || (branch && branch !== choice.toLowerCase());
+            if (question.hidden) {
+                question.querySelectorAll('.choice-answer.active').forEach(function (answer) {
+                    answer.classList.remove('active');
+                    answer.setAttribute('aria-pressed', 'false');
+                });
+            }
+        });
+
+        var surpriseHint = document.getElementById('choice-surprise-hint');
+        if (surpriseHint) {
+            surpriseHint.hidden = choice !== 'Surprise me';
+        }
+        saveLabel.textContent = choice === 'Surprise me'
+            ? 'Pick a random drink'
+            : copy['first-timer'].button;
     }
 
     function resetDrinkRecommendationAnswers() {
@@ -91,12 +130,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (skipButton) {
             skipButton.hidden = currentMode !== 'recommendation';
         }
+        syncDrinkQuestions();
     }
 
     function open(mode) {
         setMode(mode || currentMode);
         if (currentMode === 'first-timer') {
             resetDrinkRecommendationAnswers();
+            syncDrinkQuestions();
         }
         setStatus('', '');
         if (status) {
@@ -186,6 +227,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 answer.classList.add('active');
                 answer.setAttribute('aria-pressed', 'true');
             }
+            if (currentMode === 'first-timer' && questionSection.dataset.choiceQuestion === 'base') {
+                syncDrinkQuestions();
+            }
         });
     }
 
@@ -232,6 +276,11 @@ document.addEventListener('DOMContentLoaded', function () {
         saveButton.addEventListener('click', function () {
             var answered = selectedAnswers();
             var total = questions().length;
+
+            if (currentMode === 'first-timer' && !answered.base) {
+                setStatus('Choose Coffee, Non-coffee, or Surprise me.', 'is-error');
+                return;
+            }
 
             if (Object.keys(answered).length < total) {
                 setStatus('Please answer all ' + total + ' questions.', 'is-error');

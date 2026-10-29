@@ -448,6 +448,40 @@ html, body {
     border-radius: 10px;
 }
 
+.modal-product-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--latte);
+    border-radius: 1rem;
+    background: var(--white);
+}
+
+.modal-product-preview img {
+    width: 5.5rem;
+    height: 5.5rem;
+    flex: 0 0 5.5rem;
+    border-radius: 0.75rem;
+    object-fit: cover;
+}
+
+.modal-product-preview__description {
+    margin: 0;
+    color: var(--dark-mocha);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+    .modal-product-preview img {
+        width: 4.5rem;
+        height: 4.5rem;
+        flex-basis: 4.5rem;
+    }
+}
+
 .option-group {
     margin-bottom: 1.75rem;
 }

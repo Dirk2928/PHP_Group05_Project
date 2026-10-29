@@ -1,12 +1,23 @@
 <?php
 
 $drinkQuestions = brewski_questions_for_mode('first-timer');
+$nonCoffeeQuestions = brewski_drink_recommendation_questions_for_base('Non-coffee');
+$drinkDisplayQuestions = [];
+foreach ($drinkQuestions as $questionKey => $question) {
+    if ($questionKey === 'caffeine') {
+        $question['branch'] = 'coffee';
+    }
+    $drinkDisplayQuestions[$questionKey] = $question;
+    if ($questionKey === 'bean') {
+        $drinkDisplayQuestions['style'] = $nonCoffeeQuestions['style'];
+    }
+}
 $preferenceQuestions = brewski_questions_for_mode('recommendation');
 $choiceValues = $choiceValues ?? [];
 $choiceAutoOpen = $choiceAutoOpen ?? false;
 $choiceMode = $choiceMode ?? 'first-timer';
 $initialMode = $choiceMode === 'recommendation' ? 'recommendation' : 'first-timer';
-$renderQuestions = static function (array $questionSet, array $values): void {
+$renderQuestions = static function (array $questionSet, array $values, bool $progressive = false, array $alternates = []): void {
     foreach ($questionSet as $questionKey => $question) {
         $isMulti = !empty($question['multi']);
         $chosen = $values[$questionKey] ?? null;
@@ -16,6 +27,12 @@ $renderQuestions = static function (array $questionSet, array $values): void {
             class="choice-question"
             data-choice-question="<?= e($questionKey) ?>"
             data-choice-multi="<?= $isMulti ? '1' : '0' ?>"
+            <?php if (isset($question['branch'])): ?>data-choice-branch="<?= e($question['branch']) ?>"<?php endif; ?>
+            <?php if (isset($alternates[$questionKey]) && $alternates[$questionKey]['question'] !== $question['question']): ?>
+                data-choice-default-title="<?= e($question['question']) ?>"
+                data-choice-non-coffee-title="<?= e($alternates[$questionKey]['question']) ?>"
+            <?php endif; ?>
+            <?= $progressive && $questionKey !== 'base' ? 'hidden' : '' ?>
         >
             <h3><?= e($question['question']) ?></h3>
             <div class="choice-answers">
@@ -85,7 +102,8 @@ $renderQuestions = static function (array $questionSet, array $values): void {
         <div class="modal__body">
 
             <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
-                <?php $renderQuestions($drinkQuestions, []); ?>
+                <?php $renderQuestions($drinkDisplayQuestions, [], true, $nonCoffeeQuestions); ?>
+                <p class="choice-surprise-hint" id="choice-surprise-hint" hidden>We will pick a random available drink for you.</p>
             </div>
 
             <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>

@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
     size_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
+    customization_summary TEXT NULL,
 
     CONSTRAINT fk_cart_items_cart
         FOREIGN KEY (cart_id)
@@ -281,6 +282,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL,
+    customization_summary TEXT NULL,
 
     CONSTRAINT fk_order_items_order
         FOREIGN KEY (order_id)

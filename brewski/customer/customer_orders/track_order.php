@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 require_once __DIR__ . '/../partials/order_support.php';
 
 if (empty($_SESSION['user_id'])) {
@@ -10,6 +11,7 @@ if (empty($_SESSION['user_id'])) {
 }
 
 $userId  = (int) $_SESSION['user_id'];
+brewski_ensure_order_customization_columns($pdo);
 $orderId = (int) ($_GET['order_id'] ?? 0);
 
 if ($orderId <= 0) {
@@ -54,7 +56,7 @@ if (!$order) {
 }
 
 $itemStmt = $pdo->prepare(
-    'SELECT oi.quantity, oi.unit_price, oi.subtotal,
+    'SELECT oi.quantity, oi.unit_price, oi.subtotal, oi.customization_summary,
             p.product_name, s.size_name
        FROM order_items oi
        LEFT JOIN products p ON p.product_id = oi.product_id
@@ -192,6 +194,9 @@ $showTimeline = !in_array($initialStatus, ['FAILED', 'CANCELLED'], true);
                     <span>
                         <strong><?= htmlspecialchars($item['product_name'] ?? 'Unavailable item') ?></strong>
                         <small style="color:#5c4033;"> — <?= htmlspecialchars($item['size_name'] ?? 'Standard') ?> × <?= (int)$item['quantity'] ?></small>
+                        <?php if (!empty($item['customization_summary'])): ?>
+                            <small style="display:block;color:#5c4033;">Per drink: <?= htmlspecialchars($item['customization_summary'], ENT_QUOTES, 'UTF-8') ?></small>
+                        <?php endif; ?>
                     </span>
                     <strong>₱<?= number_format((float)$item['subtotal'], 2) ?></strong>
                 </div>

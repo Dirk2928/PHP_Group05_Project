@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 require_once __DIR__ . '/../../Db/activity_log.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -195,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 session_write_close();
 
 try {
+    brewski_ensure_order_customization_columns($pdo);
 
     $orders = [];
 
@@ -231,6 +233,7 @@ try {
         $itemStatement = $pdo->prepare(
             "SELECT oi.order_id,
                     oi.quantity,
+                    oi.customization_summary,
                     COALESCE(p.product_name, 'Unknown item') AS name
                FROM order_items oi
                LEFT JOIN products p ON p.product_id = oi.product_id
@@ -242,6 +245,7 @@ try {
             $orders[(int) $item['order_id']]['items'][] = [
                 'name'     => (string) $item['name'],
                 'quantity' => (int) $item['quantity'],
+                'customization' => (string) ($item['customization_summary'] ?? ''),
             ];
         }
     }

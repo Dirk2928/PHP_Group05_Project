@@ -352,7 +352,7 @@
         wanted = wanted.filter(function (w) { return w && w !== 'no extras'; });
 
         var ready = false;
-        ['temperature', 'size', 'sugar'].forEach(function (type) {
+        ['temperature', 'size', 'sugar', 'bean', 'milk'].forEach(function (type) {
             var group = modalEl.querySelector('[data-option-group="' + type + '"]');
             if (!group || group.hasAttribute('hidden')) return;
 
@@ -360,8 +360,10 @@
             if (!buttons.length) return;
             ready = true;
 
+            var selected = item.customizationOptions && item.customizationOptions[type];
             for (var i = 0; i < buttons.length; i++) {
-                if (optionMatches(buttons[i].textContent, wanted)) {
+                if ((selected && buttons[i].dataset.value === selected)
+                    || (!selected && optionMatches(buttons[i].dataset.value || buttons[i].textContent, wanted))) {
                     if (!buttons[i].classList.contains('active')) buttons[i].click();
                     break;
                 }
@@ -373,6 +375,22 @@
                 setTimeout(function () { applySavedOptions(item, tries + 1); }, 60);
             }
             return;
+        }
+
+        var savedAddons = item.customizationOptions && item.customizationOptions.addons;
+        if (Array.isArray(savedAddons)) {
+            modalEl.querySelectorAll('.addon-option').forEach(function (row) {
+                var saved = savedAddons.find(function (addon) {
+                    return addon.name === row.dataset.name;
+                });
+                if (saved) {
+                    row.querySelector('.addon-quantity__value').textContent = String(
+                        Math.max(0, Math.min(Number(row.dataset.maxQuantity) || 99, Number(saved.quantity) || 0))
+                    );
+                }
+            });
+            var selectedButton = modalEl.querySelector('.option-btn.active');
+            if (selectedButton) selectedButton.click();
         }
 
 
@@ -459,25 +477,25 @@
         var totalPrice = parseFloat(priceText) || 0;
         var unitPrice = totalPrice / qty;
 
-        var size = '';
+        var selectedOptions = {};
+        ['temperature', 'size', 'sugar', 'bean', 'milk'].forEach(function (type) {
+            var section = modal.querySelector('[data-option-group="' + type + '"]');
+            var active = section && !section.hidden ? section.querySelector('.option-btn.active') : null;
+            selectedOptions[type] = active ? active.dataset.value : '';
+        });
+        var size = selectedOptions.size;
         var parts = [];
-        modal.querySelectorAll('[data-option-group]').forEach(function (group) {
-            if (group.hasAttribute('hidden')) return;
-            var type = group.getAttribute('data-option-group');
-
-            group.querySelectorAll('.option-btn.active').forEach(function (activeBtn) {
-                var text = activeBtn.textContent.trim();
-                if (!text) return;
-
-                if (type === 'size') {
-                    size = text.replace(/\s*\(.*\)\s*$/, '');
-                    return;
-                }
-                if (type === 'sugar' && /^\d+%$/.test(text)) {
-                    text += ' sugar';
-                }
-                parts.push(text);
-            });
+        if (selectedOptions.temperature) parts.push(selectedOptions.temperature);
+        if (selectedOptions.sugar) parts.push(selectedOptions.sugar + ' sugar');
+        if (selectedOptions.bean) parts.push(selectedOptions.bean + ' bean');
+        if (selectedOptions.milk) parts.push(selectedOptions.milk);
+        var addons = [];
+        modal.querySelectorAll('.addon-option').forEach(function (row) {
+            var amount = Number(row.querySelector('.addon-quantity__value').textContent) || 0;
+            if (amount > 0) {
+                addons.push({ name: row.dataset.name, quantity: amount });
+                parts.push(row.dataset.name + ' ×' + amount);
+            }
         });
 
         var customizationString = parts.join(', ');
@@ -489,7 +507,14 @@
             image: base.image || (productCard ? productCard.getAttribute('data-image') : ''),
             size: size,
             customization: customizationString,
-            customizationOptions: {},
+            customizationOptions: {
+                temperature: selectedOptions.temperature,
+                size: size,
+                sugar: selectedOptions.sugar,
+                bean: selectedOptions.bean,
+                milk: selectedOptions.milk,
+                addons: addons
+            },
             price: unitPrice,
             quantity: qty
         };

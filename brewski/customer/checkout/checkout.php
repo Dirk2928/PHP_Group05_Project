@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 
 if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
@@ -13,6 +14,7 @@ if (brewski_current_role() !== 'CUSTOMER') {
 }
 
 $userId = (int) $_SESSION['user_id'];
+brewski_ensure_order_customization_columns($pdo);
 
 $pageTitle   = 'Checkout | brewski';
 $active      = 'checkout';
@@ -44,7 +46,7 @@ $subtotal = 0.0;
 
 if ($cartId) {
     $stmt = $pdo->prepare(
-        'SELECT ci.cart_item_id, ci.product_id, ci.size_id, ci.quantity, ci.unit_price,
+        'SELECT ci.cart_item_id, ci.product_id, ci.size_id, ci.quantity, ci.unit_price, ci.customization_summary,
                 p.product_name, s.size_name
          FROM cart_items ci
          JOIN products p ON p.product_id = ci.product_id
@@ -152,6 +154,9 @@ require __DIR__ . '/../partials/header.php';
                         <span>
                             <strong><?= htmlspecialchars($it['product_name']) ?></strong>
                             <small style="color:#5c4033;"> — <?= htmlspecialchars($it['size_name']) ?> × <?= (int)$it['quantity'] ?></small>
+                            <?php if (!empty($it['customization_summary'])): ?>
+                                <small style="display:block;color:#5c4033;">Per drink: <?= htmlspecialchars($it['customization_summary'], ENT_QUOTES, 'UTF-8') ?></small>
+                            <?php endif; ?>
                         </span>
                         <span>₱<?= number_format((float)$it['unit_price'] * (int)$it['quantity'], 2) ?></span>
                     </li>

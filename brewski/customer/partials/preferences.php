@@ -74,6 +74,7 @@ function brewski_drink_recommendation_questions(): array
         ],
         'bean' => [
             'question' => 'Which coffee bean do you want?',
+            'branch' => 'coffee',
             'answers' => $choiceAnswers($beanChoices, 'bean:'),
         ],
         'milk' => [
@@ -117,6 +118,44 @@ function brewski_drink_recommendation_questions(): array
             ),
         ],
     ];
+}
+
+function brewski_drink_recommendation_questions_for_base(string $base): array
+{
+    $questions = brewski_drink_recommendation_questions();
+
+    if ($base === 'Surprise me') {
+        return ['base' => $questions['base']];
+    }
+
+    if ($base !== 'Non-coffee') {
+        return $questions;
+    }
+
+    $styleQuestion = [
+        'question' => 'What kind of non-coffee drink sounds good?',
+        'branch' => 'non-coffee',
+        'answers' => [
+            'Milk tea' => ['style:milk-tea'],
+            'Juice' => ['style:juice'],
+            'Frappe' => ['style:frappe'],
+            'Other non-coffee' => ['style:other'],
+            'No preference' => ['style:any'],
+        ],
+    ];
+
+    $nonCoffeeQuestions = [];
+    foreach ($questions as $key => $question) {
+        if ($key === 'caffeine') {
+            continue;
+        }
+        $nonCoffeeQuestions[$key === 'bean' ? 'style' : $key] =
+            $key === 'bean' ? $styleQuestion : $question;
+    }
+
+    $nonCoffeeQuestions['milk']['question'] = 'Milk preference, if any?';
+
+    return $nonCoffeeQuestions;
 }
 
 function brewski_menu_preference_questions(): array
@@ -509,6 +548,14 @@ function brewski_preference_links(array $catalog): array
                 ['coffee', 'espresso', 'macchiato', 'americano', 'mocha', 'cappuccino']
             );
         $keys[] = $isCoffee ? 'coffee' : 'non-coffee';
+        if (!$isCoffee) {
+            $keys[] = match ($categoryName) {
+                'milk tea' => 'style:milk-tea',
+                'juice' => 'style:juice',
+                'frappe' => 'style:frappe',
+                default => 'style:other',
+            };
+        }
 
         $temperatures = [];
         $sugarLevels = [];
@@ -565,7 +612,15 @@ function brewski_preference_links(array $catalog): array
         if (!$hasCaffeineOptions) {
             $isCaffeinated = $isCoffee
                 || brewski_matches_any([$text], ['matcha', 'tea']);
-            $keys[] = $isCaffeinated ? 'caffeine:Regular' : 'caffeine:Decaf';
+            $keys[] = $isCaffeinated ? 'caffeine:Regular' : 'caffeine:Caffeine-free';
+        }
+
+        $hasMilkOption = (bool) array_filter(
+            $keys,
+            static fn (string $key): bool => str_starts_with($key, 'milk:')
+        );
+        if ($categoryName === 'juice' && !$hasMilkOption) {
+            $keys[] = 'milk:No milk';
         }
 
         if (brewski_matches_any($temperatures, ['iced', 'cold'])) {
@@ -598,6 +653,7 @@ const BREWSKI_RANK_WEIGHTS = [
     'sweetness' => 15,
     'flavor' => 20,
     'bean' => 5,
+    'style' => 5,
     'milk' => 10,
     'base' => 10,
 ];
@@ -620,6 +676,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
         'sweetness' => ['sugar:sweet', 'sugar:light', 'sugar:none'],
         'flavor' => $groupTags('flavor', $flavorChoices),
         'bean' => $groupTags('bean', $beanChoices),
+        'style' => ['style:milk-tea', 'style:juice', 'style:frappe', 'style:other'],
         'milk' => $groupTags('milk', $milkChoices),
         'base' => ['coffee', 'non-coffee'],
     ];
@@ -671,7 +728,7 @@ function brewski_rank_products(array $userPreferences, array $productTags): arra
             if ($productMatches) {
                 $earned += BREWSKI_RANK_WEIGHTS[$group];
                 foreach ($productMatches as $match) {
-                    $matched[] = ucfirst(str_replace(['temp:', 'sugar:', 'flavor:', 'caffeine:', 'bean:', 'milk:'], '', $match));
+                    $matched[] = ucfirst(str_replace(['temp:', 'sugar:', 'flavor:', 'caffeine:', 'bean:', 'milk:', 'style:'], '', $match));
                 }
             }
         }
@@ -705,6 +762,16 @@ function brewski_best_match(array $ranked, int $minimum = 50): ?array
         }
     }
     return $best;
+}
+
+function brewski_random_drink_product(array $catalog, array $productTags): ?array
+{
+    $drinks = array_values(array_filter(
+        $catalog['products'],
+        static fn (array $product): bool => !empty($productTags[(int) $product['product_id']])
+    ));
+
+    return $drinks ? $drinks[random_int(0, count($drinks) - 1)] : null;
 }
 
 function brewski_preference_links_write(mysqli $connection, array $catalog): void

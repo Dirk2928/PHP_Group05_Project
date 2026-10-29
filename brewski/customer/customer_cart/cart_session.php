@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -43,6 +44,7 @@ $userId = (int) $_SESSION['user_id'];
 $items = $payload['items'];
 
 try {
+    brewski_ensure_order_customization_columns($pdo);
     $pdo->beginTransaction();
 
     $cartLookup = $pdo->prepare(
@@ -106,8 +108,8 @@ try {
          LIMIT 1'
     );
     $insertItem = $pdo->prepare(
-        'INSERT INTO cart_items (cart_id, product_id, size_id, quantity, unit_price)
-         VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO cart_items (cart_id, product_id, size_id, quantity, unit_price, customization_summary)
+         VALUES (?, ?, ?, ?, ?, ?)'
     );
 
     $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([$cartId]);
@@ -172,7 +174,8 @@ try {
             throw new RuntimeException('The selected drink size could not be saved.');
         }
 
-        foreach (['temperature', 'sugar'] as $optionGroup) {
+        $selectedLabels = [];
+        foreach (['temperature', 'sugar', 'bean', 'milk'] as $optionGroup) {
             $optionName = trim((string) ($customizations[$optionGroup] ?? ''));
             if ($optionName === '') {
                 continue;
@@ -182,9 +185,10 @@ try {
                 $optionGroup,
                 $optionName,
             ]);
-            if (!$otherOptionLookup->fetchColumn()) {
+            if ($otherOptionLookup->fetchColumn() === false) {
                 throw new InvalidArgumentException('A selected customization is no longer available.');
             }
+            $selectedLabels[] = $optionName . ($optionGroup === 'bean' ? ' bean' : ($optionGroup === 'sugar' ? ' sugar' : ''));
         }
 
         $addons = $customizations['addons'] ?? [];
@@ -213,6 +217,7 @@ try {
             }
 
             $unitPrice += (float) $addonPrice['additional_price'] * $addonQuantity;
+            $selectedLabels[] = $addonName . ' ×' . $addonQuantity;
         }
 
         $insertItem->execute([
@@ -221,6 +226,7 @@ try {
             (int) $sizeId,
             $quantity,
             number_format($unitPrice, 2, '.', ''),
+            implode(', ', $selectedLabels),
         ]);
     }
 

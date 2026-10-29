@@ -41,6 +41,11 @@
 
             <input type="hidden" id="modal-edit-key" value="">
 
+            <div class="modal-product-preview">
+                <img id="modal-product-image" src="" alt="" onerror="brewskiImageFallback(this)">
+                <p id="modal-product-description" class="modal-product-preview__description"></p>
+            </div>
+
             <section class="option-group drink-quantity">
                 <h3>Drink Quantity</h3>
                 <div class="quantity-stepper quantity-stepper--drink" aria-label="Drink quantity">
@@ -59,6 +64,16 @@
             <section class="option-group" data-option-group="size" hidden>
                 <h3>Size</h3>
                 <div class="option-buttons" data-group="size"></div>
+            </section>
+
+            <section class="option-group" data-option-group="bean" hidden>
+                <h3>Coffee Bean</h3>
+                <div class="option-buttons" data-group="bean"></div>
+            </section>
+
+            <section class="option-group" data-option-group="milk" hidden>
+                <h3>Milk Type</h3>
+                <div class="option-buttons" data-group="milk"></div>
             </section>
 
             <section class="option-group" data-option-group="sugar" hidden>

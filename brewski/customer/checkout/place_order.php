@@ -5,6 +5,7 @@ ini_set('display_errors', '0');
 
 require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/order_customizations.php';
 require_once __DIR__ . '/../../Db/db_config.php';
 require_once __DIR__ . '/../partials/order_support.php';
 
@@ -114,6 +115,7 @@ if ($paymentMode === 'online' && $publicBase === null) {
 $publicBase = $publicBase !== null ? rtrim($publicBase, '/') : null;
 
 try {
+    brewski_ensure_order_customization_columns($pdo);
     $pdo->beginTransaction();
 
     if ($paymentMode === 'online') {
@@ -228,7 +230,7 @@ try {
     }
 
     $itemsStatement = $pdo->prepare(
-        'SELECT product_id, size_id, quantity, unit_price
+        'SELECT product_id, size_id, quantity, unit_price, customization_summary
            FROM cart_items
           WHERE cart_id = ?
           ORDER BY cart_item_id ASC'
@@ -260,8 +262,8 @@ try {
     $orderId = (int) $pdo->lastInsertId();
 
     $orderItemStatement = $pdo->prepare(
-        'INSERT INTO order_items (order_id, product_id, size_id, quantity, unit_price, subtotal)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO order_items (order_id, product_id, size_id, quantity, unit_price, subtotal, customization_summary)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
     foreach ($items as $item) {
         $lineCents = (int) round((float) $item['unit_price'] * 100) * (int) $item['quantity'];
@@ -272,6 +274,7 @@ try {
             (int) $item['quantity'],
             number_format((float) $item['unit_price'], 2, '.', ''),
             number_format($lineCents / 100, 2, '.', ''),
+            $item['customization_summary'],
         ]);
     }
 

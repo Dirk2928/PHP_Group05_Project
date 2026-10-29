@@ -199,6 +199,7 @@ CREATE TABLE IF NOT EXISTS cart_items (
     size_id INT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
+    customization_summary TEXT NULL,
 
     CONSTRAINT fk_cart_items_cart
         FOREIGN KEY (cart_id)
@@ -283,6 +284,7 @@ CREATE TABLE IF NOT EXISTS order_items (
     quantity INT NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL,
+    customization_summary TEXT NULL,
 
     CONSTRAINT fk_order_items_order
         FOREIGN KEY (order_id)
@@ -549,7 +551,8 @@ ALTER TABLE cart_items
     ADD COLUMN IF NOT EXISTS product_id INT NOT NULL,
     ADD COLUMN IF NOT EXISTS size_id INT NOT NULL,
     ADD COLUMN IF NOT EXISTS quantity INT NOT NULL DEFAULT 1,
-    ADD COLUMN IF NOT EXISTS unit_price DECIMAL(10,2) NOT NULL;
+    ADD COLUMN IF NOT EXISTS unit_price DECIMAL(10,2) NOT NULL,
+    ADD COLUMN IF NOT EXISTS customization_summary TEXT NULL;
 
 ALTER TABLE orders
     ADD COLUMN IF NOT EXISTS user_id INT NOT NULL,
@@ -584,7 +587,8 @@ ALTER TABLE order_items
     ADD COLUMN IF NOT EXISTS size_id INT NOT NULL,
     ADD COLUMN IF NOT EXISTS quantity INT NOT NULL DEFAULT 1,
     ADD COLUMN IF NOT EXISTS unit_price DECIMAL(10,2) NOT NULL,
-    ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2) NOT NULL;
+    ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2) NOT NULL,
+    ADD COLUMN IF NOT EXISTS customization_summary TEXT NULL;
 
 ALTER TABLE preferences
     ADD COLUMN IF NOT EXISTS preference_name VARCHAR(100) NOT NULL,

@@ -1993,6 +1993,13 @@ h1, h2, h3, .topbar-title, .sidebar-brand, .page-title {
     font-size: 12px;
 }
 
+.order-card .order-items small {
+    display: block;
+    margin-top: 3px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
 .order-card .order-delivery-notes {
     max-width: none;
     margin: -4px 0 0;

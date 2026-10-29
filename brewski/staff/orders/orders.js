@@ -238,7 +238,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             var cards = pageOrders.map(function (order) {
                 var items = order.items.map(function (item) {
-                    return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) + '</li>';
+                    return '<li>' + escapeHtml(item.quantity + ' × ' + item.name) +
+                        (item.customization ? '<small>Per drink: ' + escapeHtml(item.customization) + '</small>' : '') +
+                        '</li>';
                 }).join('');
 
                 if (!items) {

@@ -218,6 +218,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var modal = document.getElementById('customization-modal');
     var modalProductName = document.getElementById('modal-product-name');
+    var modalProductImage = document.getElementById('modal-product-image');
+    var modalProductDescription = document.getElementById('modal-product-description');
     var modalTotalPrice = document.getElementById('modal-total-price');
     var drinkQuantityValue = document.getElementById('drink-quantity-value');
     var closeModalBtn = document.getElementById('modal-close');
@@ -262,10 +264,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var total = currentProduct.basePrice;
         var sizeButton = activeOption('size');
-
-        if (sizeButton) {
-            total += parseFloat(sizeButton.dataset.price) || 0;
-        }
+        if (sizeButton) total += parseFloat(sizeButton.dataset.price) || 0;
 
         modal.querySelectorAll('.addon-option').forEach(function (addonRow) {
             var quantity = parseInt(
@@ -288,6 +287,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var groups = {
             temperature: 'temp',
             size: 'size',
+            bean: 'bean',
+            milk: 'milk',
             sugar: 'sugar',
             addon: 'addons'
         };
@@ -357,8 +358,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     optionButton.type = 'button';
                     optionButton.className = 'option-btn';
                     optionButton.dataset.value = choice.name;
-                    optionButton.dataset.price = String(price);
-                    optionButton.textContent = choice.name + (price > 0
+                    optionButton.dataset.price = optionGroup === 'size' ? String(price) : '0';
+                    optionButton.textContent = choice.name + (optionGroup === 'size' && price > 0
                         ? ' (+₱' + price.toLocaleString('en-PH') + ')'
                         : '');
 
@@ -399,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 id: parseInt(card.dataset.id, 10) || 0,
                 name: card.dataset.name,
                 image: card.dataset.image || '',
+                description: card.dataset.description || '',
                 basePrice: parseFloat(card.dataset.basePrice) || 0,
                 options: options
             };
@@ -406,6 +408,13 @@ document.addEventListener('DOMContentLoaded', function () {
             drinkQuantityValue.textContent = '1';
             renderProductOptions(options);
             modalProductName.textContent = 'Customize: ' + currentProduct.name;
+            if (modalProductImage) {
+                modalProductImage.src = currentProduct.image;
+                modalProductImage.alt = currentProduct.name;
+            }
+            if (modalProductDescription) {
+                modalProductDescription.textContent = currentProduct.description || 'No description available.';
+            }
             updateModalTotal();
             modal.classList.add('show');
         });
@@ -456,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         var group = optionButton.parentElement.dataset.group;
-        if (group === 'temp' || group === 'size' || group === 'sugar') {
+        if (group === 'temp' || group === 'size' || group === 'sugar' || group === 'bean' || group === 'milk') {
             optionButton.parentElement.querySelectorAll('.option-btn').forEach(function (other) {
                 other.classList.remove('active');
             });
@@ -475,6 +484,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var temperature = activeOptions('temp')[0];
         var sugar = activeOptions('sugar')[0];
         var size = activeOptions('size')[0] || '';
+        var bean = activeOptions('bean')[0] || '';
+        var milk = activeOptions('milk')[0] || '';
         var addons = [];
 
         if (temperature) {
@@ -483,6 +494,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (sugar) {
             parts.push(sugar + ' sugar');
         }
+        if (bean) parts.push(bean + ' bean');
+        if (milk) parts.push(milk);
 
         modal.querySelectorAll('.addon-option').forEach(function (addonRow) {
             var quantity = parseInt(
@@ -508,6 +521,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 temperature: temperature || '',
                 size: size,
                 sugar: sugar || '',
+                bean: bean,
+                milk: milk,
                 addons: addons
             },
             price: calculateTotal(),

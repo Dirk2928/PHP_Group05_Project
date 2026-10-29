@@ -112,6 +112,7 @@ $renderProductCard = static function (array $product, bool $showMatch = false) u
         class="product-card"
         data-id="<?= (int) $product['product_id'] ?>"
         data-name="<?= e($product['product_name']) ?>"
+        data-description="<?= e($product['description'] ?? '') ?>"
         data-image="<?= e($image) ?>"
         data-base-price="<?= e($product['price']) ?>"
         data-options="<?= e($customizations) ?>"
