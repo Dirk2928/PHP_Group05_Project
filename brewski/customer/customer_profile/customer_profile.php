@@ -1152,7 +1152,7 @@ require __DIR__ . '/../partials/header.php';
 
                         <ul class="choice-summary">
 
-                            <?php foreach (brewski_choice_questions() as $questionKey => $question): ?>
+                            <?php foreach (brewski_menu_preference_questions() as $questionKey => $question): ?>
 
                                 <li>
 
