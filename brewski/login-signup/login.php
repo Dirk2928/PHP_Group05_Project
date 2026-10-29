@@ -34,6 +34,11 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
+// Sent here from the cart's "Proceed to checkout": after login, go to checkout
+if (($_GET['next'] ?? '') === 'checkout') {
+    brewski_remember_post_login_target('checkout');
+}
+
 if (isset($_GET['msg']) && $_GET['msg'] === 'otp_cancelled') {
     $error = 'Login cancelled. Please log in again.';
 }

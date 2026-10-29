@@ -201,6 +201,43 @@ function brewski_current_role(): string
     return strtoupper(trim((string) ($_SESSION['role'] ?? '')));
 }
 
+/*
+ * "Proceed to checkout" while signed out sends the customer to
+ * login.php?next=checkout. We remember that choice in the session, and once
+ * the login finishes (password / OTP / authenticator) the customer lands on
+ * the checkout page instead of the home page.
+ *
+ * Only the word "checkout" is stored, never a URL, so this cannot be used to
+ * redirect people to other sites. The choice expires after 30 minutes.
+ */
+function brewski_remember_post_login_target(string $target): void
+{
+    if ($target !== 'checkout') {
+        return;
+    }
+
+    $_SESSION['post_login_target'] = [
+        'target' => 'checkout',
+        'at'     => time(),
+    ];
+}
+
+function brewski_take_post_login_url(): ?string
+{
+    $pending = $_SESSION['post_login_target'] ?? null;
+    unset($_SESSION['post_login_target']);
+
+    if (!is_array($pending) || ($pending['target'] ?? '') !== 'checkout') {
+        return null;
+    }
+
+    if ((time() - (int) ($pending['at'] ?? 0)) > 1800) {
+        return null;
+    }
+
+    return BREWSKI_BASE_URL . '/customer/checkout/checkout.php';
+}
+
 function brewski_home_for_role(string $role): string
 {
     switch (strtoupper(trim($role))) {
@@ -211,6 +248,12 @@ function brewski_home_for_role(string $role): string
             return BREWSKI_BASE_URL . '/staff/orders/orders.php';
 
         case 'CUSTOMER':
+            $checkoutUrl = brewski_take_post_login_url();
+
+            if ($checkoutUrl !== null) {
+                return $checkoutUrl;
+            }
+
             return BREWSKI_BASE_URL . '/customer/customer_home/customerhome.php';
     }
 

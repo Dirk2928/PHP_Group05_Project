@@ -113,6 +113,18 @@
         return pendingSync;
     }
 
+    // Not signed in: send the customer to the login page. After they log in,
+    // the login page sends them straight to checkout (?next=checkout).
+    function goToLogin() {
+        try {
+            sessionStorage.removeItem('brewski_checkout_sync_complete');
+        } catch (error) {}
+
+        var loginMeta = document.querySelector('meta[name="login-url"]');
+        var loginUrl = loginMeta ? loginMeta.content : '../../login-signup/login.php';
+        window.location.assign(loginUrl + (loginUrl.indexOf('?') === -1 ? '?' : '&') + 'next=checkout');
+    }
+
 
 
 
@@ -586,10 +598,33 @@
 
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink) return;
-            if (!load().length) {
+
+            if (!load().length || checkoutLink.getAttribute('aria-disabled') === 'true') {
                 event.preventDefault();
                 return;
             }
+
+            // Cart sync is switched off: just open checkout
+            if (!syncEnabled || syncEnabled.content !== '1') return;
+
+            // Check the customer is signed in before opening checkout.
+            // Not signed in -> login page (then back to checkout after login).
+            event.preventDefault();
+            var destination = checkoutLink.href;
+            checkoutLink.setAttribute('aria-disabled', 'true');
+            checkoutLink.textContent = 'Please wait...';
+
+            syncWithDatabase(load()).then(function () {
+                window.location.assign(destination);
+            }).catch(function (error) {
+                if (error && error.status === 401) {
+                    goToLogin();
+                    return;
+                }
+                // Any other problem: let the checkout page handle it
+                console.error('Could not sync cart with checkout:', error);
+                window.location.assign(destination);
+            });
         });
     }
 
