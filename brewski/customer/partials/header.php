@@ -3,6 +3,9 @@
 $pageTitle   = $pageTitle   ?? 'brewski';
 $active      = $active      ?? '';
 $extraStyles = $extraStyles ?? [];
+$isLoggedIn  = function_exists('brewski_is_logged_in')
+    ? brewski_is_logged_in()
+    : !empty($_SESSION['user_id']);
 
 
 if (empty($_SESSION['csrf_token'])) {
@@ -200,14 +203,17 @@ if ($headerInitials === '') {
         <a class="topbar__brand" href="<?= e(BREWSKI_BASE_URL . '/Start-screen/start.php') ?>">brewski</a>
 
         <nav class="topbar__nav">
+            <?php if ($isLoggedIn): ?>
             <a href="<?= e($navItems['home']['href']) ?>" class="topbar__link<?= $active === 'home' ? ' active' : '' ?>">
                 <i data-lucide="<?= e($navItems['home']['icon']) ?>"></i> <?= e($navItems['home']['label']) ?>
             </a>
+            <?php endif; ?>
 
             <a href="<?= e($navItems['menu']['href']) ?>" class="topbar__link<?= $active === 'menu' ? ' active' : '' ?>">
                 <i data-lucide="<?= e($navItems['menu']['icon']) ?>"></i> <?= e($navItems['menu']['label']) ?>
             </a>
 
+            <?php if ($isLoggedIn): ?>
             <div class="cart-menu" id="cart-menu">
                 <button type="button" class="topbar__link cart-button" id="cart-button" aria-haspopup="true" aria-expanded="false">
                     <i data-lucide="shopping-cart"></i> Cart
@@ -224,7 +230,9 @@ if ($headerInitials === '') {
             <a href="<?= e($navItems['orders']['href']) ?>" class="topbar__link<?= $active === 'orders' ? ' active' : '' ?>">
                 <i data-lucide="<?= e($navItems['orders']['icon']) ?>"></i> <?= e($navItems['orders']['label']) ?>
             </a>
+            <?php endif; ?>
 
+            <?php if ($isLoggedIn): ?>
             <div class="profile-menu">
                 <a href="<?= e($navItems['profile']['href']) ?>" class="topbar__link profile-link<?= $active === 'profile' ? ' active' : '' ?>">
                     <i data-lucide="<?= e($navItems['profile']['icon']) ?>"></i> <?= e($navItems['profile']['label']) ?>
@@ -263,6 +271,7 @@ if ($headerInitials === '') {
                     </a>
                 </div>
             </div>
+            <?php endif; ?>
         </nav>
     </header>
 
