@@ -269,7 +269,7 @@ if ($headerInitials === '') {
                     <a href="<?= e($navItems['profile']['href']) ?>" class="logout-button">
                         <i data-lucide="user-round"></i> My Profile
                     </a>
-                    <a href="<?= e(BREWSKI_BASE_URL . '/login-signup/logout.php') ?>" class="logout-button">
+                    <a href="<?= e(BREWSKI_BASE_URL . '/login-signup/logout.php') ?>" class="logout-button" data-cart-logout>
                         <i data-lucide="log-out"></i> Logout
                     </a>
                 </div>

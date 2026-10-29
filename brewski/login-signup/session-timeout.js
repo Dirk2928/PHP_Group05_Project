@@ -17,6 +17,12 @@ function initializeBrewskiSessionTimeout() {
     var absoluteDeadline = Date.now() + Math.max(0, absoluteRemainingSeconds) * 1000;
 
     function redirectToLogin() {
+        try {
+            sessionStorage.removeItem('brewski_cart');
+            sessionStorage.removeItem('brewski_checkout_sync_complete');
+        } catch (error) {
+            console.warn('Could not clear the cart after session timeout:', error);
+        }
         window.location.assign(logoutMeta.content);
     }
 

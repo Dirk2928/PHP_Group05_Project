@@ -267,7 +267,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                         My Profile
                     </a>
 
-                    <a href="../customer-home/logout.php" class="logout-button">
+                    <a href="../../login-signup/logout.php" class="logout-button" data-cart-logout>
                         <i data-lucide="log-out"></i>
                         Logout
                     </a>
@@ -320,7 +320,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
                     <a href="../../login-signup/setup-authenticator.php" class="btn btn-secondary">
                         <span><?= $hasAuthenticator ? 'Reset authenticator' : 'Set up authenticator' ?></span>
                     </a>
-                    <a href="../customer-home/logout.php" class="btn btn-secondary">
+                    <a href="../../login-signup/logout.php" class="btn btn-secondary" data-cart-logout>
                         <i data-lucide="log-out"></i>
                         <span>Log out</span>
                     </a>
@@ -534,5 +534,17 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
             }
         });
     </script>
+<script>
+document.querySelectorAll('[data-cart-logout]').forEach(function (link) {
+    link.addEventListener('click', function () {
+        try {
+            sessionStorage.removeItem('brewski_cart');
+            sessionStorage.removeItem('brewski_checkout_sync_complete');
+        } catch (error) {
+            console.warn('Could not clear the cart during logout:', error);
+        }
+    });
+});
+</script>
 </body>
 </html>

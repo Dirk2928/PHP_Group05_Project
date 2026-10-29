@@ -597,6 +597,7 @@
         link.addEventListener('click', function () {
             try {
                 sessionStorage.removeItem(STORAGE_KEY);
+                sessionStorage.removeItem('brewski_checkout_sync_complete');
             } catch (error) {
                 console.warn('Could not clear cart from browser storage:', error);
             }
