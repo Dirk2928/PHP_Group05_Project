@@ -63,6 +63,7 @@ if ($headerInitials === '') {
     <meta name="checkout-url" content="../checkout/checkout.php">
     <meta name="cart-sync-enabled" content="1">
     <meta name="login-url" content="<?= e(BREWSKI_BASE_URL . '/login-signup/login.php') ?>">
+    <?= brewski_session_timeout_markup() ?>
 
     <title><?= e($pageTitle) ?></title>
 
@@ -240,10 +241,6 @@ if ($headerInitials === '') {
 
             <?php if ($isLoggedIn): ?>
             <div class="profile-menu">
-                <a href="<?= e($navItems['profile']['href']) ?>" class="topbar__link profile-link<?= $active === 'profile' ? ' active' : '' ?>">
-                    <i data-lucide="<?= e($navItems['profile']['icon']) ?>"></i> <?= e($navItems['profile']['label']) ?>
-                </a>
-
                 <button type="button" class="profile-button" id="profile-button" aria-label="Open profile menu" aria-haspopup="true" aria-expanded="false">
                     <?php if ($headerAvatarUrl): ?>
                         <img src="<?= e($headerAvatarUrl) ?>" alt="" class="profile-button__avatar">

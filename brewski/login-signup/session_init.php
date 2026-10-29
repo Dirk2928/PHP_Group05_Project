@@ -144,11 +144,21 @@ function brewski_login_url(string $query = ''): string
 
 function brewski_session_timeout_markup(): string
 {
+    if (!brewski_is_logged_in()) {
+        return '';
+    }
+
     $escape = static function (string $value): string {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     };
 
+    $absoluteRemaining = max(
+        0,
+        SESSION_ABSOLUTE_TIMEOUT - (time() - (int) ($_SESSION['created_at'] ?? time()))
+    );
+
     return '<meta name="session-timeout-seconds" content="' . (int) SESSION_IDLE_TIMEOUT . '">' . "\n"
+        . '<meta name="session-absolute-remaining-seconds" content="' . $absoluteRemaining . '">' . "\n"
         . '<meta name="logout-url" content="' . $escape(BREWSKI_BASE_URL . '/login-signup/logout.php?timeout=1') . '">' . "\n"
         . '<script src="' . $escape(BREWSKI_BASE_URL . '/login-signup/session-timeout.js') . '" defer></script>' . "\n";
 }
