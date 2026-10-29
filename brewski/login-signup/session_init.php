@@ -220,6 +220,17 @@ function brewski_remember_post_login_target(string $target): void
         'target' => 'checkout',
         'at'     => time(),
     ];
+
+    // Backup copy in a short-lived cookie, in case the login steps reset the session
+    if (!headers_sent()) {
+        setcookie('brewski_next', 'checkout', [
+            'expires'  => time() + 1800,
+            'path'     => '/',
+            'secure'   => brewski_is_https(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
 }
 
 function brewski_take_post_login_url(): ?string
@@ -227,15 +238,29 @@ function brewski_take_post_login_url(): ?string
     $pending = $_SESSION['post_login_target'] ?? null;
     unset($_SESSION['post_login_target']);
 
-    if (!is_array($pending) || ($pending['target'] ?? '') !== 'checkout') {
-        return null;
+    $wantsCheckout = false;
+
+    if (is_array($pending) && ($pending['target'] ?? '') === 'checkout') {
+        $wantsCheckout = (time() - (int) ($pending['at'] ?? 0)) <= 1800;
     }
 
-    if ((time() - (int) ($pending['at'] ?? 0)) > 1800) {
-        return null;
+    if (!$wantsCheckout && (($_COOKIE['brewski_next'] ?? '') === 'checkout')) {
+        $wantsCheckout = true;
     }
 
-    return BREWSKI_BASE_URL . '/customer/checkout/checkout.php';
+    if (isset($_COOKIE['brewski_next']) && !headers_sent()) {
+        setcookie('brewski_next', '', [
+            'expires'  => time() - 3600,
+            'path'     => '/',
+            'secure'   => brewski_is_https(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    }
+
+    return $wantsCheckout
+        ? BREWSKI_BASE_URL . '/customer/checkout/checkout.php'
+        : null;
 }
 
 function brewski_home_for_role(string $role): string
