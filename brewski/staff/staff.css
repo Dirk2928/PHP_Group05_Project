@@ -2278,7 +2278,8 @@ body.sidebar-open .sidebar-toggle span {
 }
 
 .staff-order-history .data-table th {
-    background: #f2e4cc;
+    background: #f2e4cc !important;
+    background-color: #f2e4cc !important;
     border-bottom-color: #e8dcc9;
     color: #1e110a;
 }
