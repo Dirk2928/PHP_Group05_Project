@@ -68,7 +68,7 @@ foreach ($transactions as &$transaction) {
 unset($transaction);
 ?>
 
-<div class="page-container">
+<div class="page-container staff-order-history">
 	<div class="page-header"><h1 class="page-title">Order History</h1><p class="subtitle">Review the orders you have processed.</p></div>
 	<?php if ($loadError !== ''): ?><p class="empty-hint" role="alert"><?= htmlspecialchars($loadError, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
 	<div class="toolbar"><div class="toolbar-filters"><div class="search-field"><svg class="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="historySearch" class="toolbar-input" placeholder="Search by receipt, customer, product..." aria-label="Search order history"></div><select id="historyStatusFilter" class="toolbar-select" aria-label="Filter by status"><option value="all">All statuses</option><?php foreach ($statuses as $status): ?><option value="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(ucwords(strtolower(str_replace('_', ' ', $status))), ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></div></div>
