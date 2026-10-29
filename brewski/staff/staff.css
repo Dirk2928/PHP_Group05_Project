@@ -10,8 +10,8 @@
     --sidebar-background: var(--espresso);
     --sidebar-hover: var(--dark-mocha);
 
-    --font-brand: "Fredoka", "Century Gothic", sans-serif;
-    --font-body: "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
+    --font-brand: "Century Gothic", CenturyGothic, sans-serif;
+    --font-body: "Century Gothic", CenturyGothic, sans-serif;
 
     --surface: #fffdf9;
     --surface-muted: #f5ebdf;
@@ -1798,24 +1798,30 @@ body.sidebar-open::after {
 
 
 
-/* Keep the original staff-home typography outside the aligned navigation. */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Questrial&display=swap');
-
-body, input, select, button, table, .toolbar-input {
-    font-family: "Questrial", sans-serif !important;
-}
-
-h1, h2, h3, .topbar-title, .page-title {
-    font-family: "Fredoka", sans-serif !important;
-}
-
-.sidebar,
-.sidebar .nav-item {
+/* Keep staff typography consistent; Fredoka is reserved for the Brewski wordmark. */
+body,
+body * {
     font-family: "Century Gothic", CenturyGothic, sans-serif !important;
 }
 
 .sidebar-brand {
     font-family: "Fredoka", "Century Gothic", sans-serif !important;
+}
+
+.sidebar-brand {
+    letter-spacing: 0.035em;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 228px;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --sidebar-width: 208px;
+    }
 }
 
 
@@ -2187,9 +2193,22 @@ body.sidebar-open .sidebar-toggle span {
 }
 
 .staff-order-history .data-table th {
-    background: #f1e2ca;
-    border-bottom-color: #d9b892;
-    color: #3c3027;
+    background: var(--surface-muted);
+    border-bottom-color: var(--line);
+    color: var(--text-muted);
+}
+
+.staff-order-history .table-heading-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.staff-order-history .table-heading-label svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    stroke-width: 1.8;
 }
 
 .staff-order-history .data-table tbody td {
