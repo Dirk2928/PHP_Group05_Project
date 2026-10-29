@@ -2155,13 +2155,6 @@ body.sidebar-open .sidebar-toggle span {
     border-color: var(--line);
 }
 
-.staff-orders .order-lane-heading {
-    margin: -12px -12px 12px;
-    padding: 10px 12px;
-    border-radius: 12px 12px 0 0;
-    background: var(--latte);
-}
-
 .staff-orders .order-card {
     overflow: hidden;
     border-color: var(--line);
