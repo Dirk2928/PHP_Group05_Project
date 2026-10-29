@@ -349,10 +349,9 @@ body {
 }
 
 .auth__switch a {
-    color: var(--espresso);
-    font-weight: 700;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
+    color: #624832;
+    font-weight: 400;
+    text-decoration: none;
 }
 
 .auth__switch a:hover { color: var(--mocha); }
@@ -580,6 +579,17 @@ body {
 }
 
 .auth__legal a { color: #755b43; text-underline-offset: 2px; }
+
+/* Auth flow navigation links use the same muted brown as field labels. */
+.auth a:not(.btn):not(.login-home-link) {
+    color: #624832;
+    font-weight: 400;
+    text-decoration: none;
+}
+
+.auth a:not(.btn):not(.login-home-link):hover {
+    color: var(--mocha);
+}
 
 /* Authenticator setup and recovery screens share the login/signup card. */
 .auth__content > p { line-height: 1.5; }
