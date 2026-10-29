@@ -84,6 +84,20 @@ require __DIR__ . '/../partials/header.php';
 
         <section class="filter-section">
 
+            <div class="menu-search">
+                <label for="menu-search">Search the menu</label>
+                <div class="menu-search__field">
+                    <i data-lucide="search" aria-hidden="true"></i>
+                    <input
+                        id="menu-search"
+                        type="search"
+                        placeholder="Search drinks..."
+                        autocomplete="off"
+                        aria-controls="menu-grid"
+                    >
+                </div>
+            </div>
+
             <div class="filter-group">
 
                 <h3>Category</h3>
