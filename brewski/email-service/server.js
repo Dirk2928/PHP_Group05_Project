@@ -15,7 +15,7 @@ const MAILJET_API = "https://api.mailjet.com";
 const mailjetApiKey = process.env.MAILJET_API_KEY?.trim();
 const mailjetSecretKey = process.env.MAILJET_SECRET_KEY?.trim();
 const mailjetSender = process.env.MAILJET_SENDER?.trim();
-const mailjetSenderName = process.env.MAILJET_SENDER_NAME?.trim() || "Brewski";
+const mailjetSenderName = process.env.MAILJET_SENDER_NAME?.trim() || "brewski";
 
 const consoleMode =
     process.env.MAIL_MODE?.trim().toLowerCase() === "console";
@@ -98,7 +98,7 @@ async function deliver(mail) {
 app.get("/health", (_req, res) => {
     res.json({
         success: true,
-        service: "Brewski Email Service",
+        service: "brewski Email Service",
         mailMode: consoleMode ? "console" : "mailjet"
     });
 });
@@ -154,12 +154,12 @@ app.post("/send-password-reset", async (req, res) => {
 
         await deliver({
             to: email,
-            subject: "Reset your Brewski password",
+            subject: "Reset your brewski password",
             text: `Hello ${firstName},\n\nReset your password using this link (valid for 1 hour):\n${safeResetUrl}\n\nIf you did not request a password reset, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
                     <h2>Hello, ${escapeHtml(firstName)}!</h2>
-                    <p>Use the link below to reset your Brewski password. This link expires in 1 hour.</p>
+                    <p>Use the link below to reset your brewski password. This link expires in 1 hour.</p>
                     <p>
                         <a href="${escapeHtml(safeResetUrl)}" style="display:inline-block;padding:12px 24px;background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">
                             Reset my password
@@ -243,9 +243,9 @@ app.post("/send-order-receipt", async (req, res) => {
         const safeReceiptNumber = escapeHtml(receiptNumber);
         const safeOrderDate = escapeHtml(orderDate);
         const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+            from: `"brewski" <${fromAddress}>`,
             to: email,
-            subject: `Your Brewski order receipt - ${receiptNumber}`,
+            subject: `Your brewski order receipt - ${receiptNumber}`,
             text: `Hello ${customerName},
 
 Thank you for your order. Here is your receipt.
@@ -261,7 +261,7 @@ Total: PHP ${formatAmount(total)}
 `,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#1a0f0a">
-                    <h2>Brewski order receipt</h2>
+                    <h2>brewski order receipt</h2>
                     <p>Hello ${safeCustomerName}, thank you for your order.</p>
                     <p>
                         <strong>Receipt:</strong> ${safeReceiptNumber}<br>
@@ -321,17 +321,17 @@ app.post("/send-order-otp", async (req, res) => {
         const safeName = escapeHtml(firstName);
 
         const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+            from: `"brewski" <${fromAddress}>`,
             to: email,
-            subject: "Your Brewski order verification code",
+            subject: "Your brewski order verification code",
             text: `Hello ${firstName},
 
-Your Brewski order verification code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
+Your brewski order verification code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
 
 If you did not try to place an order, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
-                    <h2>Verify your Brewski order</h2>
+                    <h2>Verify your brewski order</h2>
                     <p>Hello ${safeName}, enter this code in the order confirmation window to continue:</p>
                     <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;padding:14px 20px;display:inline-block">
                         ${otp}
@@ -379,17 +379,17 @@ app.post("/send-authenticator-reset-otp", async (req, res) => {
         const safeName = escapeHtml(firstName);
 
         const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+            from: `"brewski" <${fromAddress}>`,
             to: email,
-            subject: "Your Brewski authenticator reset code",
+            subject: "Your brewski authenticator reset code",
             text: `Hello ${firstName},
 
-Your Brewski authenticator reset code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
+Your brewski authenticator reset code is ${otp}. It expires in 10 minutes. You have up to 5 attempts to enter it.
 
 If you did not request an authenticator reset, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
-                    <h2>Reset your Brewski authenticator</h2>
+                    <h2>Reset your brewski authenticator</h2>
                     <p>Hello ${safeName}, enter this code to reset your authenticator:</p>
                     <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f1e2ca;padding:14px 20px;display:inline-block">
                         ${otp}
@@ -459,9 +459,9 @@ app.post("/send-activation", async (req, res) => {
         const safeUrl = escapeHtml(parsedUrl.toString());
 
         const info = await deliver({
-            from: `"Brewski" <${fromAddress}>`,
+            from: `"brewski" <${fromAddress}>`,
             to: email,
-            subject: "Activate your Brewski account",
+            subject: "Activate your brewski account",
             text: `Hello ${firstName},
 
 Activate your account using this link (valid for 24 hours):
@@ -470,7 +470,7 @@ ${parsedUrl.toString()}
 If you did not create an account, you can ignore this email.`,
             html: `
                 <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1e110a">
-                    <h2>Welcome to Brewski, ${safeName}!</h2>
+                    <h2>Welcome to brewski, ${safeName}!</h2>
                     <p>Click below to activate your account. This link expires in 24 hours.</p>
                     <p>
                         <a href="${safeUrl}" style="display:inline-block;padding:12px 24px;background:#1e110a;color:#f1e2ca;text-decoration:none;border-radius:6px">
@@ -552,7 +552,7 @@ async function checkMailjet() {
 
 async function start() {
     app.listen(PORT, HOST, () => {
-        console.log(`Brewski email service listening on ${HOST}:${PORT}`);
+        console.log(`brewski email service listening on ${HOST}:${PORT}`);
 
         if (consoleMode) {
             console.log("DEV MODE: Emails will be printed to the terminal.");
