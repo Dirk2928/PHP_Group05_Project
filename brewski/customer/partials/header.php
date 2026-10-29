@@ -240,12 +240,6 @@ if ($headerInitials === '') {
 
             <?php if ($isLoggedIn): ?>
             <div class="profile-menu">
-                <?php if ($active !== 'menu'): ?>
-                <a href="<?= e($navItems['profile']['href']) ?>" class="topbar__link profile-link<?= $active === 'profile' ? ' active' : '' ?>">
-                    <i data-lucide="<?= e($navItems['profile']['icon']) ?>"></i> <?= e($navItems['profile']['label']) ?>
-                </a>
-                <?php endif; ?>
-
                 <button type="button" class="profile-button" id="profile-button" aria-label="Open profile menu" aria-haspopup="true" aria-expanded="false">
                     <?php if ($headerAvatarUrl): ?>
                         <img src="<?= e($headerAvatarUrl) ?>" alt="" class="profile-button__avatar">
