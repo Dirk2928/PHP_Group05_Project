@@ -241,7 +241,7 @@ $escape = static function (string $value): string {
                 <?php endforeach; ?>
             </ul>
         <?php else: ?>
-            <p>This account already has an authenticator configured.</p>
+            <p class="auth__intro">This account already has an authenticator configured.</p>
         <?php endif; ?>
         <p><a class="btn btn--secondary" href="<?= $escape($resetUrl) ?>">Reset authenticator</a></p>
         <a class="btn btn--secondary" href="<?= $escape($homeUrl) ?>">Return to Brewski</a>

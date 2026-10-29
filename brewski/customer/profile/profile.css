@@ -23,6 +23,33 @@ body {
     min-height: 100vh;
 }
 
+.profile-page {
+    width: 100%;
+    max-width: calc(1420px + 3rem);
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.profile-forms { display: flex; flex-direction: column; gap: 1.5rem; }
+.profile-page .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.profile-page .form-field { display: flex; min-width: 0; flex-direction: column; gap: 0.4rem; }
+.profile-page .form-field-full { grid-column: 1 / -1; }
+.profile-page .form-field label { color: var(--profile-mocha); font-size: 0.85rem; font-weight: 600; }
+.profile-page .form-field input { width: 100%; min-width: 0; min-height: 2.8rem; padding: 0.7rem 0.85rem; border: 1px solid var(--profile-line); border-radius: 0.65rem; background: var(--profile-surface); color: var(--profile-espresso); font: inherit; }
+.profile-page .form-field input:focus { outline: none; border-color: var(--profile-mocha); box-shadow: 0 0 0 3px rgb(113 73 42 / 12%); }
+.profile-page .profile-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem; }
+.profile-page .profile-actions .btn { min-width: 10rem; }
+.profile-page .alert { padding: 0.85rem 1rem; margin-bottom: 1rem; border: 1px solid; border-radius: 0.7rem; font-size: 0.9rem; line-height: 1.5; }
+.profile-page .alert--success { border-color: #b9d8bf; background: #e3f0e5; color: var(--success); }
+.profile-page .alert--error { border-color: #e6b8b2; background: #f8e3e0; color: var(--danger); }
+
 a {
     color: inherit;
     text-decoration: none;
@@ -418,12 +445,11 @@ svg.lucide {
 }
 
 @media (max-width: 900px) {
-    .profile-grid {
-        grid-template-columns: 1fr;
-    }
+    .profile-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 720px) {
+    .profile-page { padding: 1.5rem 1rem 3rem; }
     .navbar {
         padding: 0 1rem;
         height: 76px;
@@ -437,9 +463,9 @@ svg.lucide {
         padding: 0.75rem;
     }
 
-    .form__row {
-        grid-template-columns: 1fr;
-    }
+    .profile-page .form-grid { grid-template-columns: 1fr; }
+    .profile-page .form-field-full { grid-column: auto; }
+    .profile-page .profile-actions .btn { width: 100%; }
 
     .page__header h1 {
         font-size: 1.75rem;

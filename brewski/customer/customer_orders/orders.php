@@ -132,7 +132,6 @@ $deliveryIcons = [
 <main class="orders-page">
     <div class="orders-heading">
         <div>
-            <p class="orders-eyebrow">Your brewski history</p>
             <h1>My orders</h1>
             <p>Check the latest update or revisit the details of a previous order.</p>
         </div>

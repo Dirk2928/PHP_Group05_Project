@@ -1,7 +1,8 @@
 .orders-page {
-    width: min(1280px, calc(100% - 3rem));
+    width: 100%;
+    max-width: 1560px;
     margin: 0 auto;
-    padding: 3rem 0 4rem;
+    padding: 2rem 2rem 4rem;
 }
 
 .order-track-page h1 {
@@ -266,9 +267,11 @@
 .orders-heading {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 1.5rem;
     margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--latte);
 }
 
 .orders-eyebrow {
@@ -282,15 +285,15 @@
 
 .orders-heading h1 {
     margin: 0;
-    font-size: clamp(1.9rem, 3vw, 2.35rem);
+    font-size: 1.8rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.15;
 }
 
 .orders-heading p:last-child {
-    margin: 0.6rem 0 0;
+    margin: 0.5rem 0 0;
     color: var(--dark-mocha);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 400;
     line-height: 1.5;
 }
@@ -724,7 +727,11 @@
 }
 
 @media (max-width: 640px) {
-    .orders-page,
+    .orders-page {
+        width: 100%;
+        padding: 1.5rem 1.25rem 3rem;
+    }
+
     .order-track-page,
     .order-success-page {
         width: calc(100% - 1.25rem);

@@ -172,8 +172,8 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../admin/profile/profile.css">
     <link rel="stylesheet" href="profile.css">
-    <link rel="stylesheet" href="../customer-typography.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -228,9 +228,9 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
         </nav>
     </header>
 
-    <main class="page">
-        <section class="page__header">
-            <h1>My Profile</h1>
+    <main class="profile-page">
+        <section class="page-header">
+            <h1 class="page-title">My Profile</h1>
             <p>Manage your account details and keep your Brewski orders up to date.</p>
         </section>
 
@@ -246,18 +246,18 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
             </div>
         <?php endif; ?>
 
-        <div class="profile-grid">
-            <aside class="card profile-summary">
-                <div class="avatar"><?= e($initials) ?></div>
-                <h2><?= $display_first_name . ' ' . $display_last_name ?></h2>
+        <div class="profile-layout">
+            <aside class="profile-card profile-summary">
+                <span class="profile-avatar" aria-hidden="true"><?= e($initials) ?></span>
+                <h2 class="profile-summary__name"><?= $display_first_name . ' ' . $display_last_name ?></h2>
                 <p class="profile-summary__email"><?= $display_email ?></p>
 
                 <div class="profile-summary__actions">
-                    <a href="../customer-home/orders.php" class="btn btn--light">
+                    <a href="../customer-home/orders.php" class="btn btn-secondary">
                         <i data-lucide="receipt"></i>
                         <span>View orders</span>
                     </a>
-                    <a href="../customer-home/logout.php" class="btn btn--dark">
+                    <a href="../customer-home/logout.php" class="btn btn-primary">
                         <i data-lucide="log-out"></i>
                         <span>Logout</span>
                     </a>
@@ -265,65 +265,65 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
             </aside>
 
             <div class="profile-forms">
-                <section class="card">
-                    <h3 class="card__title">Personal information</h3>
+                <section class="profile-card">
+                    <h3 class="profile-card__title">Personal information</h3>
 
-                    <form method="post" action="profile.php" class="form" novalidate>
+                    <form method="post" action="profile.php" class="form-grid" novalidate>
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
                         <input type="hidden" name="action" value="update_profile">
 
-                        <div class="form__row">
-                            <div class="form__group">
-                                <label for="first_name">First name</label>
-                                <input type="text" id="first_name" name="first_name" value="<?= $display_first_name ?>" required maxlength="50">
-                            </div>
-
-                            <div class="form__group">
-                                <label for="last_name">Last name</label>
-                                <input type="text" id="last_name" name="last_name" value="<?= $display_last_name ?>" required maxlength="50">
-                            </div>
+                        <div class="form-field">
+                            <label for="first_name">First name</label>
+                            <input type="text" id="first_name" name="first_name" value="<?= $display_first_name ?>" required maxlength="50">
                         </div>
 
-                        <div class="form__group">
+                        <div class="form-field">
+                            <label for="last_name">Last name</label>
+                            <input type="text" id="last_name" name="last_name" value="<?= $display_last_name ?>" required maxlength="50">
+                        </div>
+
+                        <div class="form-field form-field-full">
                             <label for="email">Email address</label>
                             <input type="email" id="email" name="email" value="<?= $display_email ?>" required>
                         </div>
 
-                        <button type="submit" class="btn btn--dark btn--block">
-                            <i data-lucide="check"></i>
-                            <span>Save changes</span>
-                        </button>
+                        <div class="form-field-full profile-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="check"></i>
+                                <span>Save changes</span>
+                            </button>
+                        </div>
                     </form>
                 </section>
 
-                <section class="card">
-                    <h3 class="card__title">Change password</h3>
+                <section class="profile-card">
+                    <h3 class="profile-card__title">Change password</h3>
 
-                    <form method="post" action="profile.php" class="form" novalidate>
+                    <form method="post" action="profile.php" class="form-grid" novalidate>
                         <input type="hidden" name="csrf_token" value="<?= e($_SESSION['csrf_token']) ?>">
                         <input type="hidden" name="action" value="change_password">
 
-                        <div class="form__group">
+                        <div class="form-field form-field-full">
                             <label for="current_password">Current password</label>
                             <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
                         </div>
 
-                        <div class="form__row">
-                            <div class="form__group">
-                                <label for="new_password">New password</label>
-                                <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
-                            </div>
-
-                            <div class="form__group">
-                                <label for="confirm_password">Confirm new password</label>
-                                <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
-                            </div>
+                        <div class="form-field">
+                            <label for="new_password">New password</label>
+                            <input type="password" id="new_password" name="new_password" required minlength="8" autocomplete="new-password">
                         </div>
 
-                        <button type="submit" class="btn btn--dark btn--block">
-                            <i data-lucide="lock"></i>
-                            <span>Update password</span>
-                        </button>
+                        <div class="form-field">
+                            <label for="confirm_password">Confirm new password</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required minlength="8" autocomplete="new-password">
+                        </div>
+
+                        <div class="form-field-full profile-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-lucide="lock"></i>
+                                <span>Update password</span>
+                            </button>
+                        </div>
                     </form>
                 </section>
             </div>
