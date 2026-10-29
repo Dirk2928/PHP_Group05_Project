@@ -281,7 +281,7 @@ $escape = static function (string $value): string {
 
                 <a
                     class="btn btn-secondary"
-                    href="<?= $escape(BREWSKI_BASE_URL . '/login-signup/logout.php') ?>"
+                    href="<?= $escape(brewski_logout_url()) ?>"
                 >Log out</a>
 
             </div>

@@ -75,7 +75,7 @@ $csrf_token = $_SESSION['csrf_token'];
 
             <div id="profileMenu" class="profile-menu hidden">
                 <a
-                    href="../../login-signup/logout.php"
+                    href="<?= htmlspecialchars(brewski_logout_url(), ENT_QUOTES, 'UTF-8') ?>"
                     class="profile-menu-item border-top"
                 >
                     Log out
