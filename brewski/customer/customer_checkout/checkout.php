@@ -1,8 +1,6 @@
 <?php
 
-// "Proceed to checkout" from the cart always comes through here.
-// Signed in  -> checkout page.
-// Signed out -> login page, and after login the customer lands on checkout.
+
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 

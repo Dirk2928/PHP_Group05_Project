@@ -600,7 +600,6 @@ body {
 
 .auth__legal a { color: #755b43; text-underline-offset: 2px; }
 
-/* Auth flow navigation links use the same muted brown as field labels. */
 .auth a:not(.btn) {
     color: #624832;
     font-weight: 400;
@@ -611,7 +610,6 @@ body {
     color: var(--mocha);
 }
 
-/* Authenticator setup and recovery screens share the login/signup card. */
 .auth__content > p { line-height: 1.5; }
 .auth__content h2 { margin: 1.2rem 0 0.45rem; font-family: var(--font-brand); font-size: 1.1rem; }
 .auth__content ol { margin: 0 0 1rem; padding-left: 1.25rem; color: #755b43; text-align: left; font-size: 0.8rem; }

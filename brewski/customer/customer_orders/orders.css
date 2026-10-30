@@ -5,7 +5,6 @@
     padding: 2rem 2rem 4rem;
 }
 
-/* Customer order history and detail views */
 .orders-page {
     padding-top: clamp(1.5rem, 4vw, 3.25rem);
 }
@@ -1088,7 +1087,6 @@
     }
 }
 
-/* Keep the card polish after the base component declarations above. */
 .order-card {
     border-color: #e8dcc9;
     border-radius: 1.1rem;
@@ -1113,7 +1111,6 @@
     .order-detail-page .orders-heading { align-items: flex-start; }
 }
 
-/* Final spacing and detail page refinements */
 .orders-page {
     max-width: 1320px;
     padding: 1.65rem clamp(1rem, 3vw, 2.25rem) 3rem;
@@ -1187,7 +1184,6 @@
     .order-detail-item { gap: 0.65rem; }
 }
 
-/* Text only order progress: no connecting line, numbered circles, or checkmarks. */
 .order-progress {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1243,7 +1239,6 @@
     color: #9b7048;
 }
 
-/* Match the menu page container and page title on order history only. */
 .orders-page:not(.order-detail-page) {
     width: 100%;
     max-width: 1560px;

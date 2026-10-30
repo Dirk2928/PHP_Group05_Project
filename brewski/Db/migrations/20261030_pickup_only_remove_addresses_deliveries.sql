@@ -1,5 +1,3 @@
--- Remove address and delivery storage and keep optional pickup notes on orders.
--- The address foreign key may have a generated name in existing deployments.
 SET @address_fk = (
     SELECT CONSTRAINT_NAME
       FROM information_schema.KEY_COLUMN_USAGE

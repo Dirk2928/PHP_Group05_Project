@@ -1,5 +1,3 @@
--- Legacy migration: allow pickup orders without an address when the address
--- column exists. Skip cleanly on fresh or fully migrated pickup-only schemas.
 SET @orders_table_exists = (
     SELECT COUNT(*)
       FROM information_schema.TABLES

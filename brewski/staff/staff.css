@@ -1820,7 +1820,6 @@ body.sidebar-open::after {
 
 
 
-/* Keep staff typography consistent; Fredoka is reserved for the Brewski wordmark. */
 body,
 body * {
     font-family: "Century Gothic", CenturyGothic, sans-serif !important;
@@ -2225,7 +2224,6 @@ body.sidebar-open .sidebar-toggle span {
     }
 }
 
-/* Match staff-home cards to the admin home palette. */
 .staff-orders .order-summary-card,
 .staff-products .availability-overview {
     background: var(--latte) !important;

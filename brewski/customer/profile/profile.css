@@ -23,7 +23,6 @@ body {
     min-height: 100vh;
 }
 
-/* Match the admin profile's cream canvas while keeping the customer navigation. */
 body.customer-profile { background-color: #faf6ee; }
 
 .profile-page {

@@ -1,6 +1,6 @@
 <?php
 
-// Run during a maintenance window, after making a database backup.
+
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;

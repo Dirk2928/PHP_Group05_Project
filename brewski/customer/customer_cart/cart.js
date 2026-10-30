@@ -113,7 +113,6 @@
         return pendingSync;
     }
 
-    // Not signed in: go to login, then return to checkout.
     function goToLogin() {
         try {
             sessionStorage.removeItem('brewski_checkout_sync_complete');
@@ -603,11 +602,8 @@
                 return;
             }
 
-            // Cart sync is switched off: just open checkout
             if (!syncEnabled || syncEnabled.content !== '1') return;
 
-            // Check the customer is signed in before opening checkout.
-            // Not signed in -> login page (then back to checkout after login).
             event.preventDefault();
             var destination = checkoutLink.href;
             checkoutLink.setAttribute('aria-disabled', 'true');
@@ -620,7 +616,6 @@
                     goToLogin();
                     return;
                 }
-                // Any other problem: let the checkout page handle it
                 console.error('Could not sync cart with checkout:', error);
                 window.location.assign(destination);
             });

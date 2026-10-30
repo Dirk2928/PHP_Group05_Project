@@ -1,6 +1,6 @@
 <?php
 
-// Run only against a disposable database; see the integration test commands in the task notes.
+
 if (getenv('BREWSKI_INTEGRATION_TEST') !== '1'
     || !in_array(getenv('DB_NAME'), ['brewski_legacy_test', 'brewski_legacy_auth_test'], true)
     || getenv('DB_PORT') !== '3308') {

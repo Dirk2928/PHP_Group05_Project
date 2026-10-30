@@ -1,6 +1,6 @@
 <?php
 
-/** Application-level protection for user data stored in MySQL. */
+
 function brewski_personal_configure(PDO|mysqli $database): void
 {
     if (PHP_SAPI !== 'cli') {

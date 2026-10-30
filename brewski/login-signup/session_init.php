@@ -281,15 +281,7 @@ function brewski_current_role(): string
     return strtoupper(trim((string) ($_SESSION['role'] ?? '')));
 }
 
-/*
- * "Proceed to checkout" while signed out sends the customer to
- * login.php?next=checkout. We remember that choice in the session, and once
- * the login finishes (password / OTP / authenticator) the customer lands on
- * the checkout page instead of the home page.
- *
- * Only the word "checkout" is stored, never a URL, so this cannot be used to
- * redirect people to other sites. The choice expires after 30 minutes.
- */
+
 function brewski_remember_post_login_target(string $target): void
 {
     if ($target !== 'checkout') {
@@ -301,7 +293,7 @@ function brewski_remember_post_login_target(string $target): void
         'at'     => time(),
     ];
 
-    // Backup copy in a short-lived cookie, in case the login steps reset the session
+
     if (!headers_sent()) {
         setcookie('brewski_next', 'checkout', [
             'expires'  => time() + 1800,
