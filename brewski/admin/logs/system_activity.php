@@ -3,38 +3,29 @@
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
 
+// Only needed if connection.php does not already load the file that defines
+// brewski_personal_decrypt(). Replace YOUR_PERSONAL_DATA_FILE.php with its real name.
+if (!function_exists('brewski_personal_decrypt')) {
+    require_once __DIR__ . '/../../Db/YOUR_PERSONAL_DATA_FILE.php';
+}
+
 brewski_require_role(['ADMIN']);
 
 $logs = [];
-$nameMap = [];
 $loadError = '';
 $databaseName = '';
 
 try {
 
+
     $pdo->exec("SET time_zone = '+00:00'");
     $databaseName = (string) $pdo->query('SELECT DATABASE()')->fetchColumn();
-
-    // Lookup of user_id => real name, used for the Details column.
-    foreach ($pdo->query(
-        "SELECT user_id, TRIM(CONCAT_WS(' ', first_name, last_name)) AS full_name FROM users"
-    ) as $userRow) {
-        $nameMap[(int) $userRow['user_id']] = (string) $userRow['full_name'];
-    }
-
-    // actor_name is stored as "User #13", so extract the ID and join to users
-    // to get the real name. Falls back to the stored text if no match is found.
     $statement = $pdo->query(
-        "SELECT l.activity_id,
-                COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), l.actor_name) AS actor_name,
-                l.actor_role, l.category, l.action, l.description,
-                l.target_type, l.target_id, l.created_at
-           FROM system_activity_logs l
-           LEFT JOIN users u
-                  ON l.actor_name REGEXP '^User #[0-9]+$'
-                 AND u.user_id = CAST(SUBSTRING_INDEX(l.actor_name, '#', -1) AS UNSIGNED)
-          WHERE l.actor_role IN ('ADMIN', 'STAFF', 'CUSTOMER')
-          ORDER BY l.created_at DESC, l.activity_id DESC"
+        "SELECT activity_id, actor_name, actor_role, category, action, description,
+                target_type, target_id, created_at
+           FROM system_activity_logs
+          WHERE actor_role IN ('ADMIN', 'STAFF', 'CUSTOMER')
+          ORDER BY created_at DESC, activity_id DESC"
     );
     $logs = $statement->fetchAll();
 } catch (Throwable $error) {
@@ -61,6 +52,47 @@ $categoryLabels = [
     'preferences' => 'Preferences',
     'system' => 'System',
 ];
+
+/*
+ * Decrypt personal data stored as "v1:..." tokens.
+ * The field name is part of the AES-GCM authentication, so each token is
+ * tried against the possible field names until one succeeds.
+ */
+$decryptToken = static function (string $token): string {
+    static $cache = [];
+    if (isset($cache[$token])) {
+        return $cache[$token];
+    }
+    if (function_exists('brewski_personal_decrypt')) {
+        foreach (['first_name', 'last_name', 'email', 'avatar_data'] as $field) {
+            try {
+                $plain = brewski_personal_decrypt($token, $field);
+                if (is_string($plain) && $plain !== '') {
+                    return $cache[$token] = $plain;
+                }
+            } catch (Throwable $decryptError) {
+                // Wrong field name for this token; try the next one.
+            }
+        }
+    }
+    return $cache[$token] = $token; // Could not decrypt: show the raw value.
+};
+
+// Replaces every "v1:..." token found inside a string with its decrypted value.
+$decryptText = static function ($value) use ($decryptToken): string {
+    return (string) preg_replace_callback(
+        '/v1:[A-Za-z0-9+\/]+=*/',
+        static fn (array $match): string => $decryptToken($match[0]),
+        (string) $value
+    );
+};
+
+foreach ($logs as &$logRow) {
+    $logRow['actor_name']  = $decryptText($logRow['actor_name']);
+    $logRow['action']      = $decryptText($logRow['action']);
+    $logRow['description'] = $decryptText($logRow['description']);
+}
+unset($logRow);
 ?>
 
 <div class="page-container system-activity-page">
@@ -145,22 +177,12 @@ $categoryLabels = [
                             error_log('Could not format system activity timestamp: ' . $error->getMessage());
                         }
                         $category = strtolower((string) $log['category']);
-
-                        // Replace "#50" in the description with "Real Name (#50)" when the ID is known.
-                        $description = preg_replace_callback(
-                            '/#(\d+)/',
-                            static function (array $match) use ($nameMap): string {
-                                $name = $nameMap[(int) $match[1]] ?? '';
-                                return $name !== '' ? $name . ' (#' . $match[1] . ')' : $match[0];
-                            },
-                            (string) $log['description']
-                        );
                         ?>
                         <tr data-id="<?= (int) $log['activity_id'] ?>"
                             data-name="<?= $escape($log['actor_name']) ?>"
                             data-role="<?= $escape($role) ?>"
                             data-category="<?= $escape($category) ?>"
-                            data-search="<?= $escape($log['action'] . ' ' . $description . ' ' . ($log['target_type'] ?? '') . ' ' . ($log['target_id'] ?? '')) ?>"
+                            data-search="<?= $escape($log['action'] . ' ' . $log['description'] . ' ' . ($log['target_type'] ?? '') . ' ' . ($log['target_id'] ?? '')) ?>"
                             data-date="<?= $escape($createdAt ? $createdAt->format('Y-m-d') : '') ?>">
                             <td><span class="cell-muted"><?= $escape($createdAt ? $createdAt->format('M j, Y · h:i A') : $log['created_at']) ?></span></td>
                             <td><span class="cell-strong"><?= $escape($log['actor_name']) ?></span></td>
@@ -169,7 +191,7 @@ $categoryLabels = [
                                 <span class="activity-action"><?= $escape($log['action']) ?></span>
                                 <span class="activity-category"><?= $escape($categoryLabels[$category] ?? ucfirst($category)) ?></span>
                             </td>
-                            <td><span class="cell-muted"><?= $escape($description) ?></span></td>
+                            <td><span class="cell-muted"><?= $escape($log['description']) ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                     <tr id="activityNoResults" class="<?= $logs ? 'hidden' : '' ?>">
