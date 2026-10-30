@@ -9,51 +9,73 @@
     --font-body:  "Century Gothic", CenturyGothic, "AppleGothic", "Questrial", "Segoe UI", sans-serif;
 }
 
-.login-home-link {
-    position: fixed;
-    z-index: 20;
-    left: max(1.25rem, env(safe-area-inset-left));
-    bottom: max(1.25rem, env(safe-area-inset-bottom));
-    display: grid;
-    width: 3rem;
-    height: 3rem;
-    place-items: center;
-    border: 1px solid rgb(241 226 202 / 30%);
-    border-radius: 50%;
-    background: rgb(113 73 42 / 72%);
-    color: var(--cream);
-    text-decoration: none;
-    box-shadow: 0 .5rem 1.2rem rgb(0 0 0 / 22%);
-    transition: background .2s ease, transform .2s ease;
-}
-
-.login-home-link:hover {
-    background: rgb(113 73 42 / 92%);
-    transform: translateX(-2px);
-}
-
-.login-home-link:focus-visible {
-    outline: 3px solid var(--latte);
-    outline-offset: 3px;
-}
-
-.login-home-link svg {
-    width: 1.35rem;
-    height: 1.35rem;
-    display: block;
-    overflow: visible;
-    transform: translateX(-1px);
-}
-
-
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body { height: 100%; margin: 0; }
 
+.auth-topbar {
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 4.5rem;
+    padding: 0 2rem;
+    background: var(--espresso);
+    color: var(--latte);
+}
+
+.auth-topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--latte);
+    font-family: var(--font-brand);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+}
+
+.auth-topbar__brand:hover { color: var(--cream); }
+.auth-topbar__logo {
+    display: block;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0.2rem;
+    object-fit: contain;
+    background: var(--cream);
+    border-radius: 0.5rem;
+}
+
+.auth-topbar__nav { display: flex; gap: 0.5rem; }
+.auth-topbar__link {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    color: var(--latte);
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: background-color 0.15s, color 0.15s;
+}
+.auth-topbar__link:hover { background: var(--dark-mocha, #3c3027); color: var(--cream); }
+.auth-topbar__link svg { width: 24px; height: 24px; }
+
+@media (max-width: 520px) {
+    .auth-topbar { padding: 0 1rem; }
+    .auth-topbar__nav { gap: 0.15rem; }
+    .auth-topbar__link { padding: 0.45rem 0.5rem; font-size: 0.68rem; }
+}
+
 body {
     font-family: var(--font-body);
     color: var(--espresso);
-    background: radial-gradient(ellipse at 85% 12%, #fffdf8 0, var(--cream) 62%);
+    background: linear-gradient(135deg, #FBF9F4 0%, #F3EBDD 52%, #EAE0D0 100%);
 }
 
 
@@ -128,7 +150,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2rem 1.5rem;
-    background: var(--cream);
+    background: linear-gradient(135deg, #FBF9F4 0%, #F3EBDD 52%, #EAE0D0 100%);
 }
 
 .auth__content {
@@ -450,10 +472,7 @@ body {
     justify-content: center;
     padding: 1.25rem;
     overflow: hidden;
-    background:
-        radial-gradient(ellipse at 14% 12%, rgb(113 73 42 / 45%), transparent 38%),
-        radial-gradient(ellipse at 88% 92%, rgb(113 73 42 / 24%), transparent 34%),
-        var(--espresso);
+    background: linear-gradient(135deg, #FBF9F4 0%, #F3EBDD 52%, #EAE0D0 100%);
 }
 
 .auth--centered .side { display: none; }
@@ -463,6 +482,7 @@ body {
     z-index: 1;
     flex: 0 1 auto;
     width: 100%;
+    margin-top: 4rem;
     padding: 0;
     background: transparent;
 }
@@ -470,12 +490,12 @@ body {
 .auth--centered .auth__content {
     position: relative;
     width: 100%;
-    max-width: 26rem;
-    height: 35rem;
+    max-width: 24rem;
+    height: 32rem;
     max-height: calc(100vh - 2.5rem);
     max-height: calc(100svh - 2.5rem);
     overflow-y: auto;
-    padding: 1.8rem 2rem;
+    padding: 1.5rem 1.65rem;
     background: var(--cream);
     border: 1px solid rgb(255 255 255 / 78%);
     border-radius: 1.15rem;
@@ -485,13 +505,13 @@ body {
 }
 
 .auth--centered .brand__logo {
-    width: 3.8rem;
+    width: 3.4rem;
     margin-bottom: 0.25rem;
 }
 
 .auth--centered .brand__name {
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
     color: var(--espresso);
 }
 
@@ -499,27 +519,27 @@ body {
 
 .auth--centered .auth__title {
     margin-bottom: 0.35rem;
-    font-size: 1.38rem;
+    font-size: 1.25rem;
     letter-spacing: -0.025em;
     color: var(--espresso);
 }
 
 .auth__intro {
-    margin: 0 0 1.1rem;
+    margin: 0 0 0.85rem;
     color: #755b43;
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     line-height: 1.45;
 }
 
-.auth--centered .field { margin-bottom: 0.8rem; }
-.auth--centered .field input { height: 2.25rem; font-size: 0.9rem; }
-.auth--centered .field label { font-size: 0.8rem; color: #624832; }
+.auth--centered .field { margin-bottom: 0.65rem; }
+.auth--centered .field input { height: 2.05rem; font-size: 0.84rem; }
+.auth--centered .field label { font-size: 0.74rem; color: #624832; }
 .auth--centered .field__icon { stroke: var(--mocha); }
 .auth--centered .field__error { color: #b91c1c; }
-.auth--centered .btn { height: 2.3rem; }
+.auth--centered .btn { height: 2.1rem; }
 .auth--centered .auth__switch {
-    margin-top: 0.8rem;
-    font-size: 0.66rem;
+    margin-top: 0.65rem;
+    font-size: 0.62rem;
     line-height: 1.45;
     color: var(--espresso);
 }
@@ -527,7 +547,7 @@ body {
 .auth--centered .auth__switch a {
     display: inline;
     margin: 0;
-    font-size: 0.66rem;
+    font-size: 0.62rem;
     color: var(--espresso);
 }
 
@@ -546,9 +566,9 @@ body {
 }
 
 .auth--centered .auth__code-input {
-    height: 3rem;
+    height: 2.6rem;
     font-family: ui-monospace, "Cascadia Code", "Segoe UI Mono", monospace;
-    font-size: 1.15rem;
+    font-size: 1rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-align: center;
@@ -581,13 +601,13 @@ body {
 .auth__legal a { color: #755b43; text-underline-offset: 2px; }
 
 /* Auth flow navigation links use the same muted brown as field labels. */
-.auth a:not(.btn):not(.login-home-link) {
+.auth a:not(.btn) {
     color: #624832;
     font-weight: 400;
     text-decoration: none;
 }
 
-.auth a:not(.btn):not(.login-home-link):hover {
+.auth a:not(.btn):hover {
     color: var(--mocha);
 }
 
