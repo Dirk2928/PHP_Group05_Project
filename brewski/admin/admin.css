@@ -1130,11 +1130,35 @@ body.sidebar-open::after {
     color: var(--text-muted);
 }
 
+.activity-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.activity-page-size select {
+    min-height: 34px;
+    padding: 0 28px 0 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    color: var(--text-body);
+    font: inherit;
+}
+
 .pagination-nav {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
+}
+
+.pagination-ellipsis {
+    min-width: 18px;
+    color: var(--text-muted);
+    text-align: center;
 }
 
 .page-link {

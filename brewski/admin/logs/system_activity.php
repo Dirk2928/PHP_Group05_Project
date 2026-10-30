@@ -160,6 +160,14 @@ $categoryLabels = [
         </div>
         <div class="pagination-footer">
             <p class="pagination-info" id="activityCount"></p>
+            <label class="activity-page-size">
+                Rows per page
+                <select id="activityPageSize" aria-label="Rows per page">
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </label>
             <div class="pagination-nav" id="activityPagination"></div>
         </div>
     </div>
@@ -179,9 +187,10 @@ function initializeSystemActivity() {
     const refresh = document.getElementById('activityRefresh');
     const count = document.getElementById('activityCount');
     const pagination = document.getElementById('activityPagination');
+    const pageSizeSelect = document.getElementById('activityPageSize');
     const noResults = document.getElementById('activityNoResults');
     const rows = Array.from(body.querySelectorAll('tr[data-id]'));
-    const pageSize = 5;
+    let pageSize = Number(pageSizeSelect.value);
     let currentPage = 1;
 
     function addPageButton(label, disabled, active, handler) {
@@ -192,6 +201,14 @@ function initializeSystemActivity() {
         button.disabled = disabled;
         button.addEventListener('click', handler);
         pagination.appendChild(button);
+    }
+
+    function addEllipsis() {
+        const ellipsis = document.createElement('span');
+        ellipsis.className = 'pagination-ellipsis';
+        ellipsis.setAttribute('aria-hidden', 'true');
+        ellipsis.textContent = '…';
+        pagination.appendChild(ellipsis);
     }
 
     function render() {
@@ -218,11 +235,18 @@ function initializeSystemActivity() {
 
         pagination.innerHTML = '';
         addPageButton('Previous', currentPage === 1 || filtered.length === 0, false, function () { currentPage--; render(); });
-        for (let page = 1; page <= pageCount; page++) {
+        const visiblePages = pageCount <= 6
+            ? Array.from({ length: pageCount }, function (_, index) { return index + 1; })
+            : [1, 2, 3, null, pageCount - 2, pageCount - 1, pageCount];
+        visiblePages.forEach(function (page) {
+            if (page === null) {
+                addEllipsis();
+                return;
+            }
             (function (target) {
                 addPageButton(String(target), false, target === currentPage, function () { currentPage = target; render(); });
             })(page);
-        }
+        });
         addPageButton('Next', currentPage === pageCount || filtered.length === 0, false, function () { currentPage++; render(); });
     }
 
@@ -231,6 +255,11 @@ function initializeSystemActivity() {
             currentPage = 1;
             render();
         });
+    });
+    pageSizeSelect.addEventListener('change', function () {
+        pageSize = Number(pageSizeSelect.value);
+        currentPage = 1;
+        render();
     });
     reset.addEventListener('click', function () {
         search.value = '';
