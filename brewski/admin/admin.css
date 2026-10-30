@@ -3453,3 +3453,17 @@ body * {
     border-top: 1px solid var(--line);
     border-radius: 0 0 9px 9px;
 }
+
+@media (max-width: 768px) {
+    .main-content { min-width: 0; width: 100%; max-width: 100%; }
+    .main-content > * { min-width: 0; }
+    .main-content img, .main-content canvas, .main-content svg { max-width: 100%; }
+    .main-content input, .main-content select, .main-content textarea { min-width: 0; max-width: 100%; }
+    .table-responsive, .table-scroll, .data-table-wrapper { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+    .main-content { padding-left: max(.75rem, env(safe-area-inset-left)); padding-right: max(.75rem, env(safe-area-inset-right)); }
+    .main-content h1, .main-content .page-title { font-size: clamp(1.35rem, 7vw, 1.8rem); overflow-wrap: anywhere; }
+    .main-content .card, .main-content .panel, .main-content .modal-content { max-width: 100%; }
+}

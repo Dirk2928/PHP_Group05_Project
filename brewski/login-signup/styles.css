@@ -72,6 +72,20 @@ html, body { height: 100%; margin: 0; }
     .auth-topbar__link { padding: 0.45rem 0.5rem; font-size: 0.68rem; }
 }
 
+@media (max-width: 520px) {
+    .auth-topbar { height: auto; min-height: 3.75rem; padding: .55rem .85rem; gap: .5rem; }
+    .auth-topbar__brand { flex: 0 0 auto; }
+    .auth-topbar__nav { min-width: 0; gap: .35rem; }
+    .auth-topbar__link { min-height: 2.4rem; padding: .4rem .5rem; font-size: .8rem; }
+    .auth, .auth__panel, .auth__content { min-width: 0; max-width: 100%; }
+    .auth__content { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 360px) {
+    .auth-topbar { flex-wrap: wrap; }
+    .auth-topbar__nav { flex: 1 1 100%; justify-content: space-between; }
+}
+
 body {
     font-family: var(--font-body);
     color: var(--espresso);

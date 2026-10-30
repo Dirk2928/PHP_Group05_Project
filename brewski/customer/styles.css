@@ -760,3 +760,20 @@ html, body {
 @media (max-width: 440px) {
     .product-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Keep customer pages and their shared navigation inside narrow viewports. */
+@media (max-width: 720px) {
+    .topbar { min-height: 4rem; height: auto; padding: .65rem 1rem; gap: .5rem; }
+    .topbar__nav { min-width: 0; max-width: 100%; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+    .topbar__link { min-height: 2.5rem; padding: .45rem .55rem; }
+    .page, .page-content, .content-wrapper, main { min-width: 0; max-width: 100%; }
+    img, video, canvas, svg { max-width: 100%; }
+    input, select, textarea, button { max-width: 100%; }
+}
+
+@media (max-width: 420px) {
+    .topbar { align-items: flex-start; flex-wrap: wrap; }
+    .topbar__brand { flex: 0 0 auto; }
+    .topbar__nav { flex: 1 1 100%; justify-content: space-between; }
+    .topbar__link { font-size: .82rem; }
+}

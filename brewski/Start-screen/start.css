@@ -841,6 +841,15 @@ body:has(.dev-modal[open]) {
     }
 }
 
+@media (max-width: 40rem) {
+    .start-header { gap: .5rem; padding-inline: max(1rem, env(safe-area-inset-left)); }
+    .start-nav { min-width: 0; max-width: 100%; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
+    .start-nav a { min-height: 2.5rem; padding-inline: .55rem; }
+    .hero h1 { font-size: clamp(2.2rem, 10vw, 3.5rem); overflow-wrap: anywhere; }
+    .picks__inner, .about__inner, .devs__grid { min-width: 0; }
+    .dev-modal[open] { max-width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); overflow: auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .dev-card,
     .picks__track,
