@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     addToCartButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', async function () {
             if (redirectSignedOutCustomerToSignup()) {
                 return;
             }
@@ -382,9 +382,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             var options = [];
             try {
-                options = JSON.parse(card.dataset.options || '[]');
+                var response = await fetch(
+                    '../partials/product_options.php?product_id=' + encodeURIComponent(card.dataset.id),
+                    { headers: { 'Accept': 'application/json' }, cache: 'no-store' }
+                );
+                var result = await response.json();
+                if (!response.ok || !result.ok || !Array.isArray(result.options)) {
+                    throw new Error(result.error || 'Could not load the latest add-on choices.');
+                }
+                options = result.options;
+                card.dataset.options = JSON.stringify(options);
             } catch (error) {
-                console.error('Could not read product customizations:', error);
+                console.error('Could not load current product customizations:', error);
+                window.alert(error.message || 'Could not load the latest add-on choices. Please try again.');
+                return;
             }
 
             currentProduct = {
