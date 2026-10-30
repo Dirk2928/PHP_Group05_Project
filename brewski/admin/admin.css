@@ -3326,3 +3326,106 @@ body * {
     background: var(--management-warm);
     color: #3c3027;
 }
+
+.profile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+    background-image: none;
+}
+
+.profile-btn-avatar,
+.profile-btn-initials {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-btn-initials,
+.profile-summary-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--espresso);
+    color: var(--cream);
+    font-weight: 700;
+}
+
+.profile-menu.profile-dropdown-panel {
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(270px, calc(100vw - 24px));
+    margin-top: 0;
+    padding: 8px;
+    border-radius: 14px;
+    box-shadow: 0 14px 36px rgba(30, 17, 10, 0.18);
+    z-index: 60;
+}
+
+.profile-user-summary {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 8px 12px;
+}
+
+.profile-summary-avatar {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--surface-muted);
+}
+
+.profile-summary-initials {
+    font-size: 13px;
+}
+
+.profile-summary-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.profile-summary-copy strong,
+.profile-summary-copy span {
+    overflow: hidden;
+    color: var(--espresso);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-summary-copy strong {
+    font-size: 13px;
+}
+
+.profile-summary-copy span {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.profile-menu.profile-dropdown-panel .profile-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    text-decoration: none;
+}
+
+.profile-menu.profile-dropdown-panel .profile-menu-item:hover {
+    background: var(--surface-muted);
+}
+
+.profile-menu.profile-dropdown-panel .profile-menu-item.border-top {
+    margin-top: 5px;
+    border-top: 1px solid var(--line);
+    border-radius: 0 0 9px 9px;
+}

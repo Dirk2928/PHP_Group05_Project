@@ -258,6 +258,14 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !profileMenu.classList.contains('hidden')) {
+            profileMenu.classList.add('hidden');
+            profileBtn.setAttribute('aria-expanded', 'false');
+            profileBtn.focus();
+        }
+    });
+
     navItems.forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();

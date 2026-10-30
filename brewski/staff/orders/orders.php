@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
+require_once __DIR__ . '/../../Db/db_config.php';
 
 brewski_require_role(['STAFF', 'ADMIN']);
 
@@ -20,6 +21,39 @@ $display_name = htmlspecialchars(
     ENT_QUOTES,
     'UTF-8'
 );
+
+$profileUserId = (int) $_SESSION['user_id'];
+$profileFirstName = (string) ($_SESSION['first_name'] ?? 'Staff');
+$profileLastName = (string) ($_SESSION['last_name'] ?? '');
+$profileEmail = (string) ($_SESSION['email'] ?? '');
+$profileName = trim($profileFirstName . ' ' . $profileLastName) ?: 'Staff';
+$profileInitials = strtoupper(
+    mb_substr($profileFirstName, 0, 1) . mb_substr($profileLastName, 0, 1)
+);
+$profileInitials = $profileInitials !== '' ? $profileInitials : 'S';
+$profileAvatarUrl = null;
+
+try {
+    $avatarConnection = brewski_db_connection();
+    $avatarStatement = $avatarConnection->prepare(
+        'SELECT avatar_mime_type, updated_at FROM users WHERE user_id = ? LIMIT 1'
+    );
+    if ($avatarStatement) {
+        $avatarStatement->bind_param('i', $profileUserId);
+        $avatarStatement->execute();
+        $avatarStatement->bind_result($avatarMimeType, $avatarUpdatedAt);
+        if ($avatarStatement->fetch() && $avatarMimeType) {
+            $profileAvatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $profileUserId
+                . '&v=' . ($avatarUpdatedAt ? strtotime($avatarUpdatedAt) : time());
+        }
+        $avatarStatement->close();
+    }
+    $avatarConnection->close();
+} catch (Throwable $error) {
+    $profileAvatarUrl = null;
+}
+
+$escapeProfile = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -70,17 +104,35 @@ $csrf_token = $_SESSION['csrf_token'];
                 id="profileBtn"
                 class="icon-btn profile-btn"
                 aria-label="Open profile menu"
+                aria-haspopup="true"
+                aria-controls="profileMenu"
                 aria-expanded="false"
-            ></button>
+            >
+                <?php if ($profileAvatarUrl): ?>
+                    <img src="<?= $escapeProfile($profileAvatarUrl) ?>" alt="" class="profile-btn-avatar">
+                <?php else: ?>
+                    <span class="profile-btn-initials" aria-hidden="true"><?= $escapeProfile($profileInitials) ?></span>
+                <?php endif; ?>
+            </button>
 
-            <div id="profileMenu" class="profile-menu hidden">
-                <a
-                    href="<?= htmlspecialchars(brewski_logout_url(), ENT_QUOTES, 'UTF-8') ?>"
-                    class="profile-menu-item border-top"
-                >
-                    Log out
+            <div id="profileMenu" class="profile-menu profile-dropdown-panel hidden" aria-label="Profile menu">
+                <div class="profile-user-summary">
+                    <?php if ($profileAvatarUrl): ?>
+                        <img src="<?= $escapeProfile($profileAvatarUrl) ?>" alt="" class="profile-summary-avatar">
+                    <?php else: ?>
+                        <span class="profile-summary-avatar profile-summary-initials" aria-hidden="true"><?= $escapeProfile($profileInitials) ?></span>
+                    <?php endif; ?>
+                    <span class="profile-summary-copy">
+                        <strong><?= $escapeProfile($profileName) ?></strong>
+                        <span><?= $escapeProfile($profileEmail) ?></span>
+                    </span>
+                </div>
+                <a href="<?= $escapeProfile(BREWSKI_BASE_URL . '/staff/profile/profile.php') ?>" class="profile-menu-item">
+                    <i data-lucide="user-round" aria-hidden="true"></i> My Profile
                 </a>
-
+                <a href="<?= $escapeProfile(brewski_logout_url()) ?>" class="profile-menu-item border-top">
+                    <i data-lucide="log-out" aria-hidden="true"></i> Log out
+                </a>
             </div>
 
         </div>
