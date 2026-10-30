@@ -9,36 +9,31 @@ if (!defined('BREWSKI_CHOICE_FINGERPRINT_KEY')) {
 
 function brewski_custom_option_values(string $group, array $fallback): array
 {
-    static $cache = [];
+    static $optionsByGroup = null;
 
-    if (array_key_exists($group, $cache)) {
-        return $cache[$group];
+    if ($optionsByGroup === null) {
+        $optionsByGroup = [];
+        try {
+            $connection = brewski_preferences_connection();
+            if ($connection) {
+                $result = $connection->query(
+                    'SELECT DISTINCT option_group, option_name
+                     FROM product_customization_options
+                     ORDER BY option_group, option_name'
+                );
+                if ($result) {
+                    while ($row = $result->fetch_assoc()) {
+                        $optionsByGroup[(string) $row['option_group']][] = (string) $row['option_name'];
+                    }
+                    $result->free();
+                }
+            }
+        } catch (Throwable $error) {
+            error_log('Preference option lookup error: ' . $error->getMessage());
+        }
     }
 
-    try {
-        $connection = brewski_preferences_connection();
-        if (!$connection) {
-            return $cache[$group] = $fallback;
-        }
-        $statement = $connection->prepare(
-            'SELECT DISTINCT option_name
-             FROM product_customization_options
-             WHERE option_group = ?
-             ORDER BY option_name'
-        );
-        $statement->bind_param('s', $group);
-        $statement->execute();
-        $result = $statement->get_result();
-        $names = [];
-        while ($row = $result->fetch_assoc()) {
-            $names[] = (string) $row['option_name'];
-        }
-        $statement->close();
-        return $cache[$group] = ($names ?: $fallback);
-    } catch (Throwable $error) {
-        error_log('Preference option lookup error: ' . $error->getMessage());
-        return $cache[$group] = $fallback;
-    }
+    return $optionsByGroup[$group] ?? $fallback;
 }
 
 function brewski_drink_recommendation_questions(): array
@@ -69,7 +64,6 @@ function brewski_drink_recommendation_questions(): array
             'answers' => [
                 'Coffee' => ['coffee'],
                 'Non-coffee' => ['non-coffee'],
-                'Surprise me' => ['coffee', 'non-coffee'],
             ],
         ],
         'bean' => [
@@ -123,10 +117,6 @@ function brewski_drink_recommendation_questions(): array
 function brewski_drink_recommendation_questions_for_base(string $base): array
 {
     $questions = brewski_drink_recommendation_questions();
-
-    if ($base === 'Surprise me') {
-        return ['base' => $questions['base']];
-    }
 
     if ($base !== 'Non-coffee') {
         return $questions;
@@ -186,7 +176,6 @@ function brewski_menu_preference_questions(): array
             'answers' => [
                 'Coffee' => ['coffee'],
                 'Non-coffee' => ['non-coffee'],
-                'Surprise me' => ['coffee', 'non-coffee'],
             ],
         ],
         'flavor' => [

@@ -17,11 +17,94 @@
     color: var(--espresso);
 }
 
-.choice-surprise-hint {
-    margin: 0.75rem 0 0.5rem;
+.choice-modal__skip {
+    min-height: 44px;
+    padding: 0.65rem 1.1rem;
+    border: 1px solid var(--latte);
+    border-radius: 999px;
+    background: var(--white);
+    color: var(--espresso);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.choice-modal__skip:hover,
+.choice-modal__skip:focus-visible {
+    background: var(--cream);
+    border-color: var(--mocha);
+}
+
+.choice-modal__skip:focus-visible,
+.best-match-empty__button:focus-visible {
+    outline: 3px solid var(--mocha);
+    outline-offset: 2px;
+}
+
+.category[hidden] {
+    display: none;
+}
+
+.best-match-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid var(--latte);
+    border-radius: 1rem;
+    background: linear-gradient(120deg, #fffaf2, #f3e2c8);
+}
+
+.best-match-empty__eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--mocha);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.best-match-empty h3 {
+    margin: 0 0 0.35rem;
+    color: var(--espresso);
+    font-size: 1.15rem;
+}
+
+.best-match-empty p:not(.best-match-empty__eyebrow) {
+    margin: 0;
     color: var(--dark-mocha);
-    font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.45;
+}
+
+.best-match-empty__error:not([hidden]) {
+    margin-top: 0.6rem !important;
+    color: var(--danger) !important;
+}
+
+.best-match-empty__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0.75rem 1.2rem;
+    border: 0;
+    border-radius: 999px;
+    background: var(--espresso);
+    color: var(--cream);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, background-color 0.15s;
+}
+
+.best-match-empty__button:hover {
+    background: var(--mocha);
+    transform: translateY(-1px);
 }
 
 .choice-answers {
@@ -229,6 +312,16 @@
 }
 
 @media (max-width: 600px) {
+    .best-match-empty {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1.25rem;
+    }
+
+    .best-match-empty__button {
+        width: 100%;
+    }
+
     .choice-summary li {
         flex-direction: column;
         align-items: flex-start;
