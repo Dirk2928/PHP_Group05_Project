@@ -356,6 +356,14 @@ require __DIR__ . '/../partials/header.php';
             var result = call.result;
 
             if (result.ok) {
+                if (selectedMode() === 'in_store') {
+                    try {
+                        sessionStorage.removeItem('brewski_cart');
+                        sessionStorage.removeItem('brewski_checkout_sync_complete');
+                    } catch (storageError) {
+                        console.error('Order placed, but the browser cart could not be cleared:', storageError);
+                    }
+                }
                 window.location.href = result.redirect;
                 return;
             }
@@ -403,10 +411,14 @@ require __DIR__ . '/../partials/header.php';
         return;
     }
 
-    if (items.length > 0) {
-        status.hidden = false;
-        status.textContent = 'Updating your cart before checkout...';
+    if (items.length === 0) {
+        return;
     }
+
+    var placeOrderButton = document.getElementById('place-order-btn');
+    if (placeOrderButton) placeOrderButton.disabled = true;
+    status.hidden = false;
+    status.textContent = 'Updating your cart before checkout...';
 
     window.brewskiCheckoutCartSync = fetch(syncUrl.content, {
         method: 'POST',
@@ -427,10 +439,6 @@ require __DIR__ . '/../partials/header.php';
         var syncedUrl = new URL(window.location.href);
         syncedUrl.pathname = syncedUrl.pathname.replace(/^\/{2,}/, '/');
         syncedUrl.search = params.toString();
-        if (items.length === 0) {
-            window.location.replace(syncedUrl.href);
-            return;
-        }
         status.hidden = true;
         window.location.replace(syncedUrl.href);
     }).catch(function (error) {
@@ -438,7 +446,7 @@ require __DIR__ . '/../partials/header.php';
         status.style.background = '#f8e3e0';
         status.style.borderColor = '#e6b8b2';
         status.style.color = '#a32a1f';
-        status.textContent = error.message;
+        status.textContent = error.message + ' Refresh the page to try again.';
     });
 })();
 </script>

@@ -230,6 +230,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (currentMode === 'first-timer' && questionSection.dataset.choiceQuestion === 'base') {
                 syncDrinkQuestions();
+                if (answer.dataset.choiceAnswer === 'Surprise me' && saveButton && !saveButton.disabled) {
+                    saveButton.click();
+                }
             }
         });
     }
@@ -301,7 +304,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            setStatus('Saving...', '');
+            setStatus(currentMode === 'first-timer' && answered.base === 'Surprise me'
+                ? 'Picking your surprise drink...' : 'Saving...', '');
             saveButton.disabled = true;
 
             var payload = new URLSearchParams();
