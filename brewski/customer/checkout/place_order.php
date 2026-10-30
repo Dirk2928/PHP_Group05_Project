@@ -288,16 +288,6 @@ try {
         ]);
     }
 
-    $userStatement = $pdo->prepare(
-        'SELECT email, first_name, last_name FROM users WHERE user_id = ? LIMIT 1'
-    );
-    $userStatement->execute([$userId]);
-    $customer = $userStatement->fetch();
-    if (!$customer) {
-        throw new RuntimeException('Your customer account could not be verified.');
-    }
-    $customer = brewski_decrypt_user_fields($customer);
-
     $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
     $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
 
@@ -320,19 +310,11 @@ try {
                     'currency' => 'PHP',
                     'quantity' => 1,
                 ]],
+                'description' => 'Brewski order #' . $orderId,
                 'payment_method_types' => $paymentMethodTypes,
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
-                'reference_number' => 'BRW-' . $orderId,
                 'send_email_receipt' => false,
-                'billing' => [
-                    'name' => trim($customer['first_name'] . ' ' . $customer['last_name']),
-                    'email' => (string) $customer['email'],
-                ],
-                'metadata' => [
-                    'order_id' => (string) $orderId,
-                    'customer_id' => (string) $userId,
-                ],
             ],
         ],
     ]);

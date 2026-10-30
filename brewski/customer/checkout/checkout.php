@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../../Db/order_customizations.php';
 
 if (empty($_SESSION['user_id'])) {
+    brewski_remember_post_login_target('checkout');
     header('Location: ../../login-signup/login.php');
     exit;
 }

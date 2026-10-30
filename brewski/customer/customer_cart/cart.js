@@ -113,14 +113,15 @@
         return pendingSync;
     }
 
-    // Not signed in: go through the server-side gate, which remembers
-    // "checkout" and sends the customer to the login page.
+    // Not signed in: go to login, then return to checkout.
     function goToLogin() {
         try {
             sessionStorage.removeItem('brewski_checkout_sync_complete');
         } catch (error) {}
 
-        window.location.assign('../customer_cart/go_checkout.php');
+        var loginMeta = document.querySelector('meta[name="login-url"]');
+        var loginUrl = loginMeta ? loginMeta.content : '../../login-signup/login.php';
+        window.location.assign(loginUrl + (loginUrl.indexOf('?') === -1 ? '?' : '&') + 'next=checkout');
     }
 
 
@@ -214,7 +215,7 @@
             '<div class="cart-summary">' +
                 '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
                 '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
-                '<a href="../customer_cart/go_checkout.php" class="cart-checkout">Proceed to checkout</a>' +
+                '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
         cartBody.innerHTML = html;

@@ -157,11 +157,14 @@ function customer_paymongo_request(string $method, string $path, ?array $payload
     }
 
     if ($status < 200 || $status >= 300) {
+        $providerErrorCode = (string) ($response['errors'][0]['code'] ?? 'unknown_error');
         error_log(
             'PayMongo API rejected a request (HTTP ' . $status . '): '
             . substr($responseBody, 0, 1500)
         );
-        throw new RuntimeException('Could not start secure checkout. Please try again.');
+        throw new RuntimeException(
+            'PayMongo could not create checkout (HTTP ' . $status . ', ' . $providerErrorCode . ').'
+        );
     }
 
     return $response;
