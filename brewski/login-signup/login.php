@@ -116,6 +116,8 @@ $csrfToken = (string) $_SESSION['csrf_token'];
 
     <title>Login | brewski</title>
 
+    <link rel="icon" type="image/png" href="../images/brewskilogo.png">
+
     <link
         rel="preconnect"
         href="https://fonts.googleapis.com"

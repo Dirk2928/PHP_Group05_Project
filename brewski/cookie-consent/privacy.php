@@ -33,6 +33,7 @@ if ($currentChoice === 'accept') {
     >
 
     <title>Privacy Policy | brewski</title>
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars(BREWSKI_BASE_URL . '/images/brewskilogo.png', ENT_QUOTES, 'UTF-8') ?>">
 
     <link
         rel="preconnect"

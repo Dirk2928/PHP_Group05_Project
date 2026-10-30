@@ -113,6 +113,7 @@ $escape = static function (string $value): string {
     >
 
     <title>Staff &amp; admin portal | brewski</title>
+    <link rel="icon" type="image/png" href="<?= $escape(BREWSKI_BASE_URL . '/images/brewskilogo.png') ?>">
 
     <link
         rel="preconnect"
