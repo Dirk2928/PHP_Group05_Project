@@ -161,11 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $exists = $pdo->prepare(
-            "SELECT user_id FROM users WHERE user_id = ? AND role = 'STAFF' LIMIT 1"
+            "SELECT user_id, is_active, is_locked FROM users WHERE user_id = ? AND role = 'STAFF' LIMIT 1"
         );
         $exists->execute([(int) $staffId]);
 
-        if (!$exists->fetch()) {
+        $currentStaff = $exists->fetch(PDO::FETCH_ASSOC);
+        if (!$currentStaff) {
             admin_staff_respond(false, 'That staff member no longer exists.', 404);
         }
 
@@ -236,6 +237,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $changed[$field] = $value;
         }
 
+        $previousStatus = (int) $currentStaff['is_locked'] === 1
+            ? 'Locked' : ((int) $currentStaff['is_active'] === 1 ? 'Active' : 'Inactive');
+        $newStatus = null;
         $statusRaw = isset($_POST['is_active']) ? (string) $_POST['is_active'] : null;
         if ($statusRaw !== null && !in_array($statusRaw, ['1', '0', 'locked'], true)) {
             admin_staff_respond(false, 'Please choose a valid status.');
@@ -243,10 +247,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($statusRaw === 'locked') {
 
+            $newStatus = 'Locked';
             $sets[] = 'is_locked = 1';
 
         } elseif ($statusRaw !== null) {
 
+            $newStatus = $statusRaw === '1' ? 'Active' : 'Inactive';
             $sets[] = 'is_active = ?';
             $sets[] = 'is_locked = 0';
             $params[] = $statusRaw === '1' ? 1 : 0;
@@ -275,6 +281,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 password_hash($newPassword, PASSWORD_DEFAULT),
                 (int) $staffId,
             ]);
+        }
+
+        if ($newStatus !== null && $newStatus !== $previousStatus) {
+            brewski_record_activity(
+                $pdo,
+                'account',
+                'Changed staff status',
+                'Changed staff account #' . (int) $staffId . ' from ' . $previousStatus . ' to ' . $newStatus . '.',
+                'staff',
+                (int) $staffId
+            );
         }
 
         brewski_record_activity(

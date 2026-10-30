@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../../login-signup/session_init.php';
 require_once __DIR__ . '/../../Db/connection.php';
+require_once __DIR__ . '/../../Db/activity_log.php';
 
 brewski_require_role(['ADMIN']);
 
@@ -70,11 +71,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $target = $pdo->prepare(
-            "SELECT user_id FROM users WHERE user_id = ? AND role = 'CUSTOMER' LIMIT 1"
+            "SELECT user_id, is_active, is_locked FROM users WHERE user_id = ? AND role = 'CUSTOMER' LIMIT 1"
         );
         $target->execute([(int) $customerId]);
 
-        if (!$target->fetch()) {
+        $currentCustomer = $target->fetch(PDO::FETCH_ASSOC);
+        if (!$currentCustomer) {
             customer_information_respond(false, 'That customer no longer exists.', 404);
         }
 
@@ -129,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        $previousStatus = (int) $currentCustomer['is_locked'] === 1
+            ? 'Locked' : ((int) $currentCustomer['is_active'] === 1 ? 'Active' : 'Inactive');
+        $newStatus = null;
         if (array_key_exists('is_active', $_POST)) {
             $statusRaw = (string) $_POST['is_active'];
             if (!in_array($statusRaw, ['1', '0', 'locked'], true)) {
@@ -136,8 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($statusRaw === 'locked') {
+                $newStatus = 'Locked';
                 $sets[] = 'is_locked = 1';
             } else {
+                $newStatus = $statusRaw === '1' ? 'Active' : 'Inactive';
                 $sets[] = 'is_active = ?';
                 $sets[] = 'is_locked = 0';
                 $params[] = $statusRaw === '1' ? 1 : 0;
@@ -157,6 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'UPDATE users SET ' . implode(', ', $sets) . ' WHERE user_id = ?'
         );
         $update->execute($params);
+
+        if ($newStatus !== null && $newStatus !== $previousStatus) {
+            brewski_record_activity(
+                $pdo,
+                'account',
+                'Changed customer status',
+                'Changed customer account #' . (int) $customerId . ' from ' . $previousStatus . ' to ' . $newStatus . '.',
+                'customer',
+                (int) $customerId
+            );
+        }
 
 
         $_SESSION['admin_flash'] = [
