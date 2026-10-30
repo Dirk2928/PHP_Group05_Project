@@ -60,6 +60,10 @@ function dashboard_sales_buckets(
         $bucketExpression = 'HOUR(o.order_date)';
     } elseif ($interval === 'week') {
         $bucketExpression = 'DATE_SUB(DATE(o.order_date), INTERVAL WEEKDAY(o.order_date) DAY)';
+    } elseif ($interval === 'month') {
+        $bucketExpression = "DATE_FORMAT(o.order_date, '%Y-%m-01')";
+    } elseif ($interval === 'year') {
+        $bucketExpression = "DATE_FORMAT(o.order_date, '%Y-01-01')";
     } else {
         $bucketExpression = 'DATE(o.order_date)';
     }
@@ -86,34 +90,52 @@ function dashboard_sales_buckets(
 }
 
 $today = new DateTimeImmutable('today');
-$defaultStart = $today->modify('-6 days');
-$requestedStart = $_GET['from'] ?? $defaultStart->format('Y-m-d');
-$requestedEnd = $_GET['to'] ?? $today->format('Y-m-d');
+$defaultStart = $today->modify('first day of this month');
+$defaultEnd = $today->modify('last day of this month');
+
+function dashboard_request_range(string $key, DateTimeImmutable $defaultStart, DateTimeImmutable $defaultEnd): array
+{
+    $requestedStart = $_GET[$key . '_from'] ?? $_GET['from'] ?? $defaultStart->format('Y-m-d');
+    $requestedEnd = $_GET[$key . '_to'] ?? $_GET['to'] ?? $defaultEnd->format('Y-m-d');
+    $start = is_string($requestedStart) ? dashboard_parse_date($requestedStart) : null;
+    $end = is_string($requestedEnd) ? dashboard_parse_date($requestedEnd) : null;
+
+    if (!$start || !$end || $end < $start) {
+        dashboard_json_error(400, 'Choose a valid date range for ' . $key . '.');
+    }
+
+    if ($start->diff($end)->days > 3659) {
+        dashboard_json_error(400, 'A date range cannot exceed 10 years.');
+    }
+
+    return [$start, $end];
+}
+
+[$trendStart, $trendEnd] = dashboard_request_range('trend', $defaultStart, $defaultEnd);
+[$sellerStart, $sellerEnd] = dashboard_request_range('seller', $defaultStart, $defaultEnd);
+[$peakStart, $peakEnd] = dashboard_request_range('peak', $defaultStart, $defaultEnd);
+[$categoryStart, $categoryEnd] = dashboard_request_range('category', $defaultStart, $defaultEnd);
 $requestedInterval = $_GET['interval'] ?? 'day';
 $requestedComparison = $_GET['compare'] ?? '';
-$start = is_string($requestedStart) ? dashboard_parse_date($requestedStart) : null;
-$end = is_string($requestedEnd) ? dashboard_parse_date($requestedEnd) : null;
 $interval = is_string($requestedInterval) ? $requestedInterval : '';
 $comparison = is_string($requestedComparison) ? $requestedComparison : '';
 
-if (!$start || !$end || $end < $start) {
-    dashboard_json_error(400, 'Choose a valid date range.');
-}
-
-if ($start->diff($end)->days > 365) {
-    dashboard_json_error(400, 'The selected date range cannot exceed 366 days.');
-}
-
-if (!in_array($interval, ['hour', 'day', 'week'], true)) {
+if (!in_array($interval, ['hour', 'day', 'week', 'month', 'year'], true)) {
     dashboard_json_error(400, 'Choose a valid sales trend interval.');
 }
 
-if (!in_array($comparison, ['', 'week', 'month'], true)) {
+if (!in_array($comparison, ['', 'week', 'month', 'year'], true)) {
     dashboard_json_error(400, 'Choose a valid comparison period.');
 }
 
-$startDate = $start->format('Y-m-d');
-$endDate = $end->format('Y-m-d');
+$trendStartDate = $trendStart->format('Y-m-d');
+$trendEndDate = $trendEnd->format('Y-m-d');
+$sellerStartDate = $sellerStart->format('Y-m-d');
+$sellerEndDate = $sellerEnd->format('Y-m-d');
+$peakStartDate = $peakStart->format('Y-m-d');
+$peakEndDate = $peakEnd->format('Y-m-d');
+$categoryStartDate = $categoryStart->format('Y-m-d');
+$categoryEndDate = $categoryEnd->format('Y-m-d');
 $todayDate = $today->format('Y-m-d');
 $yesterdayDate = $today->modify('-1 day')->format('Y-m-d');
 
@@ -170,7 +192,7 @@ try {
         return (($current - $previous) / $previous) * 100;
     };
 
-    $trendBuckets = dashboard_sales_buckets($connection, $startDate, $endDate, $interval);
+    $trendBuckets = dashboard_sales_buckets($connection, $trendStartDate, $trendEndDate, $interval);
     $trendLabels = [];
     if ($interval === 'hour') {
         for ($hour = 0; $hour < 24; $hour++) {
@@ -180,19 +202,34 @@ try {
             ];
         }
     } else {
-        $step = $interval === 'week' ? '+1 week' : '+1 day';
-        $cursor = $interval === 'week'
-            ? $start->modify('monday this week')
-            : $start;
-        $lastBucket = $interval === 'week'
-            ? $end->modify('monday this week')
-            : $end;
+        $step = match ($interval) {
+            'week' => '+1 week',
+            'month' => '+1 month',
+            'year' => '+1 year',
+            default => '+1 day',
+        };
+        $cursor = match ($interval) {
+            'week' => $trendStart->modify('monday this week'),
+            'month' => $trendStart->modify('first day of this month'),
+            'year' => $trendStart->setDate((int) $trendStart->format('Y'), 1, 1),
+            default => $trendStart,
+        };
+        $lastBucket = match ($interval) {
+            'week' => $trendEnd->modify('monday this week'),
+            'month' => $trendEnd->modify('first day of this month'),
+            'year' => $trendEnd->setDate((int) $trendEnd->format('Y'), 1, 1),
+            default => $trendEnd,
+        };
 
         while ($cursor <= $lastBucket) {
             $key = $cursor->format('Y-m-d');
             $trendLabels[] = [
                 'key' => $key,
-                'label' => $cursor->format('M j'),
+                'label' => match ($interval) {
+                    'month' => $cursor->format('M Y'),
+                    'year' => $cursor->format('Y'),
+                    default => $cursor->format('M j'),
+                },
             ];
             $cursor = $cursor->modify($step);
         }
@@ -208,12 +245,13 @@ try {
     }
 
     if ($comparison !== '') {
-        $compareStart = $comparison === 'week'
-            ? $start->modify('-7 days')
-            : $start->modify('-1 month');
-        $compareEnd = $comparison === 'week'
-            ? $end->modify('-7 days')
-            : $end->modify('-1 month');
+        $comparisonShift = match ($comparison) {
+            'week' => '-7 days',
+            'year' => '-1 year',
+            default => '-1 month',
+        };
+        $compareStart = $trendStart->modify($comparisonShift);
+        $compareEnd = $trendEnd->modify($comparisonShift);
         $compareBuckets = dashboard_sales_buckets(
             $connection,
             $compareStart->format('Y-m-d'),
@@ -227,13 +265,24 @@ try {
                 $compareLabels[] = (string) $hour;
             }
         } else {
-            $compareCursor = $interval === 'week'
-                ? $compareStart->modify('monday this week')
-                : $compareStart;
-            $compareLastBucket = $interval === 'week'
-                ? $compareEnd->modify('monday this week')
-                : $compareEnd;
-            $step = $interval === 'week' ? '+1 week' : '+1 day';
+            $compareCursor = match ($interval) {
+                'week' => $compareStart->modify('monday this week'),
+                'month' => $compareStart->modify('first day of this month'),
+                'year' => $compareStart->setDate((int) $compareStart->format('Y'), 1, 1),
+                default => $compareStart,
+            };
+            $compareLastBucket = match ($interval) {
+                'week' => $compareEnd->modify('monday this week'),
+                'month' => $compareEnd->modify('first day of this month'),
+                'year' => $compareEnd->setDate((int) $compareEnd->format('Y'), 1, 1),
+                default => $compareEnd,
+            };
+            $step = match ($interval) {
+                'week' => '+1 week',
+                'month' => '+1 month',
+                'year' => '+1 year',
+                default => '+1 day',
+            };
 
             while ($compareCursor <= $compareLastBucket) {
                 $compareLabels[] = $compareCursor->format('Y-m-d');
@@ -260,8 +309,8 @@ try {
          LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status = 'COMPLETED'
            AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
-           AND o.order_date >= '{$startDate}'
-           AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
+           AND o.order_date >= '{$categoryStartDate}'
+           AND o.order_date < DATE_ADD('{$categoryEndDate}', INTERVAL 1 DAY)
          GROUP BY c.category_id, c.category_name
          ORDER BY amount DESC"
     );
@@ -281,8 +330,8 @@ try {
          LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status = 'COMPLETED'
            AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
-           AND o.order_date >= '{$startDate}'
-           AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
+           AND o.order_date >= '{$sellerStartDate}'
+           AND o.order_date < DATE_ADD('{$sellerEndDate}', INTERVAL 1 DAY)
          GROUP BY p.product_id, p.product_name
          ORDER BY units DESC, revenue DESC
          LIMIT 5"
@@ -303,8 +352,8 @@ try {
          LEFT JOIN order_payments op ON op.order_id = o.order_id
          WHERE o.order_status <> 'CANCELLED'
            AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
-           AND o.order_date >= '{$startDate}'
-           AND o.order_date < DATE_ADD('{$endDate}', INTERVAL 1 DAY)
+           AND o.order_date >= '{$peakStartDate}'
+           AND o.order_date < DATE_ADD('{$peakEndDate}', INTERVAL 1 DAY)
            AND HOUR(o.order_date) >= 8
          GROUP BY weekday, hour_slot"
     );
@@ -417,7 +466,12 @@ try {
         'peakHours' => $peakHours,
         'orders' => $orders,
         'alerts' => $alerts,
-        'range' => ['from' => $startDate, 'to' => $endDate],
+        'ranges' => [
+            'trend' => ['from' => $trendStartDate, 'to' => $trendEndDate],
+            'seller' => ['from' => $sellerStartDate, 'to' => $sellerEndDate],
+            'peak' => ['from' => $peakStartDate, 'to' => $peakEndDate],
+            'category' => ['from' => $categoryStartDate, 'to' => $categoryEndDate],
+        ],
         'comparison' => $comparison,
     ], JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
 

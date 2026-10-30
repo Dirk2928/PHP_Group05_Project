@@ -2,14 +2,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var svgNamespace = 'http://www.w3.org/2000/svg';
     var dashboard = document.getElementById('homeView');
     var salesChart = document.getElementById('salesChart');
-    var dateFrom = document.getElementById('dateFrom');
-    var dateTo = document.getElementById('dateTo');
     var intervalSelect = document.getElementById('trendInterval');
     var compareToggle = document.getElementById('compareToggle');
     var comparePeriod = document.getElementById('comparePeriod');
     var message = document.getElementById('dashboardMessage');
     var dashboardData = null;
     var activeRequest = null;
+    var rangeControls = [
+        { key: 'trend', unit: 'trendRangeUnit', from: 'trendRangeFrom', to: 'trendRangeTo' },
+        { key: 'seller', unit: 'sellerRangeUnit', from: 'sellerRangeFrom', to: 'sellerRangeTo' },
+        { key: 'peak', unit: 'peakRangeUnit', from: 'peakRangeFrom', to: 'peakRangeTo' },
+        { key: 'category', unit: 'categoryRangeUnit', from: 'categoryRangeFrom', to: 'categoryRangeTo' }
+    ];
 
     function money(amount, fractionDigits) {
         return '₱' + Number(amount || 0).toLocaleString('en-PH', {
@@ -23,6 +27,60 @@ document.addEventListener('DOMContentLoaded', function () {
         var month = String(date.getMonth() + 1).padStart(2, '0');
         var day = String(date.getDate()).padStart(2, '0');
         return year + '-' + month + '-' + day;
+    }
+
+    function expandedRange(control) {
+        var fromValue = document.getElementById(control.from).value;
+        var toValue = document.getElementById(control.to).value;
+        var isYear = document.getElementById(control.unit).value === 'year';
+
+        if (isYear) {
+            return { from: fromValue + '-01-01', to: toValue + '-12-31' };
+        }
+
+        var toParts = toValue.split('-');
+        var lastDay = new Date(Number(toParts[0]), Number(toParts[1]), 0).getDate();
+        return {
+            from: fromValue + '-01',
+            to: toValue + '-' + String(lastDay).padStart(2, '0')
+        };
+    }
+
+    function setupRangeControl(control, currentMonth) {
+        var unit = document.getElementById(control.unit);
+        var from = document.getElementById(control.from);
+        var to = document.getElementById(control.to);
+        from.value = currentMonth;
+        to.value = currentMonth;
+
+        unit.addEventListener('change', function () {
+            var useYear = unit.value === 'year';
+            [from, to].forEach(function (input) {
+                var currentValue = input.value;
+                input.type = useYear ? 'number' : 'month';
+                input.min = useYear ? '2000' : '';
+                input.max = useYear ? String(new Date().getFullYear()) : '';
+                input.step = useYear ? '1' : '';
+                input.value = useYear ? currentValue.slice(0, 4) : currentValue.slice(0, 4) + '-01';
+            });
+            if (to.value < from.value) {
+                to.value = from.value;
+            }
+            loadDashboard();
+        });
+
+        [from, to].forEach(function (input) {
+            input.addEventListener('change', function () {
+                if (to.value < from.value) {
+                    if (input === from) {
+                        to.value = from.value;
+                    } else {
+                        from.value = to.value;
+                    }
+                }
+                loadDashboard();
+            });
+        });
     }
 
     function setText(id, value) {
@@ -102,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
             previousLegend.style.display = hasComparison ? '' : 'none';
             if (previousLegendLabel && previousLegendLabel.nodeType === Node.TEXT_NODE) {
                 previousLegendLabel.textContent = hasComparison
-                    ? (data.comparison === 'week' ? ' Previous week' : ' Previous month')
+                    ? ' Previous ' + data.comparison
                     : '';
             }
         }
@@ -140,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
         salesChart.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
         salesChart.setAttribute(
             'aria-label',
-            'Completed sales from ' + data.range.from + ' to ' + data.range.to
+            'Completed sales from ' + data.ranges.trend.from + ' to ' + data.ranges.trend.to
         );
 
         var defs = addSvgElement('defs', {});
@@ -222,7 +280,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 salesChart.appendChild(circle);
             });
 
-            var labelStep = Math.max(1, Math.ceil(points.length / 8));
+            var labelStep = Math.max(1, Math.ceil((points.length - 1) / 7));
             points.forEach(function (point, index) {
                 if (index % labelStep !== 0 && index !== points.length - 1) {
                     return;
@@ -536,9 +594,12 @@ document.addEventListener('DOMContentLoaded', function () {
         activeRequest = new AbortController();
 
         var parameters = new URLSearchParams({
-            from: dateFrom.value,
-            to: dateTo.value,
             interval: intervalSelect.value
+        });
+        rangeControls.forEach(function (control) {
+            var range = expandedRange(control);
+            parameters.set(control.key + '_from', range.from);
+            parameters.set(control.key + '_to', range.to);
         });
         if (compareToggle.checked) {
             parameters.set('compare', comparePeriod.value);
@@ -580,14 +641,19 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         var overview = dashboardData.overview;
+        var ranges = dashboardData.ranges;
+        var today = localDateString(new Date());
         var rows = [
             ['Section', 'Item', 'Detail', 'Value', 'Timestamp'],
-            ['Summary', "Today's sales", '', overview.todaySales.toFixed(2), dashboardData.range.to],
-            ['Summary', 'Number of orders', '', overview.todayOrders, dashboardData.range.to],
-            ['Summary', 'Average order value', '', overview.averageOrderValue.toFixed(2), dashboardData.range.to],
+            ['Summary', "Today's sales", '', overview.todaySales.toFixed(2), today],
+            ['Summary', 'Number of orders', '', overview.todayOrders, today],
+            ['Summary', 'Average order value', '', overview.averageOrderValue.toFixed(2), today],
             ['Summary', 'Open orders', JSON.stringify(overview.statusCounts), overview.openOrders, ''],
-            ['Sales trend', 'Selected range total', dashboardData.range.from + ' to ' + dashboardData.range.to,
-                dashboardData.trend.reduce(function (sum, point) { return sum + Number(point.amount); }, 0).toFixed(2), '']
+            ['Sales trend', 'Selected range total', ranges.trend.from + ' to ' + ranges.trend.to,
+                dashboardData.trend.reduce(function (sum, point) { return sum + Number(point.amount); }, 0).toFixed(2), ''],
+            ['Best sellers', 'Date range', ranges.seller.from + ' to ' + ranges.seller.to, '', ''],
+            ['Peak hours', 'Date range', ranges.peak.from + ' to ' + ranges.peak.to, '', ''],
+            ['Sales breakdown', 'Date range', ranges.category.from + ' to ' + ranges.category.to, '', '']
         ];
 
         dashboardData.orders.forEach(function (order) {
@@ -613,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var url = URL.createObjectURL(blob);
         var link = document.createElement('a');
         link.href = url;
-        link.download = 'brewski-dashboard-' + dashboardData.range.from + '.csv';
+        link.download = 'brewski-dashboard-' + ranges.trend.from + '.csv';
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -623,25 +689,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var today = new Date();
-    var firstDate = new Date(today);
-    firstDate.setDate(firstDate.getDate() - 6);
-    dateFrom.value = localDateString(firstDate);
-    dateTo.value = localDateString(today);
-    dateTo.min = dateFrom.value;
-
-    dateFrom.addEventListener('change', function () {
-        dateTo.min = dateFrom.value;
-        if (dateTo.value < dateFrom.value) {
-            dateTo.value = dateFrom.value;
-        }
-        loadDashboard();
-    });
-    dateTo.addEventListener('change', function () {
-        if (dateTo.value < dateFrom.value) {
-            dateFrom.value = dateTo.value;
-        }
-        dateFrom.max = dateTo.value;
-        loadDashboard();
+    var currentMonth = localDateString(today).slice(0, 7);
+    rangeControls.forEach(function (control) {
+        setupRangeControl(control, currentMonth);
     });
     intervalSelect.addEventListener('change', loadDashboard);
     compareToggle.addEventListener('change', function () {

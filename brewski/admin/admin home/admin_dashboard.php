@@ -136,24 +136,6 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
             <p id="dashboardMessage" class="dashboard-message hidden" role="alert"></p>
 
             <div class="dashboard-toolbar" aria-label="Dashboard filters and exports">
-                <div class="date-range-control">
-                    <label>
-                        <span>From</span>
-                        <input type="date" id="dateFrom" aria-label="Start date">
-                    </label>
-                    <label>
-                        <span>To</span>
-                        <input type="date" id="dateTo" aria-label="End date">
-                    </label>
-                </div>
-                <label class="comparison-control">
-                    <input type="checkbox" id="compareToggle">
-                    <span>Compare</span>
-                    <select id="comparePeriod" aria-label="Comparison period" disabled>
-                        <option value="week">Last week</option>
-                        <option value="month">Last month</option>
-                    </select>
-                </label>
                 <div class="export-actions">
                     <button type="button" class="dashboard-button dashboard-button-secondary" id="exportCsv">Export CSV</button>
                     <button type="button" class="dashboard-button dashboard-button-primary" id="printReport" title="Print this report or save it as a PDF">Print</button>
@@ -195,6 +177,25 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                 </div>
             </section>
 
+            <section class="dashboard-section orders-section" aria-labelledby="ordersHeading">
+                <div class="section-heading">
+                    <div><h2 id="ordersHeading">Live order queue</h2><p>Current orders across the store</p></div>
+                    <span class="live-indicator"><i></i> Live</span>
+                </div>
+                <div class="table-scroll">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr><th>Order</th><th>Time</th><th>Items</th><th>Total</th><th>Status</th></tr>
+                        </thead>
+                        <tbody id="ordersTable"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-footer dashboard-pagination">
+                    <p class="pagination-info" id="ordersPageInfo"></p>
+                    <div class="pagination-nav" id="ordersPagination"></div>
+                </div>
+            </section>
+
             <div class="dashboard-grid dashboard-grid-middle">
                 <section class="dashboard-section trend-section" aria-labelledby="trendHeading">
                     <div class="section-heading section-heading-wrap">
@@ -202,14 +203,32 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                             <h2 id="trendHeading">Sales trend</h2>
                             <p>Track revenue across your selected date range</p>
                         </div>
-                        <label class="select-control">
-                            <span class="visually-hidden">Sales trend interval</span>
-                            <select id="trendInterval">
-                                <option value="hour">By hour</option>
-                                <option value="day" selected>By day</option>
-                                <option value="week">By week</option>
-                            </select>
-                        </label>
+                        <div class="trend-options">
+                            <label class="select-control">
+                                <span class="visually-hidden">Sales trend interval</span>
+                                <select id="trendInterval">
+                                    <option value="hour">By hour</option>
+                                    <option value="day" selected>By day</option>
+                                    <option value="week">By week</option>
+                                    <option value="month">By month</option>
+                                    <option value="year">By year</option>
+                                </select>
+                            </label>
+                            <label class="comparison-control">
+                                <input type="checkbox" id="compareToggle">
+                                <span>Compare</span>
+                                <select id="comparePeriod" aria-label="Comparison period" disabled>
+                                    <option value="week">Last week</option>
+                                    <option value="month">Last month</option>
+                                    <option value="year">Last year</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="analytics-range-control" aria-label="Sales trend date range">
+                        <label><span>Range by</span><select id="trendRangeUnit"><option value="month">Month</option><option value="year">Year</option></select></label>
+                        <label><span>From</span><input type="month" id="trendRangeFrom" aria-label="Sales trend start"></label>
+                        <label><span>To</span><input type="month" id="trendRangeTo" aria-label="Sales trend end"></label>
                     </div>
                     <div class="chart-summary">
                         <div><span class="chart-summary-label">Revenue</span><strong id="trendTotal">₱0</strong></div>
@@ -225,6 +244,11 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                                 <div><h3 id="peakHeading">Peak hours</h3><p>Orders by day and time</p></div>
                                 <span id="peakHours" class="peak-time">—</span>
                             </div>
+                            <div class="analytics-range-control analytics-range-control--compact" aria-label="Peak hours date range">
+                                <label><span>Range by</span><select id="peakRangeUnit"><option value="month">Month</option><option value="year">Year</option></select></label>
+                                <label><span>From</span><input type="month" id="peakRangeFrom" aria-label="Peak hours start"></label>
+                                <label><span>To</span><input type="month" id="peakRangeTo" aria-label="Peak hours end"></label>
+                            </div>
                             <div class="heatmap-scroll">
                                 <div id="peakHeatmap" class="heatmap" role="img" aria-label="Peak hours order heatmap"></div>
                             </div>
@@ -233,7 +257,11 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                         <section class="insight-card" aria-labelledby="categoryHeading">
                             <div class="insight-heading">
                                 <div><h3 id="categoryHeading">Sales breakdown</h3><p>Revenue by category</p></div>
-                                <span class="total-caption">Selected range</span>
+                            </div>
+                            <div class="analytics-range-control analytics-range-control--compact" aria-label="Sales breakdown date range">
+                                <label><span>Range by</span><select id="categoryRangeUnit"><option value="month">Month</option><option value="year">Year</option></select></label>
+                                <label><span>From</span><input type="month" id="categoryRangeFrom" aria-label="Sales breakdown start"></label>
+                                <label><span>To</span><input type="month" id="categoryRangeTo" aria-label="Sales breakdown end"></label>
                             </div>
                             <div id="categoryBreakdown" class="category-breakdown"></div>
                         </section>
@@ -245,6 +273,11 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                         <div class="section-heading">
                             <div><h2 id="sellersHeading">Best sellers</h2><p>Top items by units sold</p></div>
                             <span class="section-tag">Top 5</span>
+                        </div>
+                        <div class="analytics-range-control analytics-range-control--compact" aria-label="Best sellers date range">
+                            <label><span>Range by</span><select id="sellerRangeUnit"><option value="month">Month</option><option value="year">Year</option></select></label>
+                            <label><span>From</span><input type="month" id="sellerRangeFrom" aria-label="Best sellers start"></label>
+                            <label><span>To</span><input type="month" id="sellerRangeTo" aria-label="Best sellers end"></label>
                         </div>
                         <div id="bestSellers" class="seller-list"></div>
                     </section>
@@ -259,26 +292,6 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                 </div>
             </div>
 
-            <div class="dashboard-grid dashboard-grid-bottom">
-                <section class="dashboard-section orders-section" aria-labelledby="ordersHeading">
-                    <div class="section-heading">
-                        <div><h2 id="ordersHeading">Live order queue</h2><p>Recent orders across the store</p></div>
-                        <span class="live-indicator"><i></i> Live</span>
-                    </div>
-                    <div class="table-scroll">
-                        <table class="dashboard-table">
-                            <thead>
-                                <tr><th>Order</th><th>Time</th><th>Items</th><th>Total</th><th>Status</th></tr>
-                            </thead>
-                            <tbody id="ordersTable"></tbody>
-                        </table>
-                    </div>
-                    <div class="pagination-footer dashboard-pagination">
-                        <p class="pagination-info" id="ordersPageInfo"></p>
-                        <div class="pagination-nav" id="ordersPagination"></div>
-                    </div>
-                </section>
-            </div>
         </section>
 
         <section id="dynamicView" class="hidden"></section>

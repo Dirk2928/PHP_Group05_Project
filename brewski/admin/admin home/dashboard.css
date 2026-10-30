@@ -940,6 +940,69 @@
     box-shadow: var(--dashboard-card-shadow);
 }
 
+.trend-options {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.analytics-range-control {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.analytics-range-control label {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.analytics-range-control input,
+.analytics-range-control select {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 5px 7px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--surface);
+    color: var(--text-body);
+    font: inherit;
+    font-size: 11px;
+}
+
+.analytics-range-control input:focus,
+.analytics-range-control select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.analytics-range-control--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 8px 0 12px;
+}
+
+.analytics-range-control--compact label:first-child {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+    .trend-options {
+        justify-content: flex-start;
+    }
+
+    .analytics-range-control {
+        gap: 6px;
+    }
+}
+
 .date-range-control label,
 .comparison-control {
     font-size: var(--type-supporting);
