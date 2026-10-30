@@ -29,8 +29,8 @@
 
 .dashboard-toolbar {
     display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: 14px;
     padding: 12px 14px;
     background: var(--surface);
@@ -40,7 +40,7 @@
 
 .export-actions {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 10px;
 }
 
@@ -63,7 +63,7 @@
 }
 
 .export-actions {
-    align-self: flex-end;
+    align-self: center;
 }
 
 .dashboard-button {
@@ -770,17 +770,13 @@
     }
 
     .dashboard-toolbar {
-        align-items: stretch;
+        align-items: center;
         gap: 12px;
         padding: 12px;
     }
 
     .export-actions {
-        flex: 1;
-    }
-
-    .export-actions .dashboard-button {
-        flex: 1;
+        flex: 0 0 auto;
     }
 
     .dashboard-heading h1 {
@@ -877,7 +873,7 @@
 
 .dashboard-toolbar-label {
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: 0.12em;
 }
