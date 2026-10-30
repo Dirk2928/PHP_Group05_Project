@@ -201,6 +201,17 @@ document.addEventListener('DOMContentLoaded', function () {
     var closeModalBtn = document.getElementById('modal-close');
     var confirmAddBtn = document.getElementById('btn-confirm-add');
     var addToCartButtons = document.querySelectorAll('.btn-add');
+    var accountState = document.querySelector('meta[name="account-authenticated"]');
+    var signupUrlMeta = document.querySelector('meta[name="signup-url"]');
+
+    function redirectSignedOutCustomerToSignup() {
+        if (!accountState || accountState.content !== '0') {
+            return false;
+        }
+
+        window.location.assign(signupUrlMeta ? signupUrlMeta.content : '../login-signup/signup.php');
+        return true;
+    }
 
     if (!modal || !modalProductName || !modalTotalPrice || !drinkQuantityValue || !confirmAddBtn) {
         return;
@@ -360,6 +371,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     addToCartButtons.forEach(function (button) {
         button.addEventListener('click', function () {
+            if (redirectSignedOutCustomerToSignup()) {
+                return;
+            }
+
             var card = this.closest('.product-card');
             if (!card) {
                 return;
@@ -452,6 +467,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     confirmAddBtn.addEventListener('click', function () {
+        if (redirectSignedOutCustomerToSignup()) {
+            return;
+        }
+
         if (!currentProduct || !window.BrewskiCart) {
             return;
         }
