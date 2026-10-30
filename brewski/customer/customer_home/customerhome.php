@@ -6,7 +6,7 @@ require_once __DIR__ . '/../partials/preferences.php';
 
 $pageTitle = 'Home | brewski';
 $active = 'home';
-$extraStyles = ['partials/choice.css'];
+$extraStyles = ['partials/choice.css?v=skip-ui-2'];
 
 $catalogError = '';
 $catalog = ['products' => []];

@@ -118,9 +118,15 @@ $renderQuestions = static function (array $questionSet, array $values, bool $pro
 
         </div>
 
-        <div class="modal__footer">
+        <div class="modal__footer choice-modal__footer">
 
-            <button type="button" class="choice-modal__skip" id="choice-skip"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>Skip for now</button>
+            <button type="button" class="choice-modal__skip" id="choice-skip"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>
+                <span class="choice-modal__skip-icon" aria-hidden="true">→</span>
+                <span class="choice-modal__skip-copy">
+                    <strong>Skip for now</strong>
+                    <small>Set this up later</small>
+                </span>
+            </button>
 
             <button
                 type="button"
