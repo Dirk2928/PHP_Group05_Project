@@ -9,6 +9,7 @@ $active = 'home';
 $extraStyles = ['partials/choice.css'];
 
 $catalogError = '';
+$catalog = ['products' => []];
 $sections = [];
 $productsById = [];
 $choicePreferences = null;
@@ -22,7 +23,7 @@ try {
     }
     brewski_preference_sync($catalog);
     $choicePreferences = null;
-} catch (mysqli_sql_exception $error) {
+} catch (Throwable $error) {
     error_log('Customer home catalog error: ' . $error->getMessage());
     $catalogError = 'The menu is temporarily unavailable. Please try again later.';
 }
