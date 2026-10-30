@@ -335,15 +335,18 @@ function brewski_mailjet_send(array $mail): bool
         return false;
     }
 
-    $json = json_encode([
-        'Messages' => [[
-            'From' => ['Email' => $sender, 'Name' => $senderName],
-            'To' => [['Email' => $mail['to']]],
-            'Subject' => $mail['subject'],
-            'TextPart' => $mail['text'],
-            'HTMLPart' => $mail['html'],
-        ]],
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $message = [
+        'From' => ['Email' => $sender, 'Name' => $senderName],
+        'To' => [['Email' => $mail['to']]],
+        'Subject' => $mail['subject'],
+        'TextPart' => $mail['text'],
+        'HTMLPart' => $mail['html'],
+    ];
+    if (isset($mail['replyTo']) && brewski_mail_email_ok($mail['replyTo'])) {
+        $message['ReplyTo'] = ['Email' => $mail['replyTo']];
+    }
+
+    $json = json_encode(['Messages' => [$message]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
     if ($json === false) {
         error_log('Mailjet request could not be encoded.');
