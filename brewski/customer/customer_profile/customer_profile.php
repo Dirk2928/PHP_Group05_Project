@@ -7,7 +7,7 @@ brewski_require_role(['CUSTOMER']);
 
 $pageTitle = 'Profile | brewski';
 $active = 'profile';
-$extraStyles = ['customer_profile/customer_profile.css', 'partials/choice.css'];
+$extraStyles = ['customer_profile/customer_profile.css', 'partials/choice.css?v=skip-ui-2'];
 
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../../Db/activity_log.php';

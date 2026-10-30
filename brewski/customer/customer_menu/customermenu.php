@@ -6,7 +6,7 @@ require_once __DIR__ . '/../partials/preferences.php';
 
 $pageTitle = 'Menu | brewski';
 $active = 'menu';
-$extraStyles = ['partials/menu.css', 'partials/choice.css'];
+$extraStyles = ['partials/menu.css', 'partials/choice.css?v=skip-ui-2'];
 
 $catalogError = '';
 $categories = [];
