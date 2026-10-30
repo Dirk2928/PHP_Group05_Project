@@ -107,11 +107,6 @@ $statusIcons = [
             <h1>My orders</h1>
             <p>Check the latest update or revisit the details of a previous order.</p>
         </div>
-        <a class="orders-menu-link" href="../customer_menu/customermenu.php">
-            <i data-lucide="coffee" aria-hidden="true"></i>
-            Browse the menu
-            <i data-lucide="arrow-up-right" aria-hidden="true"></i>
-        </a>
     </div>
 
     <form class="orders-search" method="get" action="orders.php">
