@@ -818,54 +818,6 @@
     }
 }
 
-@media print {
-    @page {
-        size: landscape;
-        margin: 12mm;
-    }
-
-    body {
-        overflow: visible;
-        background: #fff;
-    }
-
-    .topbar,
-    .sidebar,
-    .dashboard-toolbar,
-    .alert-dismiss,
-    .export-actions {
-        display: none !important;
-    }
-
-    .main-content {
-        margin: 0;
-        padding: 0;
-    }
-
-    .dashboard {
-        gap: 10px;
-        max-width: none;
-    }
-
-    .dashboard-section,
-    .kpi-card {
-        break-inside: avoid;
-        box-shadow: none;
-    }
-
-    .dashboard-grid-middle {
-        grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr);
-    }
-
-    .dashboard-grid-bottom {
-        grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr);
-    }
-
-    .dashboard-side-stack {
-        grid-template-columns: 1fr;
-    }
-}
-
 .dashboard-toolbar {
     justify-content: space-between;
     box-shadow: var(--dashboard-card-shadow);
@@ -1032,5 +984,298 @@
 
     .dashboard-heading h1 {
         font-size: var(--type-page-title);
+    }
+}
+
+@media print {
+    @page {
+        size: landscape;
+        margin: 9mm;
+    }
+
+    html,
+    body {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+
+    body {
+        display: block !important;
+        color: #21160f;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .topbar,
+    .sidebar,
+    .sidebar-toggle,
+    .dashboard-toolbar,
+    .dashboard-message,
+    .dashboard-pagination,
+    .alert-dismiss,
+    .export-actions,
+    #dynamicView {
+        display: none !important;
+    }
+
+    .main-content {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #homeView.dashboard {
+        display: flex !important;
+        width: 100% !important;
+        max-width: none !important;
+        gap: 4mm;
+        margin: 0 !important;
+    }
+
+    .dashboard-heading {
+        margin-bottom: 1mm;
+    }
+
+    .dashboard-heading h1 {
+        margin-bottom: 1mm;
+        font-size: 19pt;
+    }
+
+    .dashboard-eyebrow {
+        margin-bottom: 1mm;
+        font-size: 7pt;
+    }
+
+    .dashboard-subtitle {
+        font-size: 9pt;
+    }
+
+    .dashboard-section,
+    .kpi-card,
+    .insight-card {
+        min-width: 0;
+        border-color: #d9cec2;
+        border-radius: 2mm;
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .dashboard-section {
+        padding: 3mm;
+    }
+
+    .dashboard-section h2 {
+        font-size: 9pt;
+    }
+
+    .section-heading {
+        margin-bottom: 2mm;
+    }
+
+    .section-heading p,
+    .insight-heading p {
+        font-size: 7pt;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 3mm;
+    }
+
+    .kpi-card {
+        padding: 3mm;
+    }
+
+    .kpi-topline {
+        min-height: 7mm;
+        margin-bottom: 2mm;
+    }
+
+    .kpi-icon {
+        width: 7mm;
+        height: 7mm;
+    }
+
+    .kpi-value {
+        font-size: 15pt;
+    }
+
+    .kpi-label,
+    .kpi-note,
+    .kpi-change,
+    .kpi-status {
+        font-size: 7pt;
+    }
+
+    .orders-section {
+        margin-top: 0;
+    }
+
+    .table-scroll,
+    .heatmap-scroll,
+    .sales-chart-wrap {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    .dashboard-table {
+        width: 100% !important;
+        table-layout: fixed;
+    }
+
+    .dashboard-table th,
+    .dashboard-table td {
+        padding: 2mm !important;
+        font-size: 7pt !important;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+    }
+
+    .dashboard-table th:nth-child(1),
+    .dashboard-table td:nth-child(1) { width: 12%; }
+    .dashboard-table th:nth-child(2),
+    .dashboard-table td:nth-child(2) { width: 14%; }
+    .dashboard-table th:nth-child(3),
+    .dashboard-table td:nth-child(3) { width: 42%; }
+    .dashboard-table th:nth-child(4),
+    .dashboard-table td:nth-child(4) { width: 15%; }
+    .dashboard-table th:nth-child(5),
+    .dashboard-table td:nth-child(5) { width: 17%; }
+
+    .order-items {
+        max-width: none;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .dashboard-grid-middle {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.9fr);
+        align-items: start;
+        gap: 4mm;
+        width: 100%;
+        margin: 0 !important;
+        break-before: page;
+        page-break-before: always;
+    }
+
+    .dashboard-grid-middle::before {
+        grid-column: 1 / -1;
+        content: "Analytics details";
+        padding-bottom: 1mm;
+        color: #4b2e1e;
+        border-bottom: 0.4mm solid #d9cec2;
+        font-size: 14pt;
+        font-weight: 700;
+    }
+
+    .trend-section,
+    .dashboard-side-stack,
+    .insight-grid,
+    .sales-chart-wrap {
+        min-width: 0;
+    }
+
+    .dashboard-side-stack {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 4mm;
+    }
+
+    .insight-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3mm;
+        margin-top: 3mm;
+    }
+
+    .insight-card {
+        padding: 2.5mm;
+    }
+
+    .insight-heading h3 {
+        font-size: 8pt;
+    }
+
+    .analytics-range-control {
+        gap: 1.5mm;
+        margin: 2mm 0;
+    }
+
+    .analytics-range-control label {
+        min-width: 0;
+        font-size: 6.5pt;
+    }
+
+    .analytics-range-control input,
+    .analytics-range-control select {
+        min-width: 0;
+        min-height: 0;
+        padding: 1mm;
+        font-size: 6.5pt;
+    }
+
+    .chart-summary {
+        margin: 2mm 0;
+    }
+
+    .chart-summary strong {
+        font-size: 12pt;
+    }
+
+    .chart-legend,
+    .chart-summary-label {
+        font-size: 7pt;
+    }
+
+    .sales-chart {
+        width: 100% !important;
+        height: 42mm !important;
+        overflow: visible !important;
+    }
+
+    .heatmap {
+        grid-template-columns: 7mm repeat(8, minmax(0, 1fr));
+        gap: 1mm;
+        min-width: 0 !important;
+        width: 100%;
+    }
+
+    .heatmap-cell {
+        aspect-ratio: 1.5;
+    }
+
+    .heatmap-label,
+    .heatmap-legend,
+    .category-name,
+    .category-value,
+    .seller-name,
+    .seller-revenue,
+    .seller-units,
+    .alert-title,
+    .alert-time {
+        font-size: 7pt;
+    }
+
+    .category-breakdown,
+    .seller-list,
+    .alerts-list {
+        gap: 2mm;
+    }
+
+    .alert-item {
+        padding: 2mm 0;
+        break-inside: avoid;
+    }
+
+    .live-indicator {
+        color: #47734d;
+        font-size: 7pt;
     }
 }
