@@ -158,13 +158,22 @@ function customer_paymongo_request(string $method, string $path, ?array $payload
 
     if ($status < 200 || $status >= 300) {
         $providerErrorCode = (string) ($response['errors'][0]['code'] ?? 'unknown_error');
+        $providerDetail = trim((string) ($response['errors'][0]['detail'] ?? ''));
+        $providerPointer = trim((string) ($response['errors'][0]['source']['pointer'] ?? ''));
         error_log(
             'PayMongo API rejected a request (HTTP ' . $status . '): '
             . substr($responseBody, 0, 1500)
         );
-        throw new RuntimeException(
-            'PayMongo could not create checkout (HTTP ' . $status . ', ' . $providerErrorCode . ').'
-        );
+        $diagnostic = 'PayMongo rejected checkout (HTTP ' . $status . ', ' . $providerErrorCode;
+        if ($providerPointer !== '') {
+            $diagnostic .= ' at ' . $providerPointer;
+        }
+        if ($providerDetail !== '') {
+            $diagnostic .= '): ' . mb_substr($providerDetail, 0, 180, 'UTF-8');
+        } else {
+            $diagnostic .= ').';
+        }
+        throw new RuntimeException($diagnostic);
     }
 
     return $response;

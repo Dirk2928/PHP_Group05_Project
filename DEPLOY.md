@@ -137,6 +137,7 @@ different personal data key or rotate the TOTP key without re-encrypting the dat
    | `BREWSKI_PERSONAL_DATA_KEY` | brewski-app | recommended separate key; optional when deriving from the existing TOTP key |
    | `BREWSKI_PAYMONGO_SECRET_KEY` | brewski-app | PayMongo test or live secret key |
    | `BREWSKI_PAYMONGO_WEBHOOK_SECRET` | brewski-app | signing secret for the Brewski payment webhook |
+   | `BREWSKI_PAYMONGO_PAYMENT_METHODS` | brewski-app | optional comma-separated methods enabled on the PayMongo account; defaults to `qrph` |
    | `BREWSKI_PUBLIC_URL` | brewski-app | optional; set the public application base URL when using a custom domain |
    | `EMAIL_USER` | brewski-email | the Gmail address that sends mail |
    | `EMAIL_PASSWORD` | brewski-email | its 16-character Google app password |

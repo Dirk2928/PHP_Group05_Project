@@ -291,15 +291,19 @@ try {
     $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
     $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
 
-    $debugMinimalMethods = false;
-    $paymentMethodTypes = $debugMinimalMethods
-        ? ['gcash', 'paymaya']
-        : [
-            'gcash',
-            'paymaya',
-            'grab_pay',
-            'qrph',
-        ];
+    $allowedPaymentMethods = [
+        'card', 'gcash', 'paymaya', 'grab_pay', 'qrph', 'billease', 'dob', 'brankas', 'shopeepay',
+    ];
+    $configuredPaymentMethods = trim((string) getenv('BREWSKI_PAYMONGO_PAYMENT_METHODS'));
+    $paymentMethodTypes = $configuredPaymentMethods === ''
+        ? ['qrph']
+        : array_values(array_intersect(
+            $allowedPaymentMethods,
+            array_map('trim', explode(',', strtolower($configuredPaymentMethods)))
+        ));
+    if ($paymentMethodTypes === []) {
+        throw new RuntimeException('No supported PayMongo payment methods are configured.');
+    }
 
     $sessionResponse = customer_paymongo_request('POST', 'checkout_sessions', [
         'data' => [
@@ -310,10 +314,10 @@ try {
                     'currency' => 'PHP',
                     'quantity' => 1,
                 ]],
-                'description' => 'Brewski order #' . $orderId,
                 'payment_method_types' => $paymentMethodTypes,
                 'success_url' => $successUrl,
                 'cancel_url' => $cancelUrl,
+                'reference_number' => 'BRW-' . $orderId,
                 'send_email_receipt' => false,
             ],
         ],
