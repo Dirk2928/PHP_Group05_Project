@@ -4,9 +4,10 @@ USE brewski_db;
 
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    first_name VARCHAR(512) NOT NULL,
+    last_name VARCHAR(512) NOT NULL,
+    email VARCHAR(512) NOT NULL,
+    email_lookup BINARY(32) NOT NULL UNIQUE,
     avatar_data LONGBLOB NULL,
     avatar_mime_type VARCHAR(32) NULL,
     password VARCHAR(255) NOT NULL,
@@ -236,7 +237,7 @@ CREATE TABLE IF NOT EXISTS order_payments (
     order_id INT NOT NULL,
     provider VARCHAR(24) NOT NULL DEFAULT 'paymongo',
     provider_session_id VARCHAR(100) NOT NULL,
-    checkout_url VARCHAR(2048) NOT NULL,
+    checkout_url TEXT NOT NULL,
     payment_status ENUM('PENDING', 'PAID', 'FAILED') NOT NULL DEFAULT 'PENDING',
     payment_method VARCHAR(40) NULL,
     receipt_email_sent BOOLEAN NOT NULL DEFAULT FALSE,

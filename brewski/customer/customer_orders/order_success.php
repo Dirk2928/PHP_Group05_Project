@@ -26,6 +26,7 @@ if (!$order) {
     header('Location: ../customer_home/customerhome.php');
     exit;
 }
+$order['email'] = brewski_personal_decrypt($order['email'], 'email');
 if ($order['payment_provider'] !== 'in_store' && in_array($order['payment_status'], ['PENDING', 'FAILED'], true)) {
     header('Location: ../checkout/payment_return.php?order_id=' . $orderId);
     exit;

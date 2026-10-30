@@ -84,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
                     $stmt = $conn->prepare(
                         'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
                     );
-                    $stmt->bind_param('ssi', $avatar['data'], $avatar['mime'], $userId);
+                    $encryptedAvatar = brewski_personal_encrypt($avatar['data'], 'avatar_data');
+                    $stmt->bind_param('ssi', $encryptedAvatar, $avatar['mime'], $userId);
                     $stmt->execute();
                     $stmt->close();
                     $conn->close();
@@ -152,9 +153,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
 
             if (!$errors) {
                 $check = $pdo->prepare(
-                    'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
+                    'SELECT user_id FROM users WHERE email_lookup = ? AND user_id <> ? LIMIT 1'
                 );
-                $check->execute([$emailInput, $userId]);
+                $check->execute([brewski_email_lookup($emailInput), $userId]);
 
                 if ($check->fetch()) {
                     $errors[] = 'That email is already used by another account.';
@@ -163,9 +164,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $userId > 0) {
 
             if (!$errors) {
                 $update = $pdo->prepare(
-                    'UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?'
+                    'UPDATE users SET first_name = ?, last_name = ?, email = ?, email_lookup = ? WHERE user_id = ?'
                 );
-                $update->execute([$firstNameInput, $lastNameInput, $emailInput, $userId]);
+                $update->execute([...brewski_encrypted_user_values($firstNameInput, $lastNameInput, $emailInput), $userId]);
 
                 $_SESSION['first_name'] = $firstNameInput;
                 $_SESSION['last_name']  = $lastNameInput;
@@ -244,6 +245,9 @@ $stmt = $pdo->prepare(
 );
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
+if ($user) {
+    $user = brewski_decrypt_user_fields($user);
+}
 
 if (!$user) {
     $user = [

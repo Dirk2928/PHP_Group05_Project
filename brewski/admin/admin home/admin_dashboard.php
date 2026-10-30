@@ -27,7 +27,7 @@ try {
         $avatarStatement->bind_result($avatarMimeType, $avatarUpdatedAt);
         if ($avatarStatement->fetch() && $avatarMimeType) {
             $profileAvatarUrl = BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $profileUserId
-                . '&v=' . ($avatarUpdatedAt ? strtotime($avatarUpdatedAt) : time());
+                . '&as=admin&v=' . ($avatarUpdatedAt ? strtotime($avatarUpdatedAt) : time());
         }
         $avatarStatement->close();
     }

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/personal_data.php';
+
 function brewski_env(string $key, string $default = '', bool $trim = true): string
 {
     $value = getenv($key);

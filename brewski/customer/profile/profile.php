@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $avatar = brewski_read_avatar_upload($_FILES['avatar']);
                 $update = $pdo->prepare('UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?');
-                $update->execute([$avatar['data'], $avatar['mime'], $userId]);
+                $update->execute([brewski_personal_encrypt($avatar['data'], 'avatar_data'), $avatar['mime'], $userId]);
                 echo 'ok';
             } catch (Throwable $exception) {
                 echo $exception->getMessage();
@@ -91,8 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$errors) {
-                $check = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id <> ?');
-                $check->execute([$email, $userId]);
+                $check = $pdo->prepare('SELECT user_id FROM users WHERE email_lookup = ? AND user_id <> ?');
+                $check->execute([brewski_email_lookup($email), $userId]);
 
                 if ($check->fetch()) {
                     $errors[] = 'That email is already used by another account.';
@@ -100,8 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!$errors) {
-                $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?');
-                $update->execute([$firstName, $lastName, $email, $userId]);
+                $update = $pdo->prepare('UPDATE users SET first_name = ?, last_name = ?, email = ?, email_lookup = ? WHERE user_id = ?');
+                $update->execute([...brewski_encrypted_user_values($firstName, $lastName, $email), $userId]);
                 $_SESSION['first_name'] = $firstName;
                 $_SESSION['last_name'] = $lastName;
                 $_SESSION['email'] = $email;
@@ -192,6 +192,7 @@ if (!$user) {
     header('Location: ../customer-home/login.php');
     exit;
 }
+$user = brewski_decrypt_user_fields($user);
 
 $display_first_name = e($user['first_name']);
 $display_last_name = e($user['last_name']);

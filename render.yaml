@@ -32,6 +32,8 @@ services:
         value: Brewski
       - key: BREWSKI_TOTP_ENCRYPTION_KEY
         sync: false
+      - key: BREWSKI_PERSONAL_DATA_KEY
+        sync: false
       - key: BREWSKI_PAYMONGO_SECRET_KEY
         sync: false
       - key: BREWSKI_PAYMONGO_WEBHOOK_SECRET
