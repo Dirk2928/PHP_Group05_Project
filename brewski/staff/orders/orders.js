@@ -254,6 +254,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     (order.payment_provider === 'in_store'
                         ? '<p class="order-pickup-note"><i data-lucide="store" aria-hidden="true"></i><strong>Store pickup · Pay cash at counter</strong></p>'
                         : '') +
+                    (order.payment_provider === 'paymongo'
+                        ? '<p class="order-pickup-note"><i data-lucide="shield-check" aria-hidden="true"></i><strong>PayMongo · ' +
+                            (String(order.payment_status || '').toUpperCase() === 'PAID' ? 'Paid' : 'Payment pending') + '</strong></p>'
+                        : '') +
                     '<div class="order-card-footer">' +
                         '<strong class="order-total"><i data-lucide="banknote" aria-hidden="true"></i>₱' + Number(order.total_amount).toFixed(2) + '</strong>' +
                         '<div class="order-card-actions">' + actionCell(order) + '</div>' +
@@ -454,6 +458,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 orders = (payload.orders || []).map(function (order) {
                     order.status = String(order.status || '').trim().toUpperCase();
+                    order.payment_provider = String(order.payment_provider || '').trim().toLowerCase();
+                    order.payment_status = String(order.payment_status || '').trim().toUpperCase();
                     return order;
                 });
                 products = payload.products || [];

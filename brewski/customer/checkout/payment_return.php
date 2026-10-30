@@ -49,7 +49,12 @@ if ($payment['payment_status'] === 'PENDING') {
         $sessionIsPaid = customer_paymongo_session_is_paid($sessionAttributes)
             || in_array($sessionStatus, ['paid', 'completed'], true);
 
-        if (!$sessionIsPaid) {
+        if ($sessionIsPaid) {
+            $completedPayment = customer_complete_paymongo_payment($pdo, $sessionResponse['data'] ?? []);
+            if ($completedPayment === null) {
+                error_log('payment_return: PayMongo reports a paid session that could not be matched to order ' . (int) $orderId . '.');
+            }
+        } elseif (in_array($sessionStatus, ['expired', 'failed'], true)) {
             $pdo->beginTransaction();
             customer_mark_payment_failed($pdo, (int) $payment['payment_id'], (int) $orderId);
             $pdo->commit();

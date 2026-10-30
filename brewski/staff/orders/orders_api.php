@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (
             $currentOrder['payment_status'] !== null
-            && $currentOrder['payment_status'] !== 'PAID'
-            && $currentOrder['provider'] !== 'in_store'
+            && strtoupper((string) $currentOrder['payment_status']) !== 'PAID'
+            && strtolower((string) $currentOrder['provider']) !== 'in_store'
         ) {
             $pdo->rollBack();
             http_response_code(422);
@@ -106,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $update = $pdo->prepare('UPDATE orders SET order_status = ? WHERE order_id = ?');
         $update->execute([$newStatus, (int) $orderId]);
-        if ($currentOrder['provider'] === 'in_store' && $currentOrder['payment_status'] === 'PENDING') {
+        if (strtolower((string) $currentOrder['provider']) === 'in_store'
+            && strtoupper((string) $currentOrder['payment_status']) === 'PENDING') {
             if ($newStatus === 'COMPLETED') {
                 $pdo->prepare(
                     "UPDATE order_payments SET payment_status = 'PAID' WHERE order_id = ? AND provider = 'in_store'"
@@ -127,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $pdo->commit();
 
-        if ($currentOrder['provider'] === 'in_store' && $newStatus === 'COMPLETED') {
+        if (strtolower((string) $currentOrder['provider']) === 'in_store' && $newStatus === 'COMPLETED') {
             try {
                 require_once __DIR__ . '/../../customer/partials/order_support.php';
                 if (customer_send_order_receipt($pdo, (int) $orderId)) {
@@ -214,9 +215,19 @@ try {
            FROM orders o
           LEFT JOIN order_payments op ON op.order_id = o.order_id
            LEFT JOIN users u ON u.user_id = o.user_id
-          WHERE o.order_date >= CURDATE()
-            AND o.order_date < CURDATE() + INTERVAL 1 DAY
-            AND (op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store')
+          WHERE (
+                (o.order_date >= CURDATE() AND o.order_date < CURDATE() + INTERVAL 1 DAY)
+                OR (
+                    LOWER(COALESCE(op.provider, '')) = 'paymongo'
+                    AND UPPER(COALESCE(op.payment_status, '')) = 'PAID'
+                    AND o.order_status NOT IN ('COMPLETED', 'CANCELLED')
+                )
+            )
+            AND (
+                op.payment_status IS NULL
+                OR UPPER(op.payment_status) = 'PAID'
+                OR LOWER(COALESCE(op.provider, '')) = 'in_store'
+            )
           ORDER BY o.order_date DESC, o.order_id DESC"
     );
 

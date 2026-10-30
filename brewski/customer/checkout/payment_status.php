@@ -37,7 +37,8 @@ if ($orderId === false) {
 $userId = (int) $_SESSION['user_id'];
 try {
     $statement = $pdo->prepare(
-        'SELECT op.payment_status, op.receipt_email_sent
+        'SELECT op.payment_id, op.provider_session_id, op.provider,
+                op.payment_status, op.receipt_email_sent
            FROM order_payments op
            INNER JOIN orders o ON o.order_id = op.order_id
           WHERE o.order_id = ? AND o.user_id = ?
@@ -47,6 +48,67 @@ try {
     $payment = $statement->fetch();
     if (!$payment) {
         customer_payment_status_respond(404, ['ok' => false, 'error' => 'Payment not found.']);
+    }
+
+    if (
+        strtoupper((string) $payment['payment_status']) === 'PENDING'
+        && strtolower((string) $payment['provider']) === 'paymongo'
+    ) {
+        $now = time();
+        $reconcileChecks = $_SESSION['paymongo_reconcile_checks'] ?? [];
+        if (!is_array($reconcileChecks)) {
+            $reconcileChecks = [];
+        }
+        foreach ($reconcileChecks as $checkedOrderId => $checkedAt) {
+            if (!is_numeric($checkedAt) || $now - (int) $checkedAt > 900) {
+                unset($reconcileChecks[$checkedOrderId]);
+            }
+        }
+
+        $lastCheck = (int) ($reconcileChecks[(int) $orderId] ?? 0);
+        if ($now - $lastCheck >= 8) {
+            $reconcileChecks[(int) $orderId] = $now;
+            $_SESSION['paymongo_reconcile_checks'] = $reconcileChecks;
+
+            try {
+                $sessionResponse = customer_paymongo_request(
+                    'GET',
+                    'checkout_sessions/' . rawurlencode((string) $payment['provider_session_id'])
+                );
+                $session = $sessionResponse['data'] ?? [];
+                $attributes = $session['attributes'] ?? [];
+                $sessionStatus = strtolower((string) ($attributes['status'] ?? ''));
+                $sessionIsPaid = customer_paymongo_session_is_paid($attributes)
+                    || in_array($sessionStatus, ['paid', 'completed'], true);
+
+                if ($sessionIsPaid) {
+                    if (customer_complete_paymongo_payment($pdo, $session) === null) {
+                        error_log('PayMongo reports a paid session that could not be matched to order ' . (int) $orderId . '.');
+                    }
+                } elseif (in_array($sessionStatus, ['expired', 'failed'], true)) {
+                    $pdo->beginTransaction();
+                    customer_mark_payment_failed($pdo, (int) $payment['payment_id'], (int) $orderId);
+                    $pdo->commit();
+                }
+            } catch (Throwable $reconcileError) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log(
+                    'Could not reconcile PayMongo payment for order ' . (int) $orderId . ': '
+                    . $reconcileError->getMessage()
+                );
+            }
+
+            $refreshPayment = $pdo->prepare(
+                'SELECT payment_status, receipt_email_sent
+                   FROM order_payments
+                  WHERE order_id = ?
+                  LIMIT 1'
+            );
+            $refreshPayment->execute([(int) $orderId]);
+            $payment = $refreshPayment->fetch() ?: $payment;
+        }
     }
 
     $receiptEmailSent = (bool) $payment['receipt_email_sent'];

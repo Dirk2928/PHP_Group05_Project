@@ -1021,6 +1021,10 @@
         display: none !important;
     }
 
+    .alerts-section {
+        display: none !important;
+    }
+
     .main-content {
         width: 100% !important;
         max-width: none !important;

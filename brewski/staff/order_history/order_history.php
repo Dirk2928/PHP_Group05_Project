@@ -31,7 +31,9 @@ try {
 		   LEFT JOIN order_items oi ON oi.order_id = o.order_id
 		   LEFT JOIN products p ON p.product_id = oi.product_id
 		   LEFT JOIN sizes s ON s.size_id = oi.size_id
-		  WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
+		  WHERE op.payment_status IS NULL
+		     OR UPPER(op.payment_status) = 'PAID'
+		     OR LOWER(COALESCE(op.provider, '')) = 'in_store'
 		  ORDER BY o.order_date DESC, o.order_id DESC, oi.order_item_id ASC"
 	);
 
