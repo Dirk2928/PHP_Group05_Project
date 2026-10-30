@@ -80,7 +80,7 @@ foreach ($countStatement->fetchAll() as $row) {
 
 $pageTitle = 'My orders | brewski';
 $active = 'orders';
-$extraStyles = ['customer_orders/orders.css?v=order-detail-refresh-20261030'];
+$extraStyles = ['customer_orders/orders.css?v=cash-reminder-text-20261030'];
 require __DIR__ . '/../partials/header.php';
 
 $statusLabels = [
@@ -185,7 +185,7 @@ $statusIcons = [
                         </p>
                     <?php endif; ?>
                     <?php if ($storePickup && $paymentStatus === 'PENDING'): ?>
-                        <p class="orders-notice" role="status">Pay cash when you pick up your order at the store.</p>
+                        <p class="orders-notice orders-notice--cash" role="status"><i data-lucide="banknote" aria-hidden="true"></i> Pay cash when you pick up your order at the store.</p>
                     <?php endif; ?>
 
                     <div class="order-card__summary">

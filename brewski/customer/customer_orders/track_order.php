@@ -49,7 +49,7 @@ $statusLabels = [
 $statusIcons = ['PENDING' => 'clipboard-check', 'CONFIRMED' => 'badge-check', 'PREPARING' => 'chef-hat', 'READY' => 'package-check', 'COMPLETED' => 'circle-check', 'CANCELLED' => 'circle-x'];
 
 $pageTitle = 'Order details | brewski';
-$extraStyles = ['customer_orders/orders.css?v=order-detail-refresh-20261030'];
+$extraStyles = ['customer_orders/orders.css?v=order-progress-text-20261030'];
 require __DIR__ . '/../partials/header.php';
 ?>
 <main class="orders-page order-detail-page">
@@ -76,7 +76,7 @@ require __DIR__ . '/../partials/header.php';
                     <?php $currentIndex = array_search($currentStatus, $orderStatuses, true); ?>
                     <ul class="order-progress" aria-label="Order progress">
                         <?php foreach ($orderStatuses as $index => $step): $done = $currentIndex !== false && $index <= $currentIndex; ?>
-                            <li class="<?= $done ? 'is-done' : '' ?> <?= $step === $currentStatus ? 'is-current' : '' ?>"><span class="order-progress__dot"><?php if ($done): ?><i data-lucide="check" aria-hidden="true"></i><?php else: ?><?= $index + 1 ?><?php endif; ?></span><span><?= htmlspecialchars($statusLabels[$step], ENT_QUOTES, 'UTF-8') ?></span></li>
+                            <li class="<?= $done ? 'is-done' : '' ?> <?= $step === $currentStatus ? 'is-current' : '' ?>"><span class="order-progress__text"><?= htmlspecialchars($statusLabels[$step], ENT_QUOTES, 'UTF-8') ?></span><?= $step === $currentStatus ? '<span class="order-progress__current">Current</span>' : '' ?></li>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>
