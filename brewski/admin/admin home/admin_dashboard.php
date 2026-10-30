@@ -136,10 +136,9 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
 
             <p id="dashboardMessage" class="dashboard-message hidden" role="alert"></p>
 
-            <div class="dashboard-toolbar" aria-label="Dashboard filters and exports">
+            <div class="dashboard-toolbar" aria-label="Analytics actions">
                 <span class="dashboard-toolbar-label">ANALYTICS</span>
                 <div class="export-actions">
-                    <button type="button" class="dashboard-button dashboard-button-secondary" id="exportCsv">Export CSV</button>
                     <button type="button" class="dashboard-button dashboard-button-primary" id="printReport" title="Print this report or save it as a PDF">Print</button>
                 </div>
             </div>

@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var salesChart = document.getElementById('salesChart');
     var intervalSelect = document.getElementById('trendInterval');
     var message = document.getElementById('dashboardMessage');
-    var dashboardData = null;
     var activeRequest = null;
     var pendingRangeKeys = new Set();
     var rangeControls = [
@@ -605,7 +604,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!response.ok) {
                 throw new Error(result.error || 'Dashboard data could not be loaded.');
             }
-            dashboardData = result;
             render(result, rangeKeysToRender);
             if (rangeKeysToRender) {
                 pendingRangeKeys.clear();
@@ -615,7 +613,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
             if (!rangeKeysToRender) {
-                dashboardData = null;
                 clearDashboard();
             } else {
                 rangeKeysToRender.forEach(function (key) {
@@ -641,63 +638,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    function csvEscape(value) {
-        return '"' + String(value).replace(/"/g, '""') + '"';
-    }
-
-    function exportCsv() {
-        if (!dashboardData) {
-            return;
-        }
-
-        var overview = dashboardData.overview;
-        var ranges = dashboardData.ranges;
-        var today = localDateString(new Date());
-        var rows = [
-            ['Section', 'Item', 'Detail', 'Value', 'Timestamp'],
-            ['Summary', "Today's sales", '', overview.todaySales.toFixed(2), today],
-            ['Summary', 'Number of orders', '', overview.todayOrders, today],
-            ['Summary', 'Average order value', '', overview.averageOrderValue.toFixed(2), today],
-            ['Summary', 'Open orders', JSON.stringify(overview.statusCounts), overview.openOrders, ''],
-            ['Sales trend', 'Selected range total', ranges.trend.from + ' to ' + ranges.trend.to,
-                dashboardData.trend.reduce(function (sum, point) { return sum + Number(point.amount); }, 0).toFixed(2), ''],
-            ['Best sellers', 'Date range', ranges.seller.from + ' to ' + ranges.seller.to, '', ''],
-            ['Peak hours', 'Date range', ranges.peak.from + ' to ' + ranges.peak.to, '', ''],
-            ['Sales breakdown', 'Date range', ranges.category.from + ' to ' + ranges.category.to, '', '']
-        ];
-
-        dashboardData.orders.forEach(function (order) {
-            rows.push([
-                'Open order',
-                '#' + order.order_id,
-                order.items,
-                order.total_amount.toFixed(2),
-                order.time
-            ]);
-        });
-        dashboardData.bestSellers.forEach(function (item) {
-            rows.push(['Best seller', item.name, item.units + ' units', item.revenue.toFixed(2), '']);
-        });
-        dashboardData.alerts.forEach(function (alert) {
-            rows.push(['Alert', alert.title, alert.type, '', alert.time]);
-        });
-
-        var csv = rows.map(function (row) {
-            return row.map(csvEscape).join(',');
-        }).join('\r\n');
-        var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-        var url = URL.createObjectURL(blob);
-        var link = document.createElement('a');
-        link.href = url;
-        link.download = 'brewski-dashboard-' + ranges.trend.from + '.csv';
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.setTimeout(function () {
-            URL.revokeObjectURL(url);
-        }, 1000);
-    }
-
     var today = new Date();
     var currentMonth = localDateString(today).slice(0, 7);
     rangeControls.forEach(function (control) {
@@ -706,7 +646,6 @@ document.addEventListener('DOMContentLoaded', function () {
     intervalSelect.addEventListener('change', function () {
         loadDashboard('trend');
     });
-    document.getElementById('exportCsv').addEventListener('click', exportCsv);
     document.getElementById('printReport').addEventListener('click', function () {
         window.print();
     });
