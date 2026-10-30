@@ -101,7 +101,17 @@ function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = tr
 
 function brewski_authenticate($conn, string $email, string $password, string $portalKey): array
 {
-    $emailLookup = brewski_email_lookup($email);
+    try {
+        $emailLookup = brewski_email_lookup($email);
+        $emailLookupColumn = brewski_email_lookup_column();
+    } catch (Throwable $exception) {
+        error_log('Personal data lookup is unavailable: ' . $exception->getMessage());
+        return brewski_auth_result(
+            BREWSKI_AUTH_ERROR,
+            'Sign-in is temporarily unavailable. Please contact support.'
+        );
+    }
+
     if (!brewski_ensure_account_lockouts_table($conn)) {
         error_log('Account lockout history table is unavailable: ' . $conn->error);
     }
@@ -122,7 +132,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             totp_enabled_at,
             failed_login_attempts
          FROM users
-         WHERE " . brewski_email_lookup_column() . " = ?
+         WHERE " . $emailLookupColumn . " = ?
          LIMIT 1"
     );
 

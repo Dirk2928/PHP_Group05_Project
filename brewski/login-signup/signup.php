@@ -40,6 +40,10 @@ foreach (brewski_password_rule_definitions() as $rule_key => $rule) {
 }
 
 $conn = brewski_db_connect();
+$personalDataUnavailable = ($GLOBALS['brewski_personal_mode'] ?? '') === 'missing_key';
+if ($personalDataUnavailable) {
+    $error = 'Sign-up is temporarily unavailable because the personal data encryption key is not configured.';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -60,7 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name_value  = htmlspecialchars($last_name, ENT_QUOTES, 'UTF-8');
     $email_value      = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 
-    if (!$tokenValid) {
+    if ($personalDataUnavailable) {
+
+        $error = 'Sign-up is temporarily unavailable because the personal data encryption key is not configured.';
+
+    } elseif (!$tokenValid) {
 
         $error = 'This request could not be verified. Refresh the page and try again.';
 
