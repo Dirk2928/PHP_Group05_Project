@@ -222,6 +222,7 @@ $escape = static function (string $value): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset authenticator | Brewski</title>
+    <link rel="icon" type="image/png" href="<?= htmlspecialchars(BREWSKI_BASE_URL . '/images/brewskilogo.png', ENT_QUOTES, 'UTF-8') ?>">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $escape($portalKey === 'portal' ? '../login-signup/styles.css' : 'styles.css') ?>">
 </head>
