@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var productsPageSize = 6;
     var autoRefreshInterval = null;
     var isRefreshing = false;
+    var refreshQueued = false;
 
     function escapeHtml(value) {
         return String(value).replace(/[&<>"']/g, function (character) {
@@ -435,6 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function load() {
         if (isRefreshing) {
+            refreshQueued = true;
             return;
         }
 
@@ -479,6 +481,10 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .finally(function () {
                 isRefreshing = false;
+                if (refreshQueued) {
+                    refreshQueued = false;
+                    load();
+                }
             });
     }
 
@@ -492,8 +498,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            var busy = ordersBoard.querySelector('button[disabled]') ||
-                       productList.querySelector('button[disabled]');
+            var busy = ordersBoard.querySelector('button[data-order-id][disabled]') ||
+                       productList.querySelector('button[data-product-id][disabled]');
             if (busy) {
                 return;
             }
