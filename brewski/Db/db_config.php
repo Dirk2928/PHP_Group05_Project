@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/personal_data.php';
 
+date_default_timezone_set('Asia/Manila');
+
 function brewski_env(string $key, string $default = '', bool $trim = true): string
 {
     $value = getenv($key);
@@ -125,6 +127,10 @@ function brewski_db_connect(): ?mysqli
 
         if ($candidate instanceof mysqli && !$candidate->connect_errno) {
             $candidate->set_charset('utf8mb4');
+            if (!$candidate->query("SET time_zone = '+08:00'")) {
+                $candidate->close();
+                throw new RuntimeException('Could not set database time zone.');
+            }
             brewski_personal_configure($candidate);
             if (($GLOBALS['brewski_personal_mode'] ?? '') === 'maintenance') {
                 $candidate->close();
@@ -178,6 +184,7 @@ function brewski_db_pdo(): ?PDO
 
     try {
         $database = new PDO($dsn, $settings['user'], $settings['pass'], $options);
+        $database->exec("SET time_zone = '+08:00'");
         brewski_personal_configure($database);
         if (($GLOBALS['brewski_personal_mode'] ?? '') === 'maintenance') {
             return null;
