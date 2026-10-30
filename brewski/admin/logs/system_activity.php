@@ -87,10 +87,66 @@ $decryptText = static function ($value) use ($decryptToken): string {
     );
 };
 
+// Collect user IDs referenced as "User #27" (Person) or "account #50" (Details).
+$userIds = [];
+foreach ($logs as $logRow) {
+    if (preg_match('/^User #(\d+)$/i', trim((string) $logRow['actor_name']), $idMatch)) {
+        $userIds[(int) $idMatch[1]] = true;
+    }
+    if (preg_match_all('/\baccount #(\d+)/i', (string) $logRow['description'], $idMatches)) {
+        foreach ($idMatches[1] as $accountId) {
+            $userIds[(int) $accountId] = true;
+        }
+    }
+}
+
+// Look those users up once and decrypt their real names.
+$userNames = [];
+if ($userIds) {
+    try {
+        $ids = array_keys($userIds);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $lookup = $pdo->prepare(
+            "SELECT user_id, first_name, last_name FROM users WHERE user_id IN ($placeholders)"
+        );
+        $lookup->execute($ids);
+        foreach ($lookup->fetchAll() as $userRow) {
+            try {
+                $userRow = brewski_decrypt_user_fields($userRow, true);
+            } catch (Throwable $nameError) {
+                continue; // Could not decrypt this user; keep the "User #" label.
+            }
+            $fullName = trim((string) $userRow['first_name'] . ' ' . (string) $userRow['last_name']);
+            if ($fullName !== '') {
+                $userNames[(int) $userRow['user_id']] = $fullName;
+            }
+        }
+    } catch (Throwable $lookupError) {
+        error_log('Could not look up system activity users: ' . $lookupError->getMessage());
+    }
+}
+
 foreach ($logs as &$logRow) {
-    $logRow['actor_name']  = $decryptText($logRow['actor_name']);
-    $logRow['action']      = $decryptText($logRow['action']);
-    $logRow['description'] = $decryptText($logRow['description']);
+    $actor = $decryptText($logRow['actor_name']);
+    if (preg_match('/^User #(\d+)$/i', trim($actor), $actorMatch)
+        && isset($userNames[(int) $actorMatch[1]])) {
+        $actor = $userNames[(int) $actorMatch[1]];
+    }
+    $logRow['actor_name'] = $actor;
+    $logRow['action']     = $decryptText($logRow['action']);
+
+    $description = $decryptText($logRow['description']);
+    $description = (string) preg_replace_callback(
+        '/\baccount #(\d+)/i',
+        static function (array $match) use ($userNames): string {
+            $id = (int) $match[1];
+            return isset($userNames[$id])
+                ? 'account ' . $userNames[$id] . ' (#' . $id . ')'
+                : $match[0];
+        },
+        $description
+    );
+    $logRow['description'] = $description;
 }
 unset($logRow);
 ?>
