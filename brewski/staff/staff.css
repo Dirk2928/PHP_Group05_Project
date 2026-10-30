@@ -2257,6 +2257,35 @@ body.sidebar-open .sidebar-toggle span {
     background: var(--latte);
 }
 
+/* Keep long Ready actions inside the order card instead of letting them clip. */
+.staff-orders .order-card-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 10px;
+}
+
+.staff-orders .order-card .order-total {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.staff-orders .order-card-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    min-width: 0;
+    justify-content: stretch;
+}
+
+.staff-orders .order-card-actions .btn {
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.35;
+    justify-content: center;
+}
+
 .staff-products .product-list-heading {
     background: var(--latte);
     border-bottom-color: var(--line);

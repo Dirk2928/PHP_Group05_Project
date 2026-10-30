@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (advance) {
             var advanceLabel = advance === 'COMPLETED' && order.payment_provider === 'in_store'
-                ? 'Payment collected & complete'
+                ? 'Payment collected'
                 : (advanceLabels[advance] || advance);
             html += '<button type="button" class="btn btn-primary order-advance" data-order-id="' +
                 order.order_id + '" data-status="' + escapeHtml(advance) + '">' +
