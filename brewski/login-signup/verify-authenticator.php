@@ -76,9 +76,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $_SESSION['totp_login_pending']['attempts'] =
                         (int) $pending['attempts'] + 1;
                     $attemptsLeft = max(0, 5 - (int) $_SESSION['totp_login_pending']['attempts']);
-                    $error = $attemptsLeft > 0
-                        ? "Incorrect code. {$attemptsLeft} attempt(s) left."
-                        : 'Too many incorrect attempts. Please log in again.';
+                    $error = 'Incorrect code. Please try again.';
 
                     if ($attemptsLeft === 0) {
                         unset($_SESSION['totp_login_pending']);

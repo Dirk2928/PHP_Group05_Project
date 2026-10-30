@@ -197,6 +197,7 @@ session_write_close();
 
 try {
     brewski_ensure_order_customization_columns($pdo);
+    $pdo->exec("SET time_zone = '+08:00'");
 
     $orders = [];
 
@@ -212,9 +213,10 @@ try {
            FROM orders o
           LEFT JOIN order_payments op ON op.order_id = o.order_id
            LEFT JOIN users u ON u.user_id = o.user_id
-          WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
-          ORDER BY o.order_date DESC, o.order_id DESC
-          LIMIT 100"
+          WHERE o.order_date >= CURDATE()
+            AND o.order_date < CURDATE() + INTERVAL 1 DAY
+            AND (op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store')
+          ORDER BY o.order_date DESC, o.order_id DESC"
     );
 
     foreach ($result as $row) {

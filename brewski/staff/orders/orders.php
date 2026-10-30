@@ -138,25 +138,25 @@ $csrf_token = $_SESSION['csrf_token'];
                     <p class="staff-welcome__subtitle">Review customer orders and keep pickup status up to date.</p>
                 </div>
                 <div class="page-header">
-                    <h2 class="page-title">Orders</h2>
+                    <h2 class="page-title">Today's orders</h2>
                     <p class="subtitle">
-                        Manage active orders and pickup progress.
+                        Manage today's active orders and pickup progress.
                     </p>
                 </div>
 
                 <div class="order-summary" aria-label="Order summary">
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Active orders</span>
+                        <span class="order-summary-label">Active orders today</span>
                         <strong id="activeOrderCount">0</strong>
                         <span class="order-summary-note">Currently being handled</span>
                     </article>
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Ready for pickup</span>
+                        <span class="order-summary-label">Ready from today's orders</span>
                         <strong id="readyOrderCount">0</strong>
                         <span class="order-summary-note">Ready to leave the counter</span>
                     </article>
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Completed today</span>
+                        <span class="order-summary-label">Completed from today's orders</span>
                         <strong id="completedOrderCount">0</strong>
                         <span class="order-summary-note">Successfully fulfilled</span>
                     </article>

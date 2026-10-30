@@ -96,19 +96,6 @@ document.addEventListener('DOMContentLoaded', function () {
             ', ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
-    function isToday(value) {
-        var date = parseDate(value);
-        var now = new Date();
-
-        if (!date) {
-            return false;
-        }
-
-        return date.getFullYear() === now.getFullYear() &&
-            date.getMonth() === now.getMonth() &&
-            date.getDate() === now.getDate();
-    }
-
     function requestJson(body) {
         return fetch(endpoint, {
             method: 'POST',
@@ -154,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (completedElement) {
             completedElement.textContent = orders.filter(function (order) {
-                return order.status === 'COMPLETED' && isToday(order.created_at);
+                return order.status === 'COMPLETED';
             }).length;
         }
     }

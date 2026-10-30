@@ -101,7 +101,7 @@ require __DIR__ . '/../partials/header.php';
                 <span class="checkout-payment__icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
                 <span class="checkout-payment__copy">
                     <strong>Secure checkout with PayMongo</strong>
-                    <small>Choose your preferred payment method on PayMongo’s secure payment page.</small>
+                    <small>Choose your payment method and pay securely online before picking up your order.</small>
                     <span class="checkout-payment__methods" aria-label="Available payment methods">
                         <span>GCash</span>
                         <span>Maya</span>
