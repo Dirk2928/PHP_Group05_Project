@@ -227,15 +227,32 @@ try {
     }
     $totalCents = $subtotalCents;
 
-    $orderStatement = $pdo->prepare(
-        "INSERT INTO orders (user_id, total_amount, order_status, order_notes)
-         VALUES (?, ?, 'PENDING', ?)"
-    );
-    $orderStatement->execute([
-        $userId,
-        number_format($totalCents / 100, 2, '.', ''),
-        $orderNotes !== '' ? $orderNotes : null,
-    ]);
+    $orderColumns = $pdo->query('SHOW COLUMNS FROM orders')->fetchAll(PDO::FETCH_COLUMN);
+    $orderColumnNames = array_fill_keys($orderColumns, true);
+    if (isset($orderColumnNames['address_id'])) {
+        $addressColumn = $pdo->query("SHOW COLUMNS FROM orders LIKE 'address_id'")->fetch();
+        if ($addressColumn && strtoupper((string) ($addressColumn['Null'] ?? '')) === 'NO'
+            && ($addressColumn['Default'] ?? null) === null) {
+            throw new RuntimeException(
+                'Pickup checkout needs the database update 20261026_allow_store_pickup.sql. Please contact support.'
+            );
+        }
+    }
+
+    $orderAmount = number_format($totalCents / 100, 2, '.', '');
+    if (isset($orderColumnNames['order_notes'])) {
+        $orderStatement = $pdo->prepare(
+            "INSERT INTO orders (user_id, total_amount, order_status, order_notes)
+             VALUES (?, ?, 'PENDING', ?)"
+        );
+        $orderStatement->execute([$userId, $orderAmount, $orderNotes !== '' ? $orderNotes : null]);
+    } else {
+        $orderStatement = $pdo->prepare(
+            "INSERT INTO orders (user_id, total_amount, order_status)
+             VALUES (?, ?, 'PENDING')"
+        );
+        $orderStatement->execute([$userId, $orderAmount]);
+    }
     $orderId = (int) $pdo->lastInsertId();
 
     $orderItemStatement = $pdo->prepare(
