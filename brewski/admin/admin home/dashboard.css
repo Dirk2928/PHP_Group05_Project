@@ -1021,10 +1021,6 @@
         display: none !important;
     }
 
-    .alerts-section {
-        display: none !important;
-    }
-
     .main-content {
         width: 100% !important;
         max-width: none !important;
@@ -1169,6 +1165,29 @@
         page-break-before: always;
     }
 
+    .alerts-section {
+        display: block !important;
+        width: 72% !important;
+        margin: 0 auto !important;
+        break-inside: auto;
+        page-break-inside: auto;
+        break-before: page;
+        page-break-before: always;
+    }
+
+    .alerts-section .section-heading {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .alerts-section .section-heading > div {
+        text-align: center;
+    }
+
+    .alerts-section .alerts-list {
+        display: block;
+    }
+
     .dashboard-grid-middle::before {
         grid-column: 1 / -1;
         content: "Analytics details";
@@ -1276,6 +1295,7 @@
     .alert-item {
         padding: 2mm 0;
         break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .live-indicator {

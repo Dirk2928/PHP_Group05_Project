@@ -271,15 +271,16 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                         <div id="bestSellers" class="seller-list"></div>
                     </section>
 
-                    <section class="dashboard-section alerts-section" aria-labelledby="alertsHeading">
-                        <div class="section-heading">
-                            <div><h2 id="alertsHeading">Alerts</h2><p>Product availability and pending orders</p></div>
-                            <span id="alertCount" class="alert-count">0</span>
-                        </div>
-                        <div id="alertsList" class="alerts-list"></div>
-                    </section>
                 </div>
             </div>
+
+            <section class="dashboard-section alerts-section" aria-labelledby="alertsHeading">
+                <div class="section-heading">
+                    <div><h2 id="alertsHeading">Alerts</h2><p>Product availability and pending orders</p></div>
+                    <span id="alertCount" class="alert-count">0</span>
+                </div>
+                <div id="alertsList" class="alerts-list"></div>
+            </section>
 
         </section>
 

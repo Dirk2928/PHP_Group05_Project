@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             load();
-        }, 10000);
+        }, 5000);
     }
 
     function stopAutoRefresh() {
