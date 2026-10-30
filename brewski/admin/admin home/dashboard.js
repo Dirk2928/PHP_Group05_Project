@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderHeatmap(data) {
         var container = document.getElementById('peakHeatmap');
         var weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        var hourLabels = ['8a', '10a', '12p', '2p', '4p', '6p', '8p', '10p'];
+        var hourLabels = ['12a', '2a', '4a', '6a', '8a', '10a', '12p', '2p', '4p', '6p', '8p', '10p'];
         var maximum = Math.max.apply(null, data.heatmap.reduce(function (all, day) {
             return all.concat(day);
         }, [0]));

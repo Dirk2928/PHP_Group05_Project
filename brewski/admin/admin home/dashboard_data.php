@@ -280,11 +280,11 @@ try {
     }
     unset($seller);
 
-    $heatmap = array_fill(0, 7, array_fill(0, 8, 0));
+    $heatmap = array_fill(0, 7, array_fill(0, 12, 0));
     $heatmapRows = dashboard_fetch_rows(
         $connection,
         "SELECT WEEKDAY(o.order_date) AS weekday,
-                FLOOR(HOUR(o.order_date) / 2) - 4 AS hour_slot,
+                FLOOR(HOUR(o.order_date) / 2) AS hour_slot,
                 COUNT(DISTINCT o.order_id) AS order_count
          FROM orders o
          LEFT JOIN order_payments op ON op.order_id = o.order_id
@@ -292,18 +292,17 @@ try {
            AND (op.payment_status IS NULL OR op.payment_status = 'PAID')
            AND o.order_date >= '{$peakStartDate}'
            AND o.order_date < DATE_ADD('{$peakEndDate}', INTERVAL 1 DAY)
-           AND HOUR(o.order_date) >= 8
          GROUP BY weekday, hour_slot"
     );
     foreach ($heatmapRows as $row) {
         $weekday = (int) $row['weekday'];
         $hourSlot = (int) $row['hour_slot'];
-        if ($weekday >= 0 && $weekday < 7 && $hourSlot >= 0 && $hourSlot < 8) {
+        if ($weekday >= 0 && $weekday < 7 && $hourSlot >= 0 && $hourSlot < 12) {
             $heatmap[$weekday][$hourSlot] = (int) $row['order_count'];
         }
     }
 
-    $hourTotals = array_fill(0, 8, 0);
+    $hourTotals = array_fill(0, 12, 0);
     foreach ($heatmap as $day) {
         foreach ($day as $hourSlot => $count) {
             $hourTotals[$hourSlot] += $count;
@@ -312,7 +311,7 @@ try {
     $maximumHourCount = max($hourTotals);
     if ($maximumHourCount > 0) {
         $peakSlot = array_search($maximumHourCount, $hourTotals, true);
-        $peakHour = 8 + ((int) $peakSlot * 2);
+        $peakHour = (int) $peakSlot * 2;
         $peakHours = date('g A', mktime($peakHour, 0))
             . ' – '
             . date('g A', mktime($peakHour + 2, 0));

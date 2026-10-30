@@ -426,7 +426,7 @@
 
 .heatmap {
     display: grid;
-    grid-template-columns: 26px repeat(8, minmax(10px, 1fr));
+    grid-template-columns: 26px repeat(12, minmax(10px, 1fr));
     gap: 4px;
     min-width: 245px;
 }
@@ -1264,7 +1264,7 @@
     }
 
     .heatmap {
-        grid-template-columns: 7mm repeat(8, minmax(0, 1fr));
+        grid-template-columns: 7mm repeat(12, minmax(0, 1fr));
         gap: 1mm;
         min-width: 0 !important;
         width: 100%;
