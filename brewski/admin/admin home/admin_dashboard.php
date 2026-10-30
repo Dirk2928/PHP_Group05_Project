@@ -82,9 +82,6 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                         <span><?= $escapeProfile($profileEmail) ?></span>
                     </span>
                 </div>
-                <a href="<?= $escapeProfile(BREWSKI_BASE_URL . '/admin/profile/profile.php') ?>" class="profile-menu-item">
-                    <i data-lucide="user-round" aria-hidden="true"></i> My Profile
-                </a>
                 <a href="<?= $escapeProfile(brewski_logout_url()) ?>" class="profile-menu-item border-top">
                     <i data-lucide="log-out" aria-hidden="true"></i> Log out
                 </a>
