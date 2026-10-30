@@ -272,50 +272,21 @@ function customer_complete_paymongo_payment(PDO $pdo, array $session): ?array
             );
             $update->execute([$method !== '' ? $method : null, $sessionId]);
 
+            // A successful checkout consumes the customer's saved cart. Clear it
+            // even if the cart changed while the external payment was pending.
             $cartStatement = $pdo->prepare(
                 'SELECT cart_id
                    FROM carts
                   WHERE user_id = ?
                   ORDER BY cart_id ASC
-                  LIMIT 1
                   FOR UPDATE'
             );
             $cartStatement->execute([(int) $paymentRecord['user_id']]);
-            $cartId = $cartStatement->fetchColumn();
-
-            if ($cartId) {
-                $cartItemsStatement = $pdo->prepare(
-                    'SELECT product_id, size_id, quantity, unit_price
-                       FROM cart_items
-                      WHERE cart_id = ?
-                      ORDER BY product_id, size_id'
-                );
-                $cartItemsStatement->execute([(int) $cartId]);
-                $cartItems = $cartItemsStatement->fetchAll();
-
-                $orderItemsStatement = $pdo->prepare(
-                    'SELECT product_id, size_id, quantity, unit_price
-                       FROM order_items
-                      WHERE order_id = ?
-                      ORDER BY product_id, size_id'
-                );
-                $orderItemsStatement->execute([$orderId]);
-                $orderItems = $orderItemsStatement->fetchAll();
-
-                $normalizeItems = static function (array $items): array {
-                    return array_map(
-                        static fn (array $item): array => [
-                            (int) $item['product_id'],
-                            (int) $item['size_id'],
-                            (int) $item['quantity'],
-                            number_format((float) $item['unit_price'], 2, '.', ''),
-                        ],
-                        $items
-                    );
-                };
-
-                if ($normalizeItems($cartItems) === $normalizeItems($orderItems)) {
-                    $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([(int) $cartId]);
+            $cartIds = $cartStatement->fetchAll(PDO::FETCH_COLUMN);
+            if ($cartIds !== []) {
+                $deleteCartItems = $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?');
+                foreach ($cartIds as $cartId) {
+                    $deleteCartItems->execute([(int) $cartId]);
                 }
             }
         }
