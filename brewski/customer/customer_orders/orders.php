@@ -80,7 +80,7 @@ foreach ($countStatement->fetchAll() as $row) {
 
 $pageTitle = 'My orders | brewski';
 $active = 'orders';
-$extraStyles = ['customer_orders/orders.css?v=cash-reminder-text-20261030'];
+$extraStyles = ['customer_orders/orders.css?v=menu-spacing-20261030'];
 require __DIR__ . '/../partials/header.php';
 
 $statusLabels = [

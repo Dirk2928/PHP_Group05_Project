@@ -1243,6 +1243,36 @@
     color: #9b7048;
 }
 
+/* Match the menu page container and page title on order history only. */
+.orders-page:not(.order-detail-page) {
+    width: 100%;
+    max-width: 1560px;
+    padding: 2rem 2rem 3rem;
+}
+
+.orders-page:not(.order-detail-page) .orders-heading {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+}
+
+.orders-page:not(.order-detail-page) .orders-heading h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.8rem;
+    line-height: normal;
+    letter-spacing: normal;
+}
+
+.orders-page:not(.order-detail-page) .orders-heading p:last-child {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+    .orders-page:not(.order-detail-page) {
+        padding: 1.5rem 1.25rem 2.5rem;
+    }
+}
+
 @media (max-width: 720px) {
     .order-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .order-progress li:last-child { grid-column: 1 / -1; }
