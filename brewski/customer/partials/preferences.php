@@ -64,6 +64,7 @@ function brewski_drink_recommendation_questions(): array
             'answers' => [
                 'Coffee' => ['coffee'],
                 'Non-coffee' => ['non-coffee'],
+                'Surprise me' => ['coffee', 'non-coffee'],
             ],
         ],
         'bean' => [
@@ -117,6 +118,10 @@ function brewski_drink_recommendation_questions(): array
 function brewski_drink_recommendation_questions_for_base(string $base): array
 {
     $questions = brewski_drink_recommendation_questions();
+
+    if ($base === 'Surprise me') {
+        return ['base' => $questions['base']];
+    }
 
     if ($base !== 'Non-coffee') {
         return $questions;

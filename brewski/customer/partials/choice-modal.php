@@ -103,6 +103,7 @@ $renderQuestions = static function (array $questionSet, array $values, bool $pro
 
             <div class="choice-panel" data-choice-panel="first-timer"<?= $initialMode === 'first-timer' ? '' : ' hidden' ?>>
                 <?php $renderQuestions($drinkDisplayQuestions, [], true, $nonCoffeeQuestions); ?>
+                <p class="choice-surprise-hint" id="choice-surprise-hint" hidden>We will pick a random available drink for you.</p>
             </div>
 
             <div class="choice-panel" data-choice-panel="recommendation"<?= $initialMode === 'recommendation' ? '' : ' hidden' ?>>

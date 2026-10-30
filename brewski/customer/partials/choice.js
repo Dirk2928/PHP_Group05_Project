@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             var branch = question.dataset.choiceBranch || '';
-            question.hidden = !choice
+            question.hidden = !choice || choice === 'Surprise me'
                 || (branch && branch !== choice.toLowerCase());
             if (question.hidden) {
                 question.querySelectorAll('.choice-answer.active').forEach(function (answer) {
@@ -84,7 +84,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        saveLabel.textContent = copy['first-timer'].button;
+        var surpriseHint = document.getElementById('choice-surprise-hint');
+        if (surpriseHint) {
+            surpriseHint.hidden = choice !== 'Surprise me';
+        }
+        saveLabel.textContent = choice === 'Surprise me'
+            ? 'Pick a random drink'
+            : copy['first-timer'].button;
     }
 
     function resetDrinkRecommendationAnswers() {
@@ -286,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var total = questions().length;
 
             if (currentMode === 'first-timer' && !answered.base) {
-                setStatus('Choose Coffee or Non-coffee.', 'is-error');
+                setStatus('Choose Coffee, Non-coffee, or Surprise me.', 'is-error');
                 return;
             }
 

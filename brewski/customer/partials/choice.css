@@ -17,6 +17,13 @@
     color: var(--espresso);
 }
 
+.choice-surprise-hint {
+    margin: 0.75rem 0 0.5rem;
+    color: var(--dark-mocha);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
 .choice-modal__skip {
     display: inline-flex;
     align-items: center;

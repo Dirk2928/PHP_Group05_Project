@@ -128,12 +128,18 @@ $productImage = static function (array $product): string {
 if ($mode === 'first-timer') {
     try {
         $productTags = brewski_preference_links($catalog);
-        $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
-        $ranking = brewski_rank_products($preferences, $productTags);
-        $best = brewski_best_match($ranking);
+        $surprise = $normalizedAnswers['base'] === 'Surprise me';
+        $best = null;
         $product = null;
-        if ($best) {
-            $product = $productIndex[(int) $best['product_id']] ?? null;
+        if ($surprise) {
+            $product = brewski_random_drink_product($catalog, $productTags);
+        } else {
+            $preferences = brewski_answers_to_preferences($normalizedAnswers, $questions);
+            $ranking = brewski_rank_products($preferences, $productTags);
+            $best = brewski_best_match($ranking);
+            if ($best) {
+                $product = $productIndex[(int) $best['product_id']] ?? null;
+            }
         }
     } catch (Throwable $error) {
         error_log('Brewski recommendation error: ' . $error->getMessage());
@@ -153,7 +159,7 @@ if ($mode === 'first-timer') {
             'price' => (float) $product['price'],
             'image' => $productImage($product),
             'percent' => (int) ($best['percent'] ?? 0),
-            'label' => 'Your drink recommendation',
+            'label' => $surprise ? 'Your surprise drink' : 'Your drink recommendation',
             'matched' => array_slice($best['matched'] ?? [], 0, 3),
         ];
     }
@@ -163,7 +169,7 @@ if ($mode === 'first-timer') {
         'mode' => $mode,
         'best_match' => $bestMatch,
         'message' => $bestMatch
-            ? 'Your drink recommendation is ready.'
+            ? ($surprise ? 'Your surprise drink is ready.' : 'Your drink recommendation is ready.')
             : 'No recommendation is available right now.',
     ], JSON_INVALID_UTF8_SUBSTITUTE);
     exit;
