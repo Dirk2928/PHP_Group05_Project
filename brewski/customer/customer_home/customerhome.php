@@ -33,55 +33,64 @@ $choiceFirstTimer = false;
 $choiceAssessmentCompleted = null;
 
 if ($choiceUserId > 0) {
-    $choicePreferences = brewski_user_preferences($choiceUserId);
-    $statusConnection = brewski_preferences_connection();
-    if ($statusConnection) {
-        try {
-            $statusStatement = $statusConnection->prepare(
-                'SELECT is_first_timer, assessment_completed_at FROM users WHERE user_id = ?'
-            );
-            if ($statusStatement) {
-                $statusStatement->bind_param('i', $choiceUserId);
-                $statusStatement->execute();
-                $statusStatement->bind_result($choiceFirstTimer, $choiceAssessmentCompleted);
-                $statusStatement->fetch();
-                $statusStatement->close();
-            } else {
-                error_log('Customer home status query could not be prepared: ' . $statusConnection->error);
-            }
-        } catch (Throwable $error) {
-            error_log('Customer home status lookup error: ' . $error->getMessage());
-        }
-    } else {
-        error_log('Customer home status lookup skipped: database connection unavailable.');
-    }
-    if (is_array($choicePreferences) && $choicePreferences) {
-        $choiceRanking = brewski_rank_products(
-            $choicePreferences,
-            brewski_preference_links($catalog)
-        );
-        foreach ($choiceRanking as $candidate) {
-            if ($candidate['status'] !== 'excluded' && $candidate['percent'] >= 50) {
-                $choiceBestMatches[] = $candidate;
-            }
-        }
-        usort($choiceBestMatches, static function (array $left, array $right): int {
-            return [$right['percent'], count($right['matched'])]
-                <=> [$left['percent'], count($left['matched'])];
-        });
-
-        foreach ($sections as $categoryName => $categoryProducts) {
-            usort(
-                $categoryProducts,
-                static function (array $left, array $right) use ($choiceRanking): int {
-                    $leftMatch = $choiceRanking[(int) $left['product_id']]['percent'] ?? 0;
-                    $rightMatch = $choiceRanking[(int) $right['product_id']]['percent'] ?? 0;
-
-                    return $rightMatch <=> $leftMatch;
+    try {
+        $choicePreferences = brewski_user_preferences($choiceUserId);
+        $statusConnection = brewski_preferences_connection();
+        if ($statusConnection) {
+            try {
+                $statusStatement = $statusConnection->prepare(
+                    'SELECT is_first_timer, assessment_completed_at FROM users WHERE user_id = ?'
+                );
+                if ($statusStatement) {
+                    $statusStatement->bind_param('i', $choiceUserId);
+                    $statusStatement->execute();
+                    $statusStatement->bind_result($choiceFirstTimer, $choiceAssessmentCompleted);
+                    $statusStatement->fetch();
+                    $statusStatement->close();
+                } else {
+                    error_log('Customer home status query could not be prepared: ' . $statusConnection->error);
                 }
-            );
-            $sections[$categoryName] = $categoryProducts;
+            } catch (Throwable $error) {
+                error_log('Customer home status lookup error: ' . $error->getMessage());
+            }
+        } else {
+            error_log('Customer home status lookup skipped: database connection unavailable.');
         }
+        if (is_array($choicePreferences) && $choicePreferences) {
+            $choiceRanking = brewski_rank_products(
+                $choicePreferences,
+                brewski_preference_links($catalog)
+            );
+            foreach ($choiceRanking as $candidate) {
+                if ($candidate['status'] !== 'excluded' && $candidate['percent'] >= 50) {
+                    $choiceBestMatches[] = $candidate;
+                }
+            }
+            usort($choiceBestMatches, static function (array $left, array $right): int {
+                return [$right['percent'], count($right['matched'])]
+                    <=> [$left['percent'], count($left['matched'])];
+            });
+
+            foreach ($sections as $categoryName => $categoryProducts) {
+                usort(
+                    $categoryProducts,
+                    static function (array $left, array $right) use ($choiceRanking): int {
+                        $leftMatch = $choiceRanking[(int) $left['product_id']]['percent'] ?? 0;
+                        $rightMatch = $choiceRanking[(int) $right['product_id']]['percent'] ?? 0;
+
+                        return $rightMatch <=> $leftMatch;
+                    }
+                );
+                $sections[$categoryName] = $categoryProducts;
+            }
+        }
+    } catch (Throwable $error) {
+        error_log('Customer home personalization error: ' . $error->getMessage());
+        $choicePreferences = null;
+        $choiceBestMatches = [];
+        $choiceRanking = [];
+        $choiceFirstTimer = false;
+        $choiceAssessmentCompleted = null;
     }
 }
 
