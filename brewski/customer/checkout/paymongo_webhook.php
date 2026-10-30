@@ -35,18 +35,31 @@ if (!is_array($payload)) {
 }
 
 $eventData = $payload['data'] ?? [];
-$liveMode = (bool) ($eventData['livemode'] ?? $payload['livemode'] ?? false);
+$eventAttributes = is_array($eventData) ? ($eventData['attributes'] ?? []) : [];
+if (!is_array($eventAttributes)) {
+    $eventAttributes = [];
+}
+$liveMode = (bool) (
+    $eventAttributes['livemode']
+    ?? $eventData['livemode']
+    ?? $payload['livemode']
+    ?? false
+);
 if (!customer_paymongo_signature_is_valid($rawBody, $signature, $webhookSecret, $liveMode)) {
     error_log('Rejected PayMongo webhook with an invalid signature.');
     customer_paymongo_webhook_respond(401, ['ok' => false]);
 }
 
-$eventType = (string) ($eventData['type'] ?? '');
+$eventType = (string) (
+    $eventAttributes['type']
+    ?? $eventData['type']
+    ?? ''
+);
 if ($eventType !== 'checkout_session.payment.paid') {
     customer_paymongo_webhook_respond(200, ['ok' => true]);
 }
 
-$session = $eventData['data'] ?? [];
+$session = $eventAttributes['data'] ?? $eventData['data'] ?? [];
 if (!is_array($session)) {
     customer_paymongo_webhook_respond(400, ['ok' => false]);
 }
