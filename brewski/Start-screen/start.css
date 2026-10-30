@@ -871,3 +871,58 @@ body:has(.dev-modal[open]) {
         animation: none;
     }
 }
+
+.report-fab {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    width: 3.75rem;
+    height: 3.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: #442817;
+    color: #fff7ed;
+    box-shadow: 0 8px 24px rgba(28, 19, 13, 0.28);
+    cursor: pointer;
+}
+
+.report-fab:hover, .report-fab:focus-visible { background: #6b3e21; }
+.report-fab svg { width: 1.65rem; height: 1.65rem; }
+
+.report-dialog {
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    padding: 0;
+    border: 0;
+    border-radius: 1rem;
+    background: #fffaf4;
+    color: #26180e;
+    box-shadow: 0 24px 70px rgba(24, 14, 8, 0.35);
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+}
+
+.report-dialog::backdrop { background: rgba(23, 13, 7, 0.55); }
+.report-dialog__header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: #f3e7d8; }
+.report-dialog__header h2 { margin: 0; font-size: 1.15rem; }
+.report-dialog__close { border: 0; background: transparent; color: #442817; font-size: 1.8rem; line-height: 1; cursor: pointer; }
+.report-dialog form { display: grid; gap: 0.6rem; padding: 1.25rem; }
+.report-dialog label { font-size: 0.88rem; font-weight: 600; }
+.report-dialog input, .report-dialog textarea { width: 100%; box-sizing: border-box; border: 1px solid #c9b8a6; border-radius: 0.5rem; padding: 0.75rem; background: #fff; color: #26180e; font: inherit; font-size: 0.92rem; }
+.report-dialog textarea { resize: vertical; min-height: 9rem; }
+.report-dialog input:focus, .report-dialog textarea:focus { outline: 2px solid #8f572f; outline-offset: 1px; }
+.report-dialog__status { min-height: 1.3rem; margin: 0; color: #9a3026; font-size: 0.85rem; }
+.report-dialog__status.is-success { color: #276b39; }
+.report-dialog__actions { display: flex; align-items: center; justify-content: flex-end; gap: 0.7rem; }
+.report-dialog__actions button { padding: 0.7rem 1rem; border-radius: 999px; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.report-dialog__cancel { border: 1px solid #c9b8a6; background: transparent; color: #442817; }
+.report-dialog__send { display: inline-flex; align-items: center; gap: 0.45rem; border: 0; background: #442817; color: #fff7ed; }
+.report-dialog__send:disabled { opacity: 0.6; cursor: wait; }
+.report-dialog__send svg { width: 1rem; height: 1rem; }
+
+@media (max-width: 34rem) {
+    .report-fab { right: 1rem; bottom: 1rem; }
+    .report-dialog { max-height: calc(100dvh - 1rem); }
+}

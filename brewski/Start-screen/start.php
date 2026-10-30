@@ -6,6 +6,9 @@ $startIsLoggedIn = brewski_is_logged_in();
 $startRole = brewski_current_role();
 $startHomeUrl = brewski_home_for_role($startRole);
 $startIsCustomer = $startRole === 'CUSTOMER';
+if (empty($_SESSION['problem_report_csrf'])) {
+    $_SESSION['problem_report_csrf'] = bin2hex(random_bytes(32));
+}
 
 ?>
 <!DOCTYPE html>
@@ -269,6 +272,29 @@ $startIsCustomer = $startRole === 'CUSTOMER';
         </div>
     </section>
 
+    <button type="button" class="report-fab" id="reportOpen" aria-label="Report a problem" title="Report a problem">
+        <i data-lucide="message-circle-warning" aria-hidden="true"></i>
+    </button>
+
+    <dialog class="report-dialog" id="reportDialog" aria-labelledby="reportTitle">
+        <div class="report-dialog__header">
+            <h2 id="reportTitle">Report a problem</h2>
+            <button type="button" class="report-dialog__close" id="reportClose" aria-label="Close report form">&times;</button>
+        </div>
+        <form id="reportForm" action="report-problem.php" method="post">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['problem_report_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+            <label for="reportEmail">Your email</label>
+            <input id="reportEmail" name="email" type="email" maxlength="254" autocomplete="email" placeholder="you@example.com" required>
+            <label for="reportMessage">What happened?</label>
+            <textarea id="reportMessage" name="message" minlength="10" maxlength="3000" rows="7" placeholder="Tell us what went wrong and how we can help..." required></textarea>
+            <p class="report-dialog__status" id="reportStatus" role="status" aria-live="polite"></p>
+            <div class="report-dialog__actions">
+                <button type="button" class="report-dialog__cancel" id="reportCancel">Cancel</button>
+                <button type="submit" class="report-dialog__send" id="reportSend"><i data-lucide="send" aria-hidden="true"></i> Send report</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
         const video = document.getElementById('startVideo');
         video.muted = true;
@@ -344,6 +370,49 @@ $startIsCustomer = $startRole === 'CUSTOMER';
         viewport.addEventListener('pointercancel', function () { startX = null; });
 
         go(0);
+
+        const reportDialog = document.getElementById('reportDialog');
+        const reportForm = document.getElementById('reportForm');
+        const reportStatus = document.getElementById('reportStatus');
+        const reportSend = document.getElementById('reportSend');
+        document.getElementById('reportOpen').addEventListener('click', function () {
+            reportStatus.textContent = '';
+            reportDialog.showModal();
+            document.getElementById('reportEmail').focus();
+        });
+        function closeReport() { reportDialog.close(); }
+        document.getElementById('reportClose').addEventListener('click', closeReport);
+        document.getElementById('reportCancel').addEventListener('click', closeReport);
+        reportDialog.addEventListener('click', function (event) {
+            if (event.target === reportDialog) closeReport();
+        });
+        reportForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            if (!reportForm.reportValidity()) return;
+            reportSend.disabled = true;
+            reportStatus.textContent = 'Sending your report...';
+            try {
+                const response = await fetch(reportForm.action, {
+                    method: 'POST',
+                    body: new FormData(reportForm),
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const result = await response.json();
+                reportStatus.textContent = result.message || 'Unable to send your report right now.';
+                if (response.ok && result.success) {
+                    reportForm.reset();
+                    reportStatus.classList.add('is-success');
+                } else {
+                    reportStatus.classList.remove('is-success');
+                }
+            } catch (error) {
+                reportStatus.classList.remove('is-success');
+                reportStatus.textContent = 'Unable to send your report right now. Please try again.';
+            } finally {
+                reportSend.disabled = false;
+            }
+        });
     </script>
 
     <?php require_once __DIR__ . '/../cookie-consent/cookie-consent.php'; ?>
