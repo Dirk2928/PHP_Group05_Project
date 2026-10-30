@@ -651,4 +651,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     loadDashboard();
+    window.setInterval(function () {
+        if (!document.hidden) {
+            loadDashboard();
+        }
+    }, 10000);
 });

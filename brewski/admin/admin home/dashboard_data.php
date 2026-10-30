@@ -361,6 +361,21 @@ try {
     unset($item);
 
     $alerts = [];
+    $unavailableProducts = dashboard_fetch_rows(
+        $connection,
+        "SELECT product_name AS name
+         FROM products
+         WHERE availability = 0
+         ORDER BY product_name ASC"
+    );
+    foreach ($unavailableProducts as $item) {
+        $alerts[] = [
+            'type' => 'critical',
+            'title' => $item['name'] . ' — unavailable for orders',
+            'time' => 'Product availability',
+        ];
+    }
+
     foreach ($lowStockItems as $item) {
         $alerts[] = [
             'type' => $item['quantity'] === 0 ? 'critical' : 'warning',
