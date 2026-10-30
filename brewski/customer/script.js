@@ -69,7 +69,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var noResults = document.getElementById('no-results');
     var menuPageInfo = document.getElementById('menuPageInfo');
     var menuPagination = document.getElementById('menuPagination');
-    var filterState = { category: 'all' };
+    var menuSearch = document.getElementById('menu-search');
+    var filterState = { category: 'all', query: '' };
     var menuPageSize = 5;
     var menuPage = 1;
 
@@ -77,7 +78,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return Array.prototype.filter.call(productCards, function (card) {
             var matchesCategory = filterState.category === 'all' ||
                 card.dataset.category === filterState.category;
-            return matchesCategory;
+            var searchableText = (card.dataset.name || '') + ' ' + (card.dataset.description || '');
+            var matchesSearch = searchableText.toLocaleLowerCase().includes(filterState.query);
+            return matchesCategory && matchesSearch;
         });
     }
 
@@ -178,6 +181,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     setupFilterGroup('category-filters', 'category');
+
+    if (menuSearch) {
+        menuSearch.addEventListener('input', function () {
+            filterState.query = menuSearch.value.trim().toLocaleLowerCase();
+            menuPage = 1;
+            applyFilters();
+        });
+    }
 
     applyFilters();
 

@@ -250,7 +250,16 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             BREWSKI_AUTH_WRONG_PORTAL,
             'This account signs in through the ' . $targetPortal['label'] . '.',
             [],
-            brewski_portal_login_url($targetPortal['key'])
+            brewski_login_url_for_role($role)
+        );
+    }
+
+    if ($portalKey === 'portal' && strtolower($role) !== brewski_session_scope()) {
+        return brewski_auth_result(
+            BREWSKI_AUTH_WRONG_PORTAL,
+            'This account uses the ' . strtolower($role) . ' sign-in.',
+            [],
+            brewski_login_url_for_role($role)
         );
     }
 

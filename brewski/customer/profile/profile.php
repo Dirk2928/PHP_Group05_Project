@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../login-signup/session_init.php';
 
 require_once __DIR__ . '/../../Db/db_config.php';
 require_once __DIR__ . '/../../Db/activity_log.php';
@@ -224,7 +224,7 @@ if (!empty($_SESSION['cart']) && is_array($_SESSION['cart'])) {
     <link rel="stylesheet" href="profile.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="customer-profile">
     <header class="navbar">
         <a href="../customer-home/customerhome.php" class="navbar__brand">brewski</a>
 

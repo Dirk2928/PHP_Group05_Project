@@ -72,7 +72,7 @@ function brewski_mail_build(string $endpoint, array $payload): ?array
 
         return [
             'to' => $email,
-            'subject' => 'Activate your Brewski account',
+            'subject' => 'Activate your rewski account',
             'text' => "Hello {$firstName},\n\n"
                 . "Activate your account using this link (valid for 24 hours):\n"
                 . "{$activationUrl}\n\n"

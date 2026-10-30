@@ -142,7 +142,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $user !== null) {
                     } elseif (brewski_is_logged_in()) {
                         brewski_record_activity($pdo, 'security', 'Enabled authenticator', 'Enabled authenticator-based sign-in.');
                     }
-                    header('Location: ' . $setupUrl . '?enrolled=1');
+                    header('Location: ' . $setupUrl . (strpos($setupUrl, '?') === false ? '?' : '&') . 'enrolled=1');
                     exit;
                 } catch (Throwable $exception) {
                     if ($pdo->inTransaction()) {

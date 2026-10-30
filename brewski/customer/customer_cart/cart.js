@@ -113,6 +113,16 @@
         return pendingSync;
     }
 
+    // Not signed in: go through the server-side gate, which remembers
+    // "checkout" and sends the customer to the login page.
+    function goToLogin() {
+        try {
+            sessionStorage.removeItem('brewski_checkout_sync_complete');
+        } catch (error) {}
+
+        window.location.assign('../customer_cart/go_checkout.php');
+    }
+
 
 
 
@@ -204,7 +214,7 @@
             '<div class="cart-summary">' +
                 '<div class="cart-summary__line"><span>Subtotal</span><span>' + money(subtotal) + '</span></div>' +
                 '<div class="cart-summary__line cart-summary__line--total"><span>Total</span><span>' + money(subtotal) + '</span></div>' +
-                '<a href="' + escapeHtml(checkoutUrl ? checkoutUrl.content : '../checkout/checkout.php') + '" class="cart-checkout">Proceed to checkout</a>' +
+                '<a href="../customer_cart/go_checkout.php" class="cart-checkout">Proceed to checkout</a>' +
             '</div>';
 
         cartBody.innerHTML = html;
@@ -586,10 +596,33 @@
 
             var checkoutLink = event.target.closest('.cart-checkout');
             if (!checkoutLink) return;
-            if (!load().length) {
+
+            if (!load().length || checkoutLink.getAttribute('aria-disabled') === 'true') {
                 event.preventDefault();
                 return;
             }
+
+            // Cart sync is switched off: just open checkout
+            if (!syncEnabled || syncEnabled.content !== '1') return;
+
+            // Check the customer is signed in before opening checkout.
+            // Not signed in -> login page (then back to checkout after login).
+            event.preventDefault();
+            var destination = checkoutLink.href;
+            checkoutLink.setAttribute('aria-disabled', 'true');
+            checkoutLink.textContent = 'Please wait...';
+
+            syncWithDatabase(load()).then(function () {
+                window.location.assign(destination);
+            }).catch(function (error) {
+                if (error && error.status === 401) {
+                    goToLogin();
+                    return;
+                }
+                // Any other problem: let the checkout page handle it
+                console.error('Could not sync cart with checkout:', error);
+                window.location.assign(destination);
+            });
         });
     }
 

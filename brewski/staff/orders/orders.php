@@ -75,7 +75,7 @@ $csrf_token = $_SESSION['csrf_token'];
 
             <div id="profileMenu" class="profile-menu hidden">
                 <a
-                    href="../../login-signup/logout.php"
+                    href="<?= htmlspecialchars(brewski_logout_url(), ENT_QUOTES, 'UTF-8') ?>"
                     class="profile-menu-item border-top"
                 >
                     Log out
@@ -146,17 +146,17 @@ $csrf_token = $_SESSION['csrf_token'];
 
                 <div class="order-summary" aria-label="Order summary">
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Active orders today</span>
+                        <span class="order-summary-label">Active orders</span>
                         <strong id="activeOrderCount">0</strong>
                         <span class="order-summary-note">Currently being handled</span>
                     </article>
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Ready from today's orders</span>
+                        <span class="order-summary-label">Ready for pickup</span>
                         <strong id="readyOrderCount">0</strong>
                         <span class="order-summary-note">Ready to leave the counter</span>
                     </article>
                     <article class="order-summary-card">
-                        <span class="order-summary-label">Completed from today's orders</span>
+                        <span class="order-summary-label">Completed today</span>
                         <strong id="completedOrderCount">0</strong>
                         <span class="order-summary-note">Successfully fulfilled</span>
                     </article>
@@ -187,7 +187,7 @@ $csrf_token = $_SESSION['csrf_token'];
                 <div class="table-card order-board-card">
                     <div class="order-board" id="ordersBoard" aria-label="Orders by status"></div>
                     <div class="orders-empty hidden" id="ordersEmpty">
-                        <span class="orders-empty-icon" aria-hidden="true">☕</span>
+                        <span class="orders-empty-icon" aria-hidden="true"><i data-lucide="coffee"></i></span>
                         <p class="empty-title">No matching orders</p>
                         <p class="empty-hint">Try changing your search or status filter.</p>
                     </div>
@@ -208,7 +208,7 @@ $csrf_token = $_SESSION['csrf_token'];
                         <span class="availability-overview-label">Available to order</span>
                         <strong><span id="availableProductCount">0</span> <span class="availability-total">/ <span id="totalProductCount">0</span> products</span></strong>
                     </div>
-                    <span class="availability-overview-icon" aria-hidden="true">✓</span>
+                    <span class="availability-overview-icon" aria-hidden="true"><i data-lucide="circle-check"></i></span>
                 </div>
                 <div class="product-search-field">
                     <label class="sr-only" for="productSearch">Search products</label>

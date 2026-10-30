@@ -211,6 +211,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(html => {
                     dynamicView.innerHTML = html;
 
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+
                     runScripts(dynamicView);
 
                     window.scrollTo(0, 0);

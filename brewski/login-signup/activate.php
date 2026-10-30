@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/session_init.php';
 
 require_once __DIR__ . '/../Db/db_config.php';
 

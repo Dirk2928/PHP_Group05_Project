@@ -23,6 +23,9 @@ $error = '';
 $email_value = '';
 $loginRedirect = '';
 $foreignSession = false;
+$alreadySignedIn = false;
+$portalScope = brewski_session_scope();
+$otherPortalScope = $portalScope === 'staff' ? 'admin' : 'staff';
 
 if (isset($_GET['msg']) && $_GET['msg'] === 'otp_cancelled') {
     $error = 'Sign-in cancelled. Please start again.';
@@ -40,16 +43,14 @@ if (brewski_is_logged_in()) {
 
     $currentRole = brewski_current_role();
 
-    if (in_array($currentRole, $portal['roles'], true)) {
-        header('Location: ' . brewski_home_for_role($currentRole));
-        exit;
+    if ($currentRole === strtoupper($portalScope)) {
+        $alreadySignedIn = true;
+    } else {
+        $foreignSession = true;
     }
-
-
-    $foreignSession = true;
 }
 
-if (!$foreignSession && $_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$foreignSession && !$alreadySignedIn && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $email = trim($_POST['email'] ?? '');
     $password = (string) ($_POST['password'] ?? '');
@@ -143,7 +144,7 @@ $escape = static function (string $value): string {
 
 <body>
 
-<a class="login-home-link" href="<?= $escape(BREWSKI_BASE_URL . '/Start-screen/start.php') ?>" aria-label="Back to home" title="Back to home">
+<a class="login-home-link" href="<?= $escape(BREWSKI_BASE_URL . '/Start-screen/start.php?as=' . $portalScope) ?>" aria-label="Back to home" title="Back to home">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/><path d="M9 12h12"/></svg>
 </a>
 
@@ -163,7 +164,12 @@ $escape = static function (string $value): string {
                 brew<span>ski</span>
             </p>
 
-            <?php if ($foreignSession): ?>
+            <?php if ($alreadySignedIn): ?>
+                <h1 class="auth__title">Already signed in</h1>
+                <p class="auth__intro">Your <?= $escape(ucfirst($portalScope)) ?> account is still signed in.</p>
+                <p class="auth__switch"><a href="<?= $escape(brewski_home_for_role(brewski_current_role())) ?>">Go to your dashboard</a></p>
+                <p class="auth__switch"><a href="<?= $escape(BREWSKI_BASE_URL . '/portal/login.php?as=' . $otherPortalScope) ?>">Sign in as <?= $escape(ucfirst($otherPortalScope)) ?></a></p>
+            <?php elseif ($foreignSession): ?>
 
                 <h1 class="auth__title">
                     Wrong account type
@@ -171,8 +177,7 @@ $escape = static function (string $value): string {
 
                 <p class="portal__notice">
 
-                    You are signed in as a customer. This portal is only for
-                    staff and administrator accounts.
+                    This sign-in has the wrong account type.
 
                 </p>
 
@@ -186,7 +191,7 @@ $escape = static function (string $value): string {
 
                 <p class="auth__switch">
 
-                    <a href="<?php echo $escape(BREWSKI_BASE_URL . '/login-signup/logout.php'); ?>">
+                    <a href="<?php echo $escape(brewski_logout_url()); ?>">
                         Sign out
                     </a>
 
@@ -195,10 +200,11 @@ $escape = static function (string $value): string {
             <?php else: ?>
 
                 <h1 class="auth__title">
-                    Staff &amp; admin sign-in
+                    <?= $escape(ucfirst($portalScope)) ?> sign-in
                 </h1>
 
-                <p class="auth__intro">Authorized staff and administrators only.</p>
+                <p class="auth__intro">Authorized <?= $escape($portalScope) ?> accounts only.</p>
+                <p class="auth__switch"><a href="<?= $escape(BREWSKI_BASE_URL . '/portal/login.php?as=' . $otherPortalScope) ?>">Sign in as <?= $escape(ucfirst($otherPortalScope)) ?> instead</a></p>
 
                 <?php if ($error !== ''): ?>
 
@@ -217,7 +223,7 @@ $escape = static function (string $value): string {
 
                     <?php if ($loginRedirect !== ''): ?>
                         <p class="auth__switch" style="margin-top: -0.5rem;">
-                            <a href="<?php echo $escape($loginRedirect); ?>">Go to the customer sign-in</a>
+                            <a href="<?php echo $escape($loginRedirect); ?>">Go to the correct sign-in</a>
                         </p>
                     <?php endif; ?>
 
@@ -239,7 +245,7 @@ $escape = static function (string $value): string {
                     class="form"
                     id="login-form"
                     method="POST"
-                    action="login.php"
+                    action="login.php?as=<?= $escape($portalScope) ?>"
                 >
 
                     <input
@@ -302,7 +308,7 @@ $escape = static function (string $value): string {
                         </div>
 
                         <p class="auth__switch" style="margin: 0.4rem 0 0; text-align: right; font-size: 0.72rem;">
-                            <a href="../login-signup/forgot-password.php" style="color: var(--espresso); text-decoration: underline;">
+                            <a href="../login-signup/forgot-password.php">
                                 Forgot your password?
                             </a>
                         </p>

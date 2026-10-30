@@ -32,7 +32,7 @@ $adminName = $_SESSION['first_name'] ?? 'Admin';
             <button type="button" id="profileBtn" class="icon-btn profile-btn" aria-label="Open profile menu" aria-expanded="false"></button>
 
             <div id="profileMenu" class="profile-menu hidden">
-                <a href="../../login-signup/logout.php" class="profile-menu-item border-top">Log out</a>
+                <a href="<?= htmlspecialchars(brewski_logout_url(), ENT_QUOTES, 'UTF-8') ?>" class="profile-menu-item border-top">Log out</a>
             </div>
         </div>
     </header>
