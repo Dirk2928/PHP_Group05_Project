@@ -49,7 +49,7 @@ $statusLabels = [
 $statusIcons = ['PENDING' => 'clipboard-check', 'CONFIRMED' => 'badge-check', 'PREPARING' => 'chef-hat', 'READY' => 'package-check', 'COMPLETED' => 'circle-check', 'CANCELLED' => 'circle-x'];
 
 $pageTitle = 'Order details | brewski';
-$extraStyles = ['customer_orders/orders.css'];
+$extraStyles = ['customer_orders/orders.css?v=order-detail-refresh-20261030'];
 require __DIR__ . '/../partials/header.php';
 ?>
 <main class="orders-page order-detail-page">
@@ -74,11 +74,11 @@ require __DIR__ . '/../partials/header.php';
                     <p class="order-cancelled-note">This order was cancelled. Please contact the café if you need help.</p>
                 <?php else: ?>
                     <?php $currentIndex = array_search($currentStatus, $orderStatuses, true); ?>
-                    <ol class="order-progress" aria-label="Order progress">
+                    <ul class="order-progress" aria-label="Order progress">
                         <?php foreach ($orderStatuses as $index => $step): $done = $currentIndex !== false && $index <= $currentIndex; ?>
                             <li class="<?= $done ? 'is-done' : '' ?> <?= $step === $currentStatus ? 'is-current' : '' ?>"><span class="order-progress__dot"><?php if ($done): ?><i data-lucide="check" aria-hidden="true"></i><?php else: ?><?= $index + 1 ?><?php endif; ?></span><span><?= htmlspecialchars($statusLabels[$step], ENT_QUOTES, 'UTF-8') ?></span></li>
                         <?php endforeach; ?>
-                    </ol>
+                    </ul>
                 <?php endif; ?>
             </section>
 
