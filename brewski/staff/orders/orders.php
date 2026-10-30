@@ -77,6 +77,8 @@ $csrf_token = $_SESSION['csrf_token'];
 
     <title>brewski Staff</title>
 
+    <link rel="icon" type="image/png" href="<?= $escapeProfile(BREWSKI_BASE_URL . '/images/brewskilogo.png') ?>">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&display=swap" rel="stylesheet">

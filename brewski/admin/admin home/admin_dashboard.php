@@ -45,6 +45,7 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brewski Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="<?= $escapeProfile(BREWSKI_BASE_URL . '/images/brewskilogo.png') ?>">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
