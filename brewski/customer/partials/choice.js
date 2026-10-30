@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var openButton = document.getElementById('choice-open');
     var skipButton = document.getElementById('choice-skip');
     var noticeButton = document.getElementById('choice-open-notice');
+    var bestMatchEmpty = document.getElementById('choice-best-match-empty');
     var panels = {};
     Array.prototype.forEach.call(
         modal.querySelectorAll('[data-choice-panel]'),
@@ -73,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             var branch = question.dataset.choiceBranch || '';
-            question.hidden = !choice || choice === 'Surprise me'
+            question.hidden = !choice
                 || (branch && branch !== choice.toLowerCase());
             if (question.hidden) {
                 question.querySelectorAll('.choice-answer.active').forEach(function (answer) {
@@ -83,13 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        var surpriseHint = document.getElementById('choice-surprise-hint');
-        if (surpriseHint) {
-            surpriseHint.hidden = choice !== 'Surprise me';
-        }
-        saveLabel.textContent = choice === 'Surprise me'
-            ? 'Pick a random drink'
-            : copy['first-timer'].button;
+        saveLabel.textContent = copy['first-timer'].button;
     }
 
     function resetDrinkRecommendationAnswers() {
@@ -250,6 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (skipButton) {
         skipButton.addEventListener('click', function () {
+            close();
+            if (bestMatchEmpty) {
+                bestMatchEmpty.hidden = false;
+            }
             var csrfMeta = document.querySelector('meta[name="csrf-token"]');
             var payload = new URLSearchParams();
             payload.append('csrf_token', csrfMeta ? csrfMeta.getAttribute('content') : '');
@@ -260,8 +259,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: payload.toString(),
                 credentials: 'same-origin'
-            }).then(function () {
-                close();
+            }).then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Could not save skipped preferences.');
+                }
+            }).catch(function () {
+                if (bestMatchEmpty) {
+                    var notice = bestMatchEmpty.querySelector('[data-choice-skip-error]');
+                    if (notice) {
+                        notice.hidden = false;
+                    }
+                }
             });
         });
     }
@@ -278,7 +286,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var total = questions().length;
 
             if (currentMode === 'first-timer' && !answered.base) {
-                setStatus('Choose Coffee, Non-coffee, or Surprise me.', 'is-error');
+                setStatus('Choose Coffee or Non-coffee.', 'is-error');
                 return;
             }
 

@@ -206,13 +206,6 @@ require __DIR__ . '/../partials/header.php';
 
         </section>
 
-        <?php if ($choiceFirstTimer && empty($choiceAssessmentCompleted) && !empty($_SESSION['choice_skipped'])): ?>
-            <p class="catalog-notice" role="status">
-                Finish your taste profile to organize your menu.
-                <button type="button" class="btn-link" id="choice-open-notice" data-choice-mode="recommendation">Find your best matches</button>
-            </p>
-        <?php endif; ?>
-
         <?php
         $bestMatchProducts = [];
         foreach ($choiceBestMatches as $candidate) {
@@ -229,6 +222,21 @@ require __DIR__ . '/../partials/header.php';
                     <?php foreach ($bestMatchProducts as $bestMatchProduct): ?>
                         <?php $renderProductCard($bestMatchProduct, true); ?>
                     <?php endforeach; ?>
+                </div>
+            </section>
+        <?php elseif ($choiceFirstTimer && empty($choiceAssessmentCompleted)): ?>
+            <section class="category category--best-match" id="choice-best-match-empty"<?= empty($_SESSION['choice_skipped']) ? ' hidden' : '' ?>>
+                <h2 class="category__title">Your best matches</h2>
+                <div class="best-match-empty">
+                    <div>
+                        <p class="best-match-empty__eyebrow">Make it yours</p>
+                        <h3>Find a drink that fits your taste</h3>
+                        <p>Answer a few quick questions and we’ll show your best matches here.</p>
+                        <p class="best-match-empty__error" data-choice-skip-error hidden>We couldn’t save your choice. You can still set up your preferences now.</p>
+                    </div>
+                    <button type="button" class="best-match-empty__button" id="choice-open-notice" data-choice-mode="recommendation">
+                        Set up my preferences <span aria-hidden="true">→</span>
+                    </button>
                 </div>
             </section>
         <?php endif; ?>
