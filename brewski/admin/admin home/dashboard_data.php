@@ -347,19 +347,6 @@ try {
     }
     unset($order);
 
-    $lowStockItems = dashboard_fetch_rows(
-        $connection,
-        'SELECT product_name AS name, stock AS quantity
-         FROM products
-         WHERE stock <= 10
-         ORDER BY stock ASC, product_name ASC
-         LIMIT 10'
-    );
-    foreach ($lowStockItems as &$item) {
-        $item['quantity'] = (int) $item['quantity'];
-    }
-    unset($item);
-
     $alerts = [];
     $unavailableProducts = dashboard_fetch_rows(
         $connection,
@@ -373,15 +360,6 @@ try {
             'type' => 'critical',
             'title' => $item['name'] . ' — unavailable for orders',
             'time' => 'Product availability',
-        ];
-    }
-
-    foreach ($lowStockItems as $item) {
-        $alerts[] = [
-            'type' => $item['quantity'] === 0 ? 'critical' : 'warning',
-            'title' => $item['name'] . ' — '
-                . ($item['quantity'] === 0 ? 'out of stock' : $item['quantity'] . ' left'),
-            'time' => 'Inventory',
         ];
     }
 
