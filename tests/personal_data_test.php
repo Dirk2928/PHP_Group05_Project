@@ -18,6 +18,17 @@ if (brewski_personal_encrypt('Legacy Name', 'first_name') !== 'Legacy Name'
 }
 $GLOBALS['brewski_personal_mode'] = 'encrypted';
 
+$GLOBALS['brewski_personal_mode'] = 'maintenance';
+try {
+    brewski_personal_data_active();
+    throw new RuntimeException('Maintenance mode was ignored.');
+} catch (RuntimeException $error) {
+    if ($error->getMessage() === 'Maintenance mode was ignored.') {
+        throw $error;
+    }
+}
+$GLOBALS['brewski_personal_mode'] = 'encrypted';
+
 $name = 'María Santos';
 $encrypted = brewski_personal_encrypt($name, 'first_name');
 if ($encrypted === $name || brewski_personal_decrypt($encrypted, 'first_name') !== $name) {

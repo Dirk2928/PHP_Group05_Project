@@ -88,16 +88,20 @@ php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
 ```
 
 Deploy the updated application first. It detects the unmigrated schema and keeps existing
-login and signup working. Then back up the database, stop writes to it, and set the
-database connection variables and `BREWSKI_PERSONAL_DATA_KEY` where the migration runs.
-On a Render shell, run:
+login and signup working. Then confirm that a current database backup or point-in-time
+restore is available. The migration briefly pauses application database access while it
+converts records. Set the database connection variables and the same encryption key where
+the migration runs. On a paid Render service with shell access, run:
 
 ```sh
 php /var/www/html/brewski/Db/migrations/encrypt_personal_data.php
 ```
 
-From a local checkout with database access, use
-`php brewski/Db/migrations/encrypt_personal_data.php` instead.
+The free Render plan has no shell. From a local checkout with database access, use
+`php brewski/Db/migrations/encrypt_personal_data.php` instead, with `DB_HOST`, `DB_PORT`,
+`DB_NAME`, `DB_USER`, `DB_PASS`, `DB_SSL=1`, and the encryption key set in that process.
+The script leaves maintenance mode on if it fails so it can be safely rerun with the same
+key after correcting the error.
 
 The migration encrypts user names, emails, profile photos, and PayMongo checkout URLs;
 adds a keyed email lookup index; replaces emails in lockout records with keyed lookup

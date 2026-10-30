@@ -126,7 +126,11 @@ function brewski_db_connect(): ?mysqli
         if ($candidate instanceof mysqli && !$candidate->connect_errno) {
             $candidate->set_charset('utf8mb4');
             brewski_personal_configure($candidate);
-            $connection = $candidate;
+            if (($GLOBALS['brewski_personal_mode'] ?? '') === 'maintenance') {
+                $candidate->close();
+            } else {
+                $connection = $candidate;
+            }
         }
     } catch (Throwable $error) {
         $connection = null;
@@ -175,6 +179,9 @@ function brewski_db_pdo(): ?PDO
     try {
         $database = new PDO($dsn, $settings['user'], $settings['pass'], $options);
         brewski_personal_configure($database);
+        if (($GLOBALS['brewski_personal_mode'] ?? '') === 'maintenance') {
+            return null;
+        }
         return $database;
     } catch (PDOException $error) {
         return null;

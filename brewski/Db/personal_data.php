@@ -3,6 +3,22 @@
 /** Application-level protection for user data stored in MySQL. */
 function brewski_personal_configure(PDO|mysqli $database): void
 {
+    if (PHP_SAPI !== 'cli') {
+        if ($database instanceof PDO) {
+            $maintenance = $database->query(
+                "SELECT setting_value FROM settings WHERE setting_key = 'personal_data_migration' LIMIT 1"
+            )->fetchColumn();
+        } else {
+            $maintenanceResult = $database->query(
+                "SELECT setting_value FROM settings WHERE setting_key = 'personal_data_migration' LIMIT 1"
+            );
+            $maintenance = $maintenanceResult ? $maintenanceResult->fetch_column() : false;
+        }
+        if ($maintenance === '1') {
+            $GLOBALS['brewski_personal_mode'] = 'maintenance';
+            return;
+        }
+    }
     if ($database instanceof PDO) {
         $column = $database->query("SHOW COLUMNS FROM users LIKE 'email_lookup'")->fetch(PDO::FETCH_ASSOC);
     } else {
@@ -22,6 +38,9 @@ function brewski_personal_data_active(): bool
     if ($mode === null) {
         $mode = brewski_personal_key_available()
             ? 'encrypted' : 'legacy';
+    }
+    if ($mode === 'maintenance') {
+        throw new RuntimeException('Personal data migration is in progress. Please try again shortly.');
     }
     if ($mode === 'missing_key') {
         throw new RuntimeException('Personal data encryption key is missing for a migrated database.');

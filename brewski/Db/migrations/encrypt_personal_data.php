@@ -15,6 +15,11 @@ try {
         throw new RuntimeException('Database connection unavailable.');
     }
     $GLOBALS['brewski_personal_mode'] = 'encrypted';
+    $pdo->exec(
+        "INSERT INTO settings (setting_key, setting_value) VALUES ('personal_data_migration', '1')
+         ON DUPLICATE KEY UPDATE setting_value = '1'"
+    );
+    sleep(3);
 
     $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'email_lookup'")->fetch();
     if (!$column) {
@@ -111,6 +116,8 @@ try {
     if ($tableExists($pdo, 'system_activity_logs')) {
         $pdo->exec("UPDATE system_activity_logs SET actor_name = CONCAT('User #', COALESCE(actor_user_id, 0)), description = action");
     }
+
+    $pdo->exec("UPDATE settings SET setting_value = '0' WHERE setting_key = 'personal_data_migration'");
 
     echo "Personal data migration completed.\n";
 } catch (Throwable $error) {
