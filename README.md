@@ -106,6 +106,15 @@ password and an unused recovery code; reset invalidates the remaining codes
 and starts setup again. Login no longer uses email OTP; the email service is
 still used for account activation, order verification, and receipts.
 
+### Personal data encryption
+User names, emails, profile photos, and payment checkout links are encrypted after the
+personal data migration. A separate `BREWSKI_PERSONAL_DATA_KEY` (64 hexadecimal
+characters) is recommended; without it, a separate subkey is derived from the existing
+TOTP encryption key. Existing databases keep login and signup working until migration.
+Back up the database and run `php brewski/Db/migrations/encrypt_personal_data.php`
+with the chosen key available. See [DEPLOY.md](DEPLOY.md) for the
+deployment order and key handling details.
+
 ### 3. Configure the database connection
 Every connection in the app comes from `Db/db_config.php`, which reads environment
 variables and falls back to the stock XAMPP defaults:

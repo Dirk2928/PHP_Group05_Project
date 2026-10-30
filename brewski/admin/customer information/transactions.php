@@ -132,7 +132,8 @@ $transactions = $pdo->query(
             o.order_date,
             o.total_amount,
             o.order_status,
-            TRIM(CONCAT(COALESCE(cu.first_name, ''), ' ', COALESCE(cu.last_name, ''))) AS customer_name,
+            cu.first_name AS customer_first_name,
+            cu.last_name AS customer_last_name,
             NULL AS staff_name,
             (SELECT GROUP_CONCAT(
                         CONCAT(oi.quantity, 'x ', COALESCE(p.product_name, 'Unknown item'))
@@ -147,6 +148,13 @@ $transactions = $pdo->query(
      WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
      ORDER BY o.order_date DESC, o.order_id DESC"
 )->fetchAll();
+foreach ($transactions as &$transaction) {
+    $transaction['customer_name'] = trim(
+        (string) brewski_personal_decrypt($transaction['customer_first_name'], 'first_name') . ' '
+        . (string) brewski_personal_decrypt($transaction['customer_last_name'], 'last_name')
+    );
+}
+unset($transaction);
 
 function admin_transaction_badge(string $status): string
 {

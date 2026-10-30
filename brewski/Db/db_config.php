@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/personal_data.php';
+
 function brewski_env(string $key, string $default = '', bool $trim = true): string
 {
     $value = getenv($key);
@@ -123,6 +125,7 @@ function brewski_db_connect(): ?mysqli
 
         if ($candidate instanceof mysqli && !$candidate->connect_errno) {
             $candidate->set_charset('utf8mb4');
+            brewski_personal_configure($candidate);
             $connection = $candidate;
         }
     } catch (Throwable $error) {
@@ -170,7 +173,9 @@ function brewski_db_pdo(): ?PDO
     }
 
     try {
-        return new PDO($dsn, $settings['user'], $settings['pass'], $options);
+        $database = new PDO($dsn, $settings['user'], $settings['pass'], $options);
+        brewski_personal_configure($database);
+        return $database;
     } catch (PDOException $error) {
         return null;
     }

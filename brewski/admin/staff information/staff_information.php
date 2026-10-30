@@ -78,9 +78,9 @@ function admin_staff_identity_errors(array $input, PDO $pdo, int $ignoreUserId =
         $errors[] = 'Please enter a valid email address.';
     } else {
         $statement = $pdo->prepare(
-            'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
+            'SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? AND user_id <> ? LIMIT 1'
         );
-        $statement->execute([$email, $ignoreUserId]);
+        $statement->execute([brewski_email_lookup($email), $ignoreUserId]);
 
         if ($statement->fetch()) {
             $errors[] = 'That email address is already registered.';
@@ -126,21 +126,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jobTitle  = trim((string) $_POST['job_title']);
         $isActive  = (string) ($_POST['is_active'] ?? '0') === '1' ? 1 : 0;
 
-        $insert = $pdo->prepare(
-            "INSERT INTO users (first_name, last_name, email, password, role, job_title, is_active)
-             VALUES (?, ?, ?, ?, 'STAFF', ?, ?)"
-        );
-        $insert->execute([
-            $firstName,
-            $lastName,
-            $email,
-            password_hash($password, PASSWORD_DEFAULT),
-            $jobTitle,
-            $isActive,
-        ]);
+        $values = brewski_encrypted_user_values($firstName, $lastName, $email);
+        if (brewski_personal_data_active()) {
+            $insert = $pdo->prepare(
+                "INSERT INTO users (first_name, last_name, email, email_lookup, password, role, job_title, is_active)
+                 VALUES (?, ?, ?, ?, ?, 'STAFF', ?, ?)"
+            );
+            $insert->execute([...$values, password_hash($password, PASSWORD_DEFAULT), $jobTitle, $isActive]);
+        } else {
+            $insert = $pdo->prepare(
+                "INSERT INTO users (first_name, last_name, email, password, role, job_title, is_active)
+                 VALUES (?, ?, ?, ?, 'STAFF', ?, ?)"
+            );
+            $insert->execute([$values[0], $values[1], $values[2], password_hash($password, PASSWORD_DEFAULT), $jobTitle, $isActive]);
+        }
 
         $newId = (int) $pdo->lastInsertId();
-        brewski_record_activity($pdo, 'team', 'Created staff account', 'Created staff account for ' . $firstName . ' ' . $lastName . '.', 'staff', $newId);
+        brewski_record_activity($pdo, 'team', 'Created staff account', 'Created staff account #' . $newId . '.', 'staff', $newId);
 
         $_SESSION['admin_flash'] = [
             'type'    => 'success',
@@ -197,8 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($field === 'email') {
-                $duplicate = $pdo->prepare('SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1');
-                $duplicate->execute([$value, (int) $staffId]);
+                $duplicate = $pdo->prepare('SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? AND user_id <> ? LIMIT 1');
+                $duplicate->execute([brewski_email_lookup($value), (int) $staffId]);
                 if ($duplicate->fetch()) $errors[] = 'That email address is already registered.';
             }
         }
@@ -226,7 +228,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!array_key_exists($field, $_POST)) continue;
             $value = trim((string) $_POST[$field]);
             $sets[] = $field . ' = ?';
-            $params[] = $value;
+            $params[] = $field === 'job_title' ? $value : brewski_personal_encrypt($value, $field);
+            if ($field === 'email' && brewski_personal_data_active()) {
+                $sets[] = 'email_lookup = ?';
+                $params[] = brewski_email_lookup($value);
+            }
             $changed[$field] = $value;
         }
 
@@ -275,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo,
             'team',
             'Updated staff account',
-            'Updated staff account #' . (int) $staffId . ' (' . trim(($changed['first_name'] ?? '') . ' ' . ($changed['last_name'] ?? '')) . ').',
+            'Updated staff account #' . (int) $staffId . '.',
             'staff',
             (int) $staffId
         );
@@ -354,6 +360,7 @@ $staffMembers = $pdo->query(
       WHERE role = 'STAFF'
       ORDER BY user_id DESC"
 )->fetchAll();
+$staffMembers = array_map('brewski_decrypt_user_fields', $staffMembers);
 ?>
 
 <div class="page-container staff-management-page">

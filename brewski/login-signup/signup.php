@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $check = $error === ''
-            ? $conn->prepare("SELECT user_id FROM users WHERE email = ? LIMIT 1")
+            ? $conn->prepare('SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? LIMIT 1')
             : false;
 
         if (!$check) {
@@ -124,7 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } else {
 
-            $check->bind_param('s', $email);
+            $emailLookup = brewski_email_lookup($email);
+            $check->bind_param('s', $emailLookup);
             $check->execute();
             $check->store_result();
 
@@ -142,13 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $activationToken = bin2hex(random_bytes(32));
                 $activationTokenHash = hash('sha256', $activationToken);
                 $activationExpires = date('Y-m-d H:i:s', time() + 86400);
+                $encryptedFirstName = brewski_personal_encrypt($first_name, 'first_name');
+                $encryptedLastName = brewski_personal_encrypt($last_name, 'last_name');
+                $encryptedEmail = brewski_personal_encrypt($email, 'email');
+                $encryptedMode = brewski_personal_data_active();
 
-                $insert = $conn->prepare(
-                    "INSERT INTO users
-                        (first_name, last_name, email, password, role, is_active,
-                         is_first_timer, email_activation_token, email_activation_expires)
-                     VALUES (?, ?, ?, ?, 'CUSTOMER', 0, 1, ?, ?)"
-                );
+                $insert = brewski_prepare_customer_signup_insert($conn);
 
                 if (!$insert) {
 
@@ -156,15 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 } else {
 
-                    $insert->bind_param(
-                        'ssssss',
-                        $first_name,
-                        $last_name,
-                        $email,
-                        $passwordHash,
-                        $activationTokenHash,
-                        $activationExpires
-                    );
+                    if ($encryptedMode) {
+                        $insert->bind_param(
+                            'sssssss', $encryptedFirstName, $encryptedLastName, $encryptedEmail,
+                            $emailLookup, $passwordHash, $activationTokenHash, $activationExpires
+                        );
+                    } else {
+                        $insert->bind_param(
+                            'ssssss', $encryptedFirstName, $encryptedLastName, $encryptedEmail,
+                            $passwordHash, $activationTokenHash, $activationExpires
+                        );
+                    }
 
                     if (!$insert->execute()) {
 

@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update = $pdo->prepare(
                 'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
             );
-            $update->execute([$avatar['data'], $avatar['mime'], $userId]);
+            $update->execute([brewski_personal_encrypt($avatar['data'], 'avatar_data'), $avatar['mime'], $userId]);
             echo 'ok';
         } catch (Throwable $exception) {
             echo $exception->getMessage();
@@ -96,9 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$errors) {
 
             $check = $pdo->prepare(
-                'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
+                'SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? AND user_id <> ? LIMIT 1'
             );
-            $check->execute([$emailInput, $userId]);
+            $check->execute([brewski_email_lookup($emailInput), $userId]);
 
             if ($check->fetch()) {
                 $errors[] = 'That email is already used by another account.';
@@ -110,10 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $update = $pdo->prepare(
-            'UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?'
-        );
-        $update->execute([$firstNameInput, $lastNameInput, $emailInput, $userId]);
+        brewski_update_user_identity($pdo, $userId, $firstNameInput, $lastNameInput, $emailInput);
 
         $_SESSION['first_name'] = $firstNameInput;
         $_SESSION['last_name']  = $lastNameInput;
@@ -186,6 +183,7 @@ $user = $statement->fetch();
 if (!$user) {
     brewski_end_session();
 }
+$user = brewski_decrypt_user_fields($user);
 
 $firstName = (string) $user['first_name'];
 $lastName  = (string) $user['last_name'];
@@ -194,7 +192,7 @@ $role      = strtoupper(trim((string) $user['role']));
 $jobTitle  = trim((string) ($user['job_title'] ?? ''));
 $hasAuthenticator = !empty($user['totp_enabled_at']);
 $avatarUrl = !empty($user['avatar_mime_type'])
-    ? BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId
+    ? BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId . '&as=' . brewski_session_scope()
     : '';
 
 $initials = strtoupper(
@@ -242,7 +240,7 @@ $escape = static function (string $value): string {
                 action="<?= $escape($endpoint) ?>"
                 enctype="multipart/form-data"
                 data-avatar-form
-                data-avatar-url="<?= $escape(BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId) ?>"
+                data-avatar-url="<?= $escape(BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId . '&as=' . brewski_session_scope()) ?>"
             >
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                 <input type="hidden" name="action" value="update_avatar">

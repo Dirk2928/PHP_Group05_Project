@@ -36,6 +36,7 @@ function brewski_record_login_attempt(
     int $attempts,
     bool $locked
 ): void {
+    $username = brewski_lockout_lookup($username);
     $statement = $connection->prepare(
         'INSERT INTO account_lockouts (username, failed_attempts, locked_at)
          VALUES (?, ?, ?)
@@ -100,6 +101,7 @@ function brewski_auth_submission_errors(array $post, bool $requireRecaptcha = tr
 
 function brewski_authenticate($conn, string $email, string $password, string $portalKey): array
 {
+    $emailLookup = brewski_email_lookup($email);
     if (!brewski_ensure_account_lockouts_table($conn)) {
         error_log('Account lockout history table is unavailable: ' . $conn->error);
     }
@@ -120,7 +122,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
             totp_enabled_at,
             failed_login_attempts
          FROM users
-         WHERE email = ?
+         WHERE " . brewski_email_lookup_column() . " = ?
          LIMIT 1"
     );
 
@@ -131,7 +133,7 @@ function brewski_authenticate($conn, string $email, string $password, string $po
         );
     }
 
-    $statement->bind_param('s', $email);
+    $statement->bind_param('s', $emailLookup);
 
     if (!$statement->execute()) {
         $statement->close();
@@ -174,19 +176,6 @@ function brewski_authenticate($conn, string $email, string $password, string $po
     $genericLoginMessage = 'Incorrect email or password.';
 
     $passwordOk = password_verify($password, $storedPassword);
-
-    if (!$passwordOk && hash_equals((string) $storedPassword, $password)) {
-        $passwordOk = true;
-
-        $upgrade = $conn->prepare('UPDATE users SET password = ? WHERE user_id = ?');
-
-        if ($upgrade) {
-            $newHash = password_hash($password, PASSWORD_DEFAULT);
-            $upgrade->bind_param('si', $newHash, $userId);
-            $upgrade->execute();
-            $upgrade->close();
-        }
-    }
 
     if ($passwordOk && !$accountLocked) {
         $resetAttempts = $conn->prepare(

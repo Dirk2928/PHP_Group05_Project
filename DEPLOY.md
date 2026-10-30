@@ -61,16 +61,11 @@ be saved without a delivery address.
 
 ### Keeping the two schema files in sync
 
-`Db/schema.sql` is the **source of truth**. `Db/schema.aiven.sql` is a copy of its first
-401 lines — everything up to and including the last `CREATE TABLE`, stopping just before
-the MariaDB-only `ALTER` block.
+`Db/schema.sql` is the **source of truth**. Keep the corresponding `CREATE TABLE`
+definitions in `Db/schema.aiven.sql` in sync; the Aiven file omits the MariaDB-only
+`ALTER` block.
 
-Whenever you add a table, a column, or a seed row to `Db/schema.sql`, regenerate the Aiven
-copy so the two do not drift apart:
-
-```sh
-sed -n '1,401p' Db/schema.sql > Db/schema.aiven.sql
-```
+Whenever you add a table, column, or seed row to `Db/schema.sql`, update the Aiven copy too.
 
 ## 3. Generate the authenticator key
 
@@ -83,6 +78,40 @@ php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
 
 Keep this value safe and use the **same** key every deploy. Changing it makes every
 existing authenticator secret unreadable, locking all enrolled users out.
+
+### Encrypt existing personal data
+
+Generate a **different** 64-character hexadecimal key for `BREWSKI_PERSONAL_DATA_KEY`:
+
+```sh
+php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+```
+
+Deploy the updated application first. It detects the unmigrated schema and keeps existing
+login and signup working. Then back up the database, stop writes to it, and set the
+database connection variables and `BREWSKI_PERSONAL_DATA_KEY` where the migration runs.
+On a Render shell, run:
+
+```sh
+php /var/www/html/brewski/Db/migrations/encrypt_personal_data.php
+```
+
+From a local checkout with database access, use
+`php brewski/Db/migrations/encrypt_personal_data.php` instead.
+
+The migration encrypts user names, emails, profile photos, and PayMongo checkout URLs;
+adds a keyed email lookup index; replaces emails in lockout records with keyed lookup
+values; and removes personal names and free-text descriptions from historical activity
+logs. It also hashes legacy plaintext passwords. The script can be restarted with the
+**same key** if interrupted. After completion, the application detects the encrypted
+schema and uses the keyed email lookup. Keep `BREWSKI_PERSONAL_DATA_KEY` set to the
+same value on the application service. Never put either key in Git or in the database.
+Losing the key makes encrypted user data and payment links unreadable.
+
+If a separate personal data key has not been configured, the application can derive a
+domain-separated personal data key from the existing `BREWSKI_TOTP_ENCRYPTION_KEY`.
+In that case, run the migration in the same service environment and do not later add a
+different personal data key or rotate the TOTP key without re-encrypting the data.
 
 ## 4. Deploy to Render
 
@@ -101,6 +130,7 @@ existing authenticator secret unreadable, locking all enrolled users out.
    | `DB_SSL_CA` | brewski-app | leave blank for now — see step 5 |
    | `EMAIL_SERVICE_URL` | brewski-app | fill in after step 6 |
    | `BREWSKI_TOTP_ENCRYPTION_KEY` | brewski-app | the key from step 3 |
+   | `BREWSKI_PERSONAL_DATA_KEY` | brewski-app | recommended separate key; optional when deriving from the existing TOTP key |
    | `BREWSKI_PAYMONGO_SECRET_KEY` | brewski-app | PayMongo test or live secret key |
    | `BREWSKI_PAYMONGO_WEBHOOK_SECRET` | brewski-app | signing secret for the Brewski payment webhook |
    | `BREWSKI_PUBLIC_URL` | brewski-app | optional; set the public application base URL when using a custom domain |
@@ -223,6 +253,7 @@ configured.
 | `DB_SSL_CA` | unset | Path to a CA certificate **file**; enables TLS **and** verifies the server. Leave blank to encrypt without verifying |
 | `EMAIL_SERVICE_URL` | `http://127.0.0.1:3000` | Base URL of the email service |
 | `BREWSKI_TOTP_ENCRYPTION_KEY` | unset | 64 hex characters; required for authenticator login |
+| `BREWSKI_PERSONAL_DATA_KEY` | unset | Recommended separate 64-hex-character key; otherwise derived from the configured TOTP key |
 | `BREWSKI_PAYMONGO_SECRET_KEY` | unset | PayMongo API secret; required for customer online checkout |
 | `BREWSKI_PAYMONGO_WEBHOOK_SECRET` | unset | PayMongo signing secret for `checkout_session.payment.paid` events |
 | `BREWSKI_PUBLIC_URL` | unset | Public application base URL; auto-detected unless using a custom domain |
@@ -230,10 +261,13 @@ configured.
 | `PORT` | `3000` | Email service port; Render sets this itself |
 | `MAIL_MODE` | unset | Set to `console` to print emails in the terminal instead of sending |
 
-## Local development is unchanged
+## Local development
 
-Every variable above defaults to the XAMPP values, so running the project locally needs no
-configuration at all. With no environment variables set, the app connects to
+Database variables still default to XAMPP values. An unmigrated local database continues
+to work with login and signup. Back it up and run the personal data migration before
+expecting encrypted storage. A migrated database needs the same encryption key on every
+run. With the database variables
+unset, the app connects to
 `localhost` / `root` / `brewski_db` over `3306` exactly as before, reads
 `Db/schema.sql`, and posts to `http://127.0.0.1:3000`.
 
