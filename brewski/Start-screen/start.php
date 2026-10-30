@@ -221,6 +221,54 @@ $startIsCustomer = $startRole === 'CUSTOMER';
         </div>
     </section>
 
+    <section class="about" id="about" aria-labelledby="aboutTitle">
+        <div class="about__inner">
+            <div class="about__copy">
+                <p class="about__eyebrow">A little more than your daily coffee</p>
+                <h2 class="about__title" id="aboutTitle">Your next favorite brew starts here.</h2>
+                <p class="about__text">
+                    Brewski makes it easy to find a drink that feels like yours. Explore the café menu,
+                    customize each order, and discover recommendations shaped around your tastes.
+                    Order ahead for a simple store pickup, then follow your order as it is prepared.
+                </p>
+
+                <div class="about__features">
+                    <div class="about__feature">
+                        <span class="about__feature-number">01</span>
+                        <div>
+                            <h3>Find your flavor</h3>
+                            <p>Get drink ideas that fit your preferences.</p>
+                        </div>
+                    </div>
+                    <div class="about__feature">
+                        <span class="about__feature-number">02</span>
+                        <div>
+                            <h3>Make it yours</h3>
+                            <p>Choose sizes, add-ons, and customizations.</p>
+                        </div>
+                    </div>
+                    <div class="about__feature">
+                        <span class="about__feature-number">03</span>
+                        <div>
+                            <h3>Order with ease</h3>
+                            <p>Pay securely and track your pickup order.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a class="about__link" href="../customer/customer_menu/customermenu.php">
+                    Explore the menu <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                </a>
+            </div>
+
+            <div class="about__mascot">
+                <div class="about__mascot-glow" aria-hidden="true"></div>
+                <img src="../images/mascot.png" alt="Brewski's smiling coffee cup mascot wearing a cozy sweater">
+                <p class="about__mascot-caption">Your cozy corner for good coffee.</p>
+            </div>
+        </div>
+    </section>
+
     <script>
         const video = document.getElementById('startVideo');
         video.muted = true;

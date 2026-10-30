@@ -311,6 +311,185 @@ body:has(.dev-modal[open]) {
     fill: currentColor;
 }
 
+.about {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(4rem, 8vw, 7.5rem) clamp(1.5rem, 4vw, 4rem);
+    background: #4b2e1e;
+    color: #f6ecd8;
+}
+
+.about__inner {
+    display: grid;
+    grid-template-areas: "copy mascot";
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+    align-items: center;
+    gap: clamp(2.5rem, 7vw, 7rem);
+    max-width: 76rem;
+    margin: 0 auto;
+}
+
+.about__copy {
+    grid-area: copy;
+    max-width: 43rem;
+}
+
+.about__eyebrow {
+    margin: 0 0 1rem;
+    color: #e2b85f;
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.about__title {
+    max-width: 14ch;
+    margin: 0;
+    color: #f6ecd8;
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    font-size: clamp(2.3rem, 5vw, 4.4rem);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    text-wrap: balance;
+}
+
+.about__text {
+    max-width: 58ch;
+    margin: 1.4rem 0 0;
+    color: rgba(246, 236, 216, 0.82);
+    font-family: 'Questrial', 'Segoe UI', Arial, sans-serif;
+    font-size: 1.12rem;
+    line-height: 1.75;
+}
+
+.about__features {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.about__feature {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: 0.9rem;
+}
+
+.about__feature-number {
+    display: grid;
+    width: 2.35rem;
+    height: 2.35rem;
+    place-items: center;
+    border: 1px solid rgba(226, 184, 95, 0.55);
+    border-radius: 50%;
+    color: #e2b85f;
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.about__feature h3,
+.about__feature p {
+    margin: 0;
+}
+
+.about__feature h3 {
+    color: #f6ecd8;
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.about__feature p {
+    margin-top: 0.2rem;
+    color: rgba(246, 236, 216, 0.7);
+    font-family: 'Questrial', 'Segoe UI', Arial, sans-serif;
+    line-height: 1.5;
+}
+
+.about__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 2rem;
+    padding: 0.85rem 1.15rem;
+    border: 1px solid rgba(246, 236, 216, 0.45);
+    border-radius: 999px;
+    color: #f6ecd8;
+    font-family: 'Poppins', 'Segoe UI', Arial, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.about__link:hover {
+    transform: translateY(-2px);
+    background: #f6ecd8;
+    color: #4b2e1e;
+}
+
+.about__link:focus-visible {
+    outline: 3px solid #e2b85f;
+    outline-offset: 4px;
+}
+
+.about__link svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.about__mascot {
+    grid-area: mascot;
+    position: relative;
+    display: grid;
+    min-height: 27rem;
+    place-items: center;
+    isolation: isolate;
+}
+
+.about__mascot-glow {
+    position: absolute;
+    z-index: -1;
+    width: min(100%, 26rem);
+    aspect-ratio: 1;
+    border: 1px solid rgba(246, 236, 216, 0.14);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(226, 184, 95, 0.2), rgba(226, 184, 95, 0.02) 68%);
+    box-shadow: 0 0 0 2.2rem rgba(246, 236, 216, 0.025), 0 0 0 4.4rem rgba(246, 236, 216, 0.018);
+}
+
+.about__mascot img {
+    display: block;
+    width: min(100%, 25rem);
+    max-height: 31rem;
+    object-fit: contain;
+    filter: drop-shadow(0 1.5rem 1.3rem rgba(22, 12, 7, 0.22));
+    animation: mascotFloat 5s ease-in-out infinite;
+}
+
+.about__mascot-caption {
+    position: absolute;
+    right: 0;
+    bottom: 0.2rem;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(246, 236, 216, 0.15);
+    border-radius: 999px;
+    background: rgba(35, 20, 12, 0.68);
+    color: #f6ecd8;
+    font-family: 'Questrial', 'Segoe UI', Arial, sans-serif;
+    font-size: 0.95rem;
+}
+
+@keyframes mascotFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-0.65rem); }
+}
+
 .devs {
     background-color: var(--start-card-bg);
     color: var(--start-card-text);
@@ -601,6 +780,30 @@ body:has(.dev-modal[open]) {
     .pick-card {
         flex-basis: 70vw;
     }
+
+    .about__inner {
+        grid-template-areas:
+            "mascot"
+            "copy";
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .about__mascot {
+        min-height: 23rem;
+    }
+
+    .about__mascot img {
+        width: min(72%, 21rem);
+        max-height: 24rem;
+    }
+
+    .about__mascot-caption {
+        right: 50%;
+        bottom: 0;
+        transform: translateX(50%);
+        white-space: nowrap;
+    }
 }
 
 @media (max-width: 40rem) {
@@ -627,6 +830,15 @@ body:has(.dev-modal[open]) {
     .devs__grid {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    .about__mascot {
+        min-height: 19rem;
+    }
+
+    .about__mascot img {
+        width: min(78%, 17rem);
+        max-height: 20rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -634,6 +846,10 @@ body:has(.dev-modal[open]) {
     .picks__track,
     .dev-card__more svg {
         transition: none;
+    }
+
+    .about__mascot img {
+        animation: none;
     }
 
     .dev-card:hover,
