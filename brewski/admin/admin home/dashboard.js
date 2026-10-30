@@ -3,11 +3,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var dashboard = document.getElementById('homeView');
     var salesChart = document.getElementById('salesChart');
     var intervalSelect = document.getElementById('trendInterval');
-    var compareToggle = document.getElementById('compareToggle');
-    var comparePeriod = document.getElementById('comparePeriod');
     var message = document.getElementById('dashboardMessage');
     var dashboardData = null;
     var activeRequest = null;
+    var pendingRangeKeys = new Set();
     var rangeControls = [
         { key: 'trend', unit: 'trendRangeUnit', from: 'trendRangeFrom', to: 'trendRangeTo' },
         { key: 'seller', unit: 'sellerRangeUnit', from: 'sellerRangeFrom', to: 'sellerRangeTo' },
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (to.value < from.value) {
                 to.value = from.value;
             }
-            loadDashboard();
+            loadDashboard(control.key);
         });
 
         [from, to].forEach(function (input) {
@@ -78,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         from.value = to.value;
                     }
                 }
-                loadDashboard();
+                loadDashboard(control.key);
             });
         });
     }
@@ -145,25 +144,10 @@ document.addEventListener('DOMContentLoaded', function () {
         var values = points.map(function (point) {
             return Number(point.amount);
         });
-        var hasComparison = data.comparison !== '';
-        var previousValues = points.map(function (point) {
-            return Number(point.previous || 0);
-        });
         var total = values.reduce(function (sum, amount) {
             return sum + amount;
         }, 0);
         setText('trendTotal', money(total));
-
-        var previousLegend = document.querySelector('.legend-previous');
-        var previousLegendLabel = previousLegend && previousLegend.nextSibling;
-        if (previousLegend) {
-            previousLegend.style.display = hasComparison ? '' : 'none';
-            if (previousLegendLabel && previousLegendLabel.nodeType === Node.TEXT_NODE) {
-                previousLegendLabel.textContent = hasComparison
-                    ? ' Previous ' + data.comparison
-                    : '';
-            }
-        }
 
         var width = 800;
         var height = 240;
@@ -173,8 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var bottom = 32;
         var chartWidth = width - left - right;
         var chartHeight = height - top - bottom;
-        var allValues = hasComparison ? values.concat(previousValues) : values;
-        var maximum = Math.max.apply(null, allValues.concat([0]));
+        var maximum = Math.max.apply(null, values.concat([0]));
         var roundedMaximum = Math.ceil(maximum / 1000) * 1000 || 1000;
         var drawHeight = chartHeight - 8;
         var chartPoints = values.map(function (value, index) {
@@ -185,15 +168,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 label: points[index].label
             };
         });
-        var previousPoints = previousValues.map(function (value, index) {
-            return {
-                x: chartPoints[index].x,
-                y: top + drawHeight - (value / roundedMaximum) * drawHeight,
-                value: value,
-                label: points[index].label
-            };
-        });
-
         salesChart.replaceChildren();
         salesChart.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
         salesChart.setAttribute(
@@ -264,9 +238,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 d: areaPath,
                 class: 'chart-area'
             }));
-            if (hasComparison) {
-                drawLine(previousPoints, 'chart-previous-line');
-            }
             drawLine(chartPoints, 'chart-line');
 
             chartPoints.forEach(function (point) {
@@ -562,14 +533,29 @@ document.addEventListener('DOMContentLoaded', function () {
         renderOrdersPagination(orders, pageCount);
     }
 
-    function render(data) {
-        renderOverview(data.overview);
-        renderTrend(data);
-        renderHeatmap(data);
-        renderCategories(data.categories);
-        renderBestSellers(data.bestSellers);
-        renderAlerts(data.alerts);
-        renderOrders(data.orders);
+    function render(data, changedRangeKeys) {
+        var updateAll = !changedRangeKeys;
+        var shouldRenderRange = function (key) {
+            return updateAll || changedRangeKeys.includes(key);
+        };
+
+        if (updateAll) {
+            renderOverview(data.overview);
+            renderAlerts(data.alerts);
+            renderOrders(data.orders);
+        }
+        if (shouldRenderRange('trend')) {
+            renderTrend(data);
+        }
+        if (shouldRenderRange('peak')) {
+            renderHeatmap(data);
+        }
+        if (shouldRenderRange('category')) {
+            renderCategories(data.categories);
+        }
+        if (shouldRenderRange('seller')) {
+            renderBestSellers(data.bestSellers);
+        }
     }
 
     function clearDashboard() {
@@ -587,11 +573,18 @@ document.addEventListener('DOMContentLoaded', function () {
         salesChart.replaceChildren();
     }
 
-    async function loadDashboard() {
+    async function loadDashboard(changedRangeKey) {
+        if (changedRangeKey) {
+            pendingRangeKeys.add(changedRangeKey);
+        }
         if (activeRequest) {
             activeRequest.abort();
         }
-        activeRequest = new AbortController();
+        var requestController = new AbortController();
+        activeRequest = requestController;
+        var rangeKeysToRender = pendingRangeKeys.size > 0
+            ? Array.from(pendingRangeKeys)
+            : null;
 
         var parameters = new URLSearchParams({
             interval: intervalSelect.value
@@ -601,33 +594,50 @@ document.addEventListener('DOMContentLoaded', function () {
             parameters.set(control.key + '_from', range.from);
             parameters.set(control.key + '_to', range.to);
         });
-        if (compareToggle.checked) {
-            parameters.set('compare', comparePeriod.value);
-        }
-
         message.classList.add('hidden');
         dashboard.setAttribute('aria-busy', 'true');
         try {
             var response = await fetch('dashboard_data.php?' + parameters.toString(), {
                 headers: { Accept: 'application/json' },
-                signal: activeRequest.signal
+                signal: requestController.signal
             });
             var result = await response.json();
             if (!response.ok) {
                 throw new Error(result.error || 'Dashboard data could not be loaded.');
             }
             dashboardData = result;
-            render(result);
+            render(result, rangeKeysToRender);
+            if (rangeKeysToRender) {
+                pendingRangeKeys.clear();
+            }
         } catch (error) {
             if (error.name === 'AbortError') {
                 return;
             }
-            dashboardData = null;
-            clearDashboard();
+            if (!rangeKeysToRender) {
+                dashboardData = null;
+                clearDashboard();
+            } else {
+                rangeKeysToRender.forEach(function (key) {
+                    if (key === 'trend') {
+                        setText('trendTotal', 'Unavailable');
+                        salesChart.replaceChildren();
+                    } else if (key === 'peak') {
+                        setText('peakHours', 'Unavailable');
+                        document.getElementById('peakHeatmap').replaceChildren();
+                    } else if (key === 'category') {
+                        showEmpty(document.getElementById('categoryBreakdown'), 'Sales breakdown is unavailable.');
+                    } else if (key === 'seller') {
+                        showEmpty(document.getElementById('bestSellers'), 'Best sellers are unavailable.');
+                    }
+                });
+            }
             message.textContent = error.message || 'Dashboard data could not be loaded.';
             message.classList.remove('hidden');
         } finally {
-            dashboard.removeAttribute('aria-busy');
+            if (activeRequest === requestController) {
+                dashboard.removeAttribute('aria-busy');
+            }
         }
     }
 
@@ -693,12 +703,9 @@ document.addEventListener('DOMContentLoaded', function () {
     rangeControls.forEach(function (control) {
         setupRangeControl(control, currentMonth);
     });
-    intervalSelect.addEventListener('change', loadDashboard);
-    compareToggle.addEventListener('change', function () {
-        comparePeriod.disabled = !compareToggle.checked;
-        loadDashboard();
+    intervalSelect.addEventListener('change', function () {
+        loadDashboard('trend');
     });
-    comparePeriod.addEventListener('change', loadDashboard);
     document.getElementById('exportCsv').addEventListener('click', exportCsv);
     document.getElementById('printReport').addEventListener('click', function () {
         window.print();

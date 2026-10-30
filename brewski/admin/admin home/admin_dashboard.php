@@ -136,6 +136,7 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
             <p id="dashboardMessage" class="dashboard-message hidden" role="alert"></p>
 
             <div class="dashboard-toolbar" aria-label="Dashboard filters and exports">
+                <span class="dashboard-toolbar-label">ANALYTICS</span>
                 <div class="export-actions">
                     <button type="button" class="dashboard-button dashboard-button-secondary" id="exportCsv">Export CSV</button>
                     <button type="button" class="dashboard-button dashboard-button-primary" id="printReport" title="Print this report or save it as a PDF">Print</button>
@@ -214,15 +215,6 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                                     <option value="year">By year</option>
                                 </select>
                             </label>
-                            <label class="comparison-control">
-                                <input type="checkbox" id="compareToggle">
-                                <span>Compare</span>
-                                <select id="comparePeriod" aria-label="Comparison period" disabled>
-                                    <option value="week">Last week</option>
-                                    <option value="month">Last month</option>
-                                    <option value="year">Last year</option>
-                                </select>
-                            </label>
                         </div>
                     </div>
                     <div class="analytics-range-control" aria-label="Sales trend date range">
@@ -232,7 +224,7 @@ $escapeProfile = static fn(string $value): string => htmlspecialchars($value, EN
                     </div>
                     <div class="chart-summary">
                         <div><span class="chart-summary-label">Revenue</span><strong id="trendTotal">₱0</strong></div>
-                        <span class="chart-legend"><i></i> Selected period <i class="legend-previous"></i> Previous period</span>
+                        <span class="chart-legend"><i></i> Selected period</span>
                     </div>
                     <div class="sales-chart-wrap">
                         <svg id="salesChart" class="sales-chart" role="img" aria-label="Sales trend chart"></svg>

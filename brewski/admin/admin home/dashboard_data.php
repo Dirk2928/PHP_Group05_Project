@@ -116,16 +116,10 @@ function dashboard_request_range(string $key, DateTimeImmutable $defaultStart, D
 [$peakStart, $peakEnd] = dashboard_request_range('peak', $defaultStart, $defaultEnd);
 [$categoryStart, $categoryEnd] = dashboard_request_range('category', $defaultStart, $defaultEnd);
 $requestedInterval = $_GET['interval'] ?? 'day';
-$requestedComparison = $_GET['compare'] ?? '';
 $interval = is_string($requestedInterval) ? $requestedInterval : '';
-$comparison = is_string($requestedComparison) ? $requestedComparison : '';
 
 if (!in_array($interval, ['hour', 'day', 'week', 'month', 'year'], true)) {
     dashboard_json_error(400, 'Choose a valid sales trend interval.');
-}
-
-if (!in_array($comparison, ['', 'week', 'month', 'year'], true)) {
-    dashboard_json_error(400, 'Choose a valid comparison period.');
 }
 
 $trendStartDate = $trendStart->format('Y-m-d');
@@ -240,63 +234,7 @@ try {
         $trend[] = [
             'label' => $label['label'],
             'amount' => $trendBuckets[$label['key']] ?? 0,
-            'previous' => null,
         ];
-    }
-
-    if ($comparison !== '') {
-        $comparisonShift = match ($comparison) {
-            'week' => '-7 days',
-            'year' => '-1 year',
-            default => '-1 month',
-        };
-        $compareStart = $trendStart->modify($comparisonShift);
-        $compareEnd = $trendEnd->modify($comparisonShift);
-        $compareBuckets = dashboard_sales_buckets(
-            $connection,
-            $compareStart->format('Y-m-d'),
-            $compareEnd->format('Y-m-d'),
-            $interval
-        );
-        $compareLabels = [];
-
-        if ($interval === 'hour') {
-            for ($hour = 0; $hour < 24; $hour++) {
-                $compareLabels[] = (string) $hour;
-            }
-        } else {
-            $compareCursor = match ($interval) {
-                'week' => $compareStart->modify('monday this week'),
-                'month' => $compareStart->modify('first day of this month'),
-                'year' => $compareStart->setDate((int) $compareStart->format('Y'), 1, 1),
-                default => $compareStart,
-            };
-            $compareLastBucket = match ($interval) {
-                'week' => $compareEnd->modify('monday this week'),
-                'month' => $compareEnd->modify('first day of this month'),
-                'year' => $compareEnd->setDate((int) $compareEnd->format('Y'), 1, 1),
-                default => $compareEnd,
-            };
-            $step = match ($interval) {
-                'week' => '+1 week',
-                'month' => '+1 month',
-                'year' => '+1 year',
-                default => '+1 day',
-            };
-
-            while ($compareCursor <= $compareLastBucket) {
-                $compareLabels[] = $compareCursor->format('Y-m-d');
-                $compareCursor = $compareCursor->modify($step);
-            }
-        }
-
-        foreach ($trend as $index => &$point) {
-            $compareKey = $compareLabels[$index] ?? null;
-            $point['previous'] = $compareKey !== null
-                ? ($compareBuckets[$compareKey] ?? 0)
-                : 0;
-        }
-        unset($point);
     }
 
     $categorySales = dashboard_fetch_rows(
@@ -472,7 +410,6 @@ try {
             'peak' => ['from' => $peakStartDate, 'to' => $peakEndDate],
             'category' => ['from' => $categoryStartDate, 'to' => $categoryEndDate],
         ],
-        'comparison' => $comparison,
     ], JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
 
     $connection->close();
