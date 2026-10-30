@@ -42,6 +42,7 @@ RUN printf '%s\n' \
         'display_errors = Off' \
         'display_startup_errors = Off' \
         'log_errors = On' \
+        'zend.exception_ignore_args = On' \
         'error_log = /dev/stderr' \
         > /usr/local/etc/php/conf.d/brewski.ini
 
