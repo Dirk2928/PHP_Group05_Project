@@ -190,7 +190,7 @@ $csrf_token = $_SESSION['csrf_token'];
                     <p class="staff-welcome__subtitle">Review customer orders and keep pickup status up to date.</p>
                 </div>
                 <div class="page-header">
-                    <h2 class="page-title">Today's orders</h2>
+                    <h2 class="page-title">Orders</h2>
                     <p class="subtitle">
                         Manage today's active orders and pickup progress.
                     </p>
