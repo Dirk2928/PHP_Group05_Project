@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $update = $pdo->prepare(
                 'UPDATE users SET avatar_data = ?, avatar_mime_type = ?, updated_at = NOW() WHERE user_id = ?'
             );
-            $update->execute([brewski_personal_encrypt($avatar['data'], 'avatar_data'), $avatar['mime'], $userId]);
+            $update->execute([$avatar['data'], $avatar['mime'], $userId]);
             echo 'ok';
         } catch (Throwable $exception) {
             echo $exception->getMessage();
@@ -96,9 +96,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$errors) {
 
             $check = $pdo->prepare(
-                'SELECT user_id FROM users WHERE email_lookup = ? AND user_id <> ? LIMIT 1'
+                'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
             );
-            $check->execute([brewski_email_lookup($emailInput), $userId]);
+            $check->execute([$emailInput, $userId]);
 
             if ($check->fetch()) {
                 $errors[] = 'That email is already used by another account.';
@@ -111,9 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $update = $pdo->prepare(
-            'UPDATE users SET first_name = ?, last_name = ?, email = ?, email_lookup = ? WHERE user_id = ?'
+            'UPDATE users SET first_name = ?, last_name = ?, email = ? WHERE user_id = ?'
         );
-        $update->execute([...brewski_encrypted_user_values($firstNameInput, $lastNameInput, $emailInput), $userId]);
+        $update->execute([$firstNameInput, $lastNameInput, $emailInput, $userId]);
 
         $_SESSION['first_name'] = $firstNameInput;
         $_SESSION['last_name']  = $lastNameInput;
@@ -186,7 +186,6 @@ $user = $statement->fetch();
 if (!$user) {
     brewski_end_session();
 }
-$user = brewski_decrypt_user_fields($user);
 
 $firstName = (string) $user['first_name'];
 $lastName  = (string) $user['last_name'];
@@ -195,7 +194,7 @@ $role      = strtoupper(trim((string) $user['role']));
 $jobTitle  = trim((string) ($user['job_title'] ?? ''));
 $hasAuthenticator = !empty($user['totp_enabled_at']);
 $avatarUrl = !empty($user['avatar_mime_type'])
-    ? BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId . '&as=' . brewski_session_scope()
+    ? BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId
     : '';
 
 $initials = strtoupper(
@@ -243,7 +242,7 @@ $escape = static function (string $value): string {
                 action="<?= $escape($endpoint) ?>"
                 enctype="multipart/form-data"
                 data-avatar-form
-                data-avatar-url="<?= $escape(BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId . '&as=' . brewski_session_scope()) ?>"
+                data-avatar-url="<?= $escape(BREWSKI_BASE_URL . '/customer/user_avatar.php?id=' . $userId) ?>"
             >
                 <input type="hidden" name="csrf_token" value="<?= $escape($csrfToken) ?>">
                 <input type="hidden" name="action" value="update_avatar">

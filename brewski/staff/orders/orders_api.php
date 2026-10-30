@@ -207,8 +207,7 @@ try {
                 o.total_amount,
                 o.order_date AS created_at,
                 o.order_notes,
-                u.first_name AS customer_first_name,
-                u.last_name AS customer_last_name,
+                TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
                 op.provider AS payment_provider,
                 op.payment_status
            FROM orders o
@@ -221,11 +220,6 @@ try {
     );
 
     foreach ($result as $row) {
-        $row['customer'] = trim(
-            (string) brewski_personal_decrypt($row['customer_first_name'], 'first_name') . ' '
-            . (string) brewski_personal_decrypt($row['customer_last_name'], 'last_name')
-        );
-        unset($row['customer_first_name'], $row['customer_last_name']);
         $row['order_id'] = (int) $row['order_id'];
         $row['total_amount'] = (float) $row['total_amount'];
         $row['items'] = [];

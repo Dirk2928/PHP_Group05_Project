@@ -55,7 +55,6 @@ function customer_send_order_receipt(PDO $pdo, int $orderId): bool
     if (!$order) {
         throw new RuntimeException('Saved order details are unavailable for the receipt email.');
     }
-    $order = brewski_decrypt_user_fields($order);
 
     $itemsStatement = $pdo->prepare(
         'SELECT p.product_name, s.size_name, oi.quantity, oi.unit_price, oi.subtotal

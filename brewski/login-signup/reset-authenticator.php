@@ -37,9 +37,6 @@ try {
     );
     $userStatement->execute([$userId]);
     $user = $userStatement->fetch() ?: null;
-    if ($user) {
-        $user = brewski_decrypt_user_fields($user);
-    }
 
     if (
         !$user

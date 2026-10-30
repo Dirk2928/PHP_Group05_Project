@@ -113,20 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($field === 'email') {
                 $duplicate = $pdo->prepare(
-                    'SELECT user_id FROM users WHERE email_lookup = ? AND user_id <> ? LIMIT 1'
+                    'SELECT user_id FROM users WHERE email = ? AND user_id <> ? LIMIT 1'
                 );
-                $duplicate->execute([brewski_email_lookup($value), (int) $customerId]);
+                $duplicate->execute([$value, (int) $customerId]);
                 if ($duplicate->fetch()) {
                     customer_information_respond(false, 'That email address is already used by another account.');
                 }
             }
 
             $sets[] = $field . ' = ?';
-            $params[] = brewski_personal_encrypt($value, $field);
-            if ($field === 'email') {
-                $sets[] = 'email_lookup = ?';
-                $params[] = brewski_email_lookup($value);
-            }
+            $params[] = $value;
         }
 
         if (array_key_exists('is_active', $_POST)) {
@@ -225,7 +221,6 @@ $customers = $pdo->query(
      WHERE role = 'CUSTOMER'
      ORDER BY user_id DESC"
 )->fetchAll();
-$customers = array_map('brewski_decrypt_user_fields', $customers);
 
 $pageSize = 6;
 ?>

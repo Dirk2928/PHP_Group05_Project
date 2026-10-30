@@ -18,8 +18,7 @@ try {
 		        o.total_amount,
 		        o.order_status,
 		        op.payment_status,
-		        u.first_name AS customer_first_name,
-		        u.last_name AS customer_last_name,
+		        TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer,
 		        oi.order_item_id,
 		        oi.quantity,
 		        oi.customization_summary,
@@ -42,10 +41,7 @@ try {
 			$transactions[$orderId] = [
 				'id' => 'ORD-' . $orderId,
 				'datetime' => date('c', strtotime((string) $row['order_date'])),
-				'customer' => trim(
-					(string) brewski_personal_decrypt($row['customer_first_name'], 'first_name') . ' '
-					. (string) brewski_personal_decrypt($row['customer_last_name'], 'last_name')
-				) ?: 'Guest',
+				'customer' => trim((string) $row['customer']) ?: 'Guest',
 				'items' => [],
 				'amount' => (float) $row['total_amount'],
 				'status' => strtoupper((string) $row['order_status']),

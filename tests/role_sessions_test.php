@@ -10,9 +10,6 @@ $scenarios = [
     'portal-staff' => ['/brewski/portal/login.php', ['as' => 'staff'], [], 'staff'],
     'start-admin' => ['/brewski/Start-screen/start.php', ['as' => 'admin'], [], 'admin'],
     'logout-staff' => ['/brewski/login-signup/logout.php', ['as' => 'staff'], [], 'staff'],
-    'avatar-customer' => ['/brewski/customer/user_avatar.php', [], [], 'customer'],
-    'avatar-admin' => ['/brewski/customer/user_avatar.php', ['as' => 'admin'], [], 'admin'],
-    'avatar-staff' => ['/brewski/customer/user_avatar.php', ['as' => 'staff'], [], 'staff'],
 ];
 
 if (!isset($scenarios[$case])) {

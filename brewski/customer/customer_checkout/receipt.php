@@ -68,7 +68,6 @@ try {
             'error' => 'Receipt not found.',
         ]);
     }
-    $order = brewski_decrypt_user_fields($order);
     if ($order['payment_status'] !== null && $order['payment_status'] !== 'PAID') {
         customer_receipt_respond(409, [
             'ok' => false,

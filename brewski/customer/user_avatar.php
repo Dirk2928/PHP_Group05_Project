@@ -1,16 +1,11 @@
 <?php
 
-require_once __DIR__ . '/../login-signup/session_init.php';
 require_once __DIR__ . '/../Db/db_config.php';
 
 $userId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
 if (!$userId || $userId < 1) {
     http_response_code(404);
-    exit;
-}
-if (!brewski_is_logged_in() || (int) $_SESSION['user_id'] !== $userId) {
-    http_response_code(403);
     exit;
 }
 
@@ -29,7 +24,6 @@ if (!$data || !$mime) {
     http_response_code(404);
     exit;
 }
-$data = brewski_personal_decrypt($data, 'avatar_data');
 
 $safeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 if (!in_array($mime, $safeTypes, true)) {
@@ -40,6 +34,6 @@ if (!in_array($mime, $safeTypes, true)) {
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . strlen($data));
 header('X-Content-Type-Options: nosniff');
-header('Cache-Control: private, max-age=86400');
+header('Cache-Control: public, max-age=86400');
 
 echo $data;

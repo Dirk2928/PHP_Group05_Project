@@ -94,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $pending !== null) {
                             $userStatement->execute();
                             $userStatement->bind_result($firstName, $userEmail);
                             $userFound = $userStatement->fetch();
-                            $firstName = (string) brewski_personal_decrypt($firstName, 'first_name');
-                            $userEmail = (string) brewski_personal_decrypt($userEmail, 'email');
+                            $firstName = (string) $firstName;
+                            $userEmail = (string) $userEmail;
                             $userStatement->close();
 
                             if (!$userFound) {

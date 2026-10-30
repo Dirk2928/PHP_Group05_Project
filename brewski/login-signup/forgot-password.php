@@ -43,19 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter a valid email address.';
         } else {
             $statement = $conn->prepare(
-                'SELECT user_id, first_name, email FROM users WHERE email_lookup = ? LIMIT 1'
+                'SELECT user_id, first_name, email FROM users WHERE email = ? LIMIT 1'
             );
 
             if (!$statement) {
                 $error = 'Something went wrong while looking up that account.';
             } else {
-                $emailLookup = brewski_email_lookup($email);
-                $statement->bind_param('s', $emailLookup);
+                $statement->bind_param('s', $email);
                 $statement->execute();
                 $user = $statement->get_result()->fetch_assoc();
-                if ($user) {
-                    $user = brewski_decrypt_user_fields($user);
-                }
                 $statement->close();
 
                 if ($user) {

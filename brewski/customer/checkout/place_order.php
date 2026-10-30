@@ -117,7 +117,7 @@ try {
     $stalePaymentResolved = false;
     if ($paymentMode === 'online') {
         $pendingStatement = $pdo->prepare(
-            "SELECT op.payment_id, op.order_id, op.provider_session_id
+            "SELECT op.payment_id, op.order_id, op.provider_session_id, op.checkout_url
                FROM order_payments op
                INNER JOIN orders o ON o.order_id = op.order_id
               WHERE o.user_id = ? AND op.provider = 'paymongo' AND op.payment_status = 'PENDING'
@@ -279,7 +279,6 @@ try {
     if (!$customer) {
         throw new RuntimeException('Your customer account could not be verified.');
     }
-    $customer = brewski_decrypt_user_fields($customer);
 
     $successUrl = $publicBase . '/customer/checkout/payment_return.php?order_id=' . $orderId;
     $cancelUrl = $publicBase . '/customer/checkout/payment_cancel.php?order_id=' . $orderId;
@@ -328,7 +327,8 @@ try {
         || parse_url($checkoutUrl, PHP_URL_SCHEME) !== 'https'
         || parse_url($checkoutUrl, PHP_URL_HOST) !== 'checkout.paymongo.com'
     ) {
-        error_log('place_order: PayMongo returned no usable checkout session for order #' . $orderId);
+        error_log('place_order: PayMongo returned no usable checkout session: '
+            . substr((string) json_encode($sessionResponse), 0, 1000));
         throw new RuntimeException('The payment provider returned an invalid checkout link.');
     }
 
@@ -336,7 +336,7 @@ try {
         'INSERT INTO order_payments (order_id, provider_session_id, checkout_url)
          VALUES (?, ?, ?)'
     );
-    $paymentStatement->execute([$orderId, $sessionId, brewski_personal_encrypt($checkoutUrl, 'checkout_url')]);
+    $paymentStatement->execute([$orderId, $sessionId, $checkoutUrl]);
     $pdo->commit();
 
     customer_place_order_respond(200, [

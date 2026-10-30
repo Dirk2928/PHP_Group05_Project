@@ -50,9 +50,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 );
                 $userStatement->execute([$userId]);
                 $user = $userStatement->fetch();
-                if ($user) {
-                    $user = brewski_decrypt_user_fields($user);
-                }
 
                 if (
                     !$user

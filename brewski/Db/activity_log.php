@@ -18,7 +18,12 @@ function brewski_record_activity(
         return;
     }
 
-    $actorName = 'User #' . $actorId;
+    $actorName = trim(
+        (string) ($_SESSION['first_name'] ?? '') . ' ' . (string) ($_SESSION['last_name'] ?? '')
+    );
+    if ($actorName === '') {
+        $actorName = 'User #' . $actorId;
+    }
 
     try {
 

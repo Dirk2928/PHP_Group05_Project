@@ -45,12 +45,6 @@ function brewski_session_scope(): string
     }
 
     $path = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-    if (preg_match('~/customer/user_avatar\.php$~i', $path)) {
-        $requested = strtolower((string) ($_GET['as'] ?? ''));
-        if (in_array($requested, ['admin', 'staff'], true)) {
-            return $scope = $requested;
-        }
-    }
     if (preg_match('~/admin/~i', $path)) {
         return $scope = 'admin';
     }
