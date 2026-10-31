@@ -14,7 +14,10 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $csrfToken = (string) $_SESSION['csrf_token'];
-$endpoint = '../profile/profile.php';
+$endpoint = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+if ($endpoint === '') {
+    $endpoint = BREWSKI_BASE_URL . '/admin/profile/profile.php';
+}
 
 $avatarConnection = brewski_db_connection();
 brewski_ensure_user_avatar_columns($avatarConnection);
@@ -88,24 +91,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Enter a valid email address.';
         }
 
-        if (!$errors) {
-
-            $check = $pdo->prepare(
-                'SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? AND user_id <> ? LIMIT 1'
-            );
-            $check->execute([brewski_email_lookup($emailInput), $userId]);
-
-            if ($check->fetch()) {
-                $errors[] = 'That email is already used by another account.';
-            }
-        }
-
         if ($errors) {
             echo $errors[0];
             exit;
         }
 
         try {
+            $check = $pdo->prepare(
+                'SELECT user_id FROM users WHERE ' . brewski_email_lookup_column() . ' = ? AND user_id <> ? LIMIT 1'
+            );
+            $check->execute([brewski_email_lookup($emailInput), $userId]);
+            if ($check->fetch()) {
+                echo 'That email is already used by another account.';
+                exit;
+            }
             brewski_update_user_identity($pdo, $userId, $firstNameInput, $lastNameInput, $emailInput);
         } catch (Throwable $exception) {
             error_log('Admin profile update failed: ' . $exception->getMessage());
@@ -129,9 +128,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newInput     = (string) ($_POST['new_password'] ?? '');
         $confirmInput = (string) ($_POST['confirm_password'] ?? '');
 
-        $row = $pdo->prepare('SELECT password FROM users WHERE user_id = ?');
-        $row->execute([$userId]);
-        $storedHash = $row->fetchColumn();
+        try {
+            $row = $pdo->prepare('SELECT password FROM users WHERE user_id = ?');
+            $row->execute([$userId]);
+            $storedHash = $row->fetchColumn();
+        } catch (Throwable $exception) {
+            error_log('Admin password lookup failed: ' . $exception->getMessage());
+            http_response_code(500);
+            echo 'Your password could not be checked. Please try again.';
+            exit;
+        }
 
         if (!$storedHash || !password_verify($currentInput, $storedHash)) {
             $errors[] = 'Your current password is incorrect.';
@@ -528,7 +534,7 @@ $escape = static function (string $value): string {
                     if (!response.ok) {
                         var message = text.trim();
                         throw new Error(message && message.charAt(0) !== '<'
-                            ? message.slice(0, 200) : 'Could not save. Please try again.');
+                            ? message.slice(0, 200) : 'Save failed (HTTP ' + response.status + '). Please try again.');
                     }
                     return text;
                 });
