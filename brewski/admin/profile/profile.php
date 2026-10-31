@@ -14,10 +14,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $csrfToken = (string) $_SESSION['csrf_token'];
-$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
-$endpoint = is_string($requestPath) && $requestPath !== ''
-    ? str_replace(' ', '%20', $requestPath)
-    : BREWSKI_BASE_URL . '/admin/profile/profile.php';
+$endpoint = '../profile/profile.php';
 
 $avatarConnection = brewski_db_connection();
 brewski_ensure_user_avatar_columns($avatarConnection);
@@ -108,7 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        brewski_update_user_identity($pdo, $userId, $firstNameInput, $lastNameInput, $emailInput);
+        try {
+            brewski_update_user_identity($pdo, $userId, $firstNameInput, $lastNameInput, $emailInput);
+        } catch (Throwable $exception) {
+            error_log('Admin profile update failed: ' . $exception->getMessage());
+            http_response_code(500);
+            echo 'Your profile could not be saved. Please try again.';
+            exit;
+        }
 
         $_SESSION['first_name'] = $firstNameInput;
         $_SESSION['last_name']  = $lastNameInput;
@@ -135,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($newInput === '') {
             $errors[] = 'Enter a new password.';
+        } elseif (strlen($newInput) > 72) {
+            $errors[] = 'New password must be 72 characters or fewer.';
         } else {
             foreach (brewski_password_failures($newInput) as $failure) {
                 $errors[] = $failure;
@@ -154,8 +160,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
-        $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
+        try {
+            $update = $pdo->prepare('UPDATE users SET password = ? WHERE user_id = ?');
+            $update->execute([password_hash($newInput, PASSWORD_DEFAULT), $userId]);
+        } catch (Throwable $exception) {
+            error_log('Admin password update failed: ' . $exception->getMessage());
+            http_response_code(500);
+            echo 'Your password could not be updated. Please try again.';
+            exit;
+        }
         brewski_record_activity($pdo, 'security', 'Changed password', 'Changed account password.');
 
         session_regenerate_id(true);
@@ -272,7 +285,7 @@ $escape = static function (string $value): string {
 
                 <a
                     class="btn btn-secondary"
-                    href="<?= $escape(brewski_auth_step_url('portal', 'setup-authenticator.php')) ?>"
+                    href="<?= $escape(brewski_auth_step_url('portal', $hasAuthenticator ? 'reset-authenticator.php' : 'setup-authenticator.php')) ?>"
                 ><?= $hasAuthenticator ? 'Reset authenticator' : 'Set up authenticator' ?></a>
 
                 <a
@@ -434,6 +447,7 @@ $escape = static function (string $value): string {
                             type="password"
                             id="profileNewPassword"
                             name="new_password"
+                            maxlength="72"
                             autocomplete="new-password"
                             required
                         >
@@ -446,6 +460,7 @@ $escape = static function (string $value): string {
                             type="password"
                             id="profileConfirmPassword"
                             name="confirm_password"
+                            maxlength="72"
                             autocomplete="new-password"
                             required
                         >
@@ -509,7 +524,14 @@ $escape = static function (string $value): string {
                     window.location.assign(response.url);
                     throw new Error('redirected');
                 }
-                return response.text();
+                return response.text().then(function (text) {
+                    if (!response.ok) {
+                        var message = text.trim();
+                        throw new Error(message && message.charAt(0) !== '<'
+                            ? message.slice(0, 200) : 'Could not save. Please try again.');
+                    }
+                    return text;
+                });
             })
             .then(function (text) {
                 var message = text.trim();
@@ -524,12 +546,43 @@ $escape = static function (string $value): string {
                 if (error.message === 'redirected') {
                     return;
                 }
-                setStatus(status, 'Could not save. Please try again.', 'is-error');
+                setStatus(status, error.message || 'Could not save. Please try again.', 'is-error');
             })
             .finally(function () {
                 if (submit) {
                     submit.disabled = false;
                 }
+            });
+    }
+
+    function refreshHeaderIdentity(first, last, email) {
+        var summary = document.querySelector('#profileMenu .profile-user-summary');
+        var name = summary && summary.querySelector('strong');
+        var address = summary && summary.querySelector('.profile-summary-copy span');
+        var initials = (first.charAt(0) + last.charAt(0)).toUpperCase();
+        if (name) name.textContent = (first + ' ' + last).trim();
+        if (address) address.textContent = email;
+        document.querySelectorAll('.profile-btn-initials, .profile-summary-initials').forEach(function (node) {
+            node.textContent = initials;
+        });
+    }
+
+    function refreshHeaderAvatar(url) {
+        [['#profileBtn', 'profile-btn-avatar', '.profile-btn-initials'],
+            ['#profileMenu .profile-user-summary', 'profile-summary-avatar', '.profile-summary-initials']]
+            .forEach(function (item) {
+                var parent = document.querySelector(item[0]);
+                if (!parent) return;
+                var image = parent.querySelector('img');
+                if (!image) {
+                    image = document.createElement('img');
+                    image.className = item[1];
+                    image.alt = '';
+                    var initials = parent.querySelector(item[2]);
+                    if (initials) initials.replaceWith(image);
+                    else parent.prepend(image);
+                }
+                image.src = url;
             });
     }
 
@@ -546,6 +599,12 @@ $escape = static function (string $value): string {
                 return;
             }
 
+            if (avatarInput.files[0].size > 5 * 1024 * 1024) {
+                setStatus(avatarStatus, 'Choose an image no larger than 5 MB.', 'is-error');
+                avatarInput.value = '';
+                return;
+            }
+
             setStatus(avatarStatus, 'Uploading photo...', '');
             postForm(avatarForm, avatarStatus, function () {
                 var image = document.querySelector('[data-profile-avatar-image]');
@@ -553,6 +612,7 @@ $escape = static function (string $value): string {
 
                 if (image) {
                     image.src = avatarForm.dataset.avatarUrl + '&v=' + Date.now();
+                    refreshHeaderAvatar(image.src);
                     image.hidden = false;
                 }
 
@@ -624,6 +684,7 @@ $escape = static function (string $value): string {
                     first.charAt(0) + last.charAt(0)
                 ).toUpperCase();
             }
+            refreshHeaderIdentity(first, last, fields[2] ? fields[2].value.trim() : '');
         };
 
         if (editButton) {
@@ -647,7 +708,7 @@ $escape = static function (string $value): string {
         profileForm.addEventListener('submit', function (event) {
             event.preventDefault();
 
-            if (!editing) {
+            if (!editing || !profileForm.reportValidity()) {
                 return;
             }
 
@@ -672,6 +733,8 @@ $escape = static function (string $value): string {
 
         passwordForm.addEventListener('submit', function (event) {
             event.preventDefault();
+
+            if (!passwordForm.reportValidity()) return;
 
             setStatus(passwordStatus, 'Updating...', '');
 
