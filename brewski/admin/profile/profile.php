@@ -520,7 +520,7 @@ $escape = static function (string $value): string {
             submit.disabled = true;
         }
 
-        fetch(form.action, {
+        fetch(form.getAttribute('action'), {
             method: 'POST',
             body: new FormData(form),
             credentials: 'same-origin'
