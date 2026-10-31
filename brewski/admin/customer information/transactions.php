@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $exists = $pdo->prepare(
-        'SELECT o.order_id, op.payment_status, op.provider
+        'SELECT o.order_id, o.order_status, op.payment_status, op.provider
            FROM orders o
            LEFT JOIN order_payments op ON op.order_id = o.order_id
           WHERE o.order_id = ?
@@ -71,6 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         admin_transactions_respond(false, 'That transaction no longer exists.', 404);
     }
     if (
+        !($action === 'delete' && $transaction['order_status'] === 'CANCELLED')
+        &&
         $transaction['payment_status'] !== null
         && $transaction['payment_status'] !== 'PAID'
     ) {
