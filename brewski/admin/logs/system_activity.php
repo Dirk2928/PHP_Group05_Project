@@ -338,17 +338,24 @@ function initializeSystemActivity() {
 
         pagination.innerHTML = '';
         addPageButton('Previous', currentPage === 1 || filtered.length === 0, false, function () { currentPage--; render(); });
-        const visiblePages = pageCount <= 6
-            ? Array.from({ length: pageCount }, function (_, index) { return index + 1; })
-            : [1, 2, 3, null, pageCount - 2, pageCount - 1, pageCount];
+        const visiblePages = [];
+        for (let page = 1; page <= pageCount; page++) {
+            if (page <= 2 || page > pageCount - 2 || Math.abs(page - currentPage) <= 1) {
+                visiblePages.push(page);
+            }
+        }
+        let previousPage = 0;
         visiblePages.forEach(function (page) {
-            if (page === null) {
+            if (page - previousPage === 2) {
+                const missingPage = previousPage + 1;
+                addPageButton(String(missingPage), false, false, function () { currentPage = missingPage; render(); });
+            } else if (page - previousPage > 2) {
                 addEllipsis();
-                return;
             }
             (function (target) {
                 addPageButton(String(target), false, target === currentPage, function () { currentPage = target; render(); });
             })(page);
+            previousPage = page;
         });
         addPageButton('Next', currentPage === pageCount || filtered.length === 0, false, function () { currentPage++; render(); });
     }
