@@ -71,7 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         admin_transactions_respond(false, 'That transaction no longer exists.', 404);
     }
     if (
-        !($action === 'delete' && $transaction['order_status'] === 'CANCELLED')
+        $action === 'delete'
+        && $transaction['order_status'] !== 'CANCELLED'
         &&
         $transaction['payment_status'] !== null
         && $transaction['payment_status'] !== 'PAID'
@@ -86,6 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'update') {
+
+        if ($transaction['order_status'] === 'COMPLETED') {
+            admin_transactions_respond(false, 'Completed orders cannot be edited.', 422);
+        }
 
         $statusInput = strtoupper(trim((string) ($_POST['order_status'] ?? '')));
 
@@ -271,7 +276,7 @@ function admin_transaction_badge(string $status): string
                             <td class="col-actions">
                                 <div class="table-actions">
                                     <button type="button" class="btn btn-view" data-action="view">View</button>
-                                    <button type="button" class="btn btn-edit" data-action="edit">Edit</button>
+                                    <button type="button" class="btn btn-edit" data-action="edit"<?= $orderStatus === 'COMPLETED' ? ' disabled title="Completed orders cannot be edited."' : '' ?>>Edit</button>
                                     <button type="button" class="btn btn-delete" data-action="delete">Delete</button>
                                 </div>
                             </td>
