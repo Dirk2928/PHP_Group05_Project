@@ -153,9 +153,7 @@ $transactions = $pdo->query(
                LEFT JOIN products p ON p.product_id = oi.product_id
               WHERE oi.order_id = o.order_id) AS item_summary
      FROM orders o
-     LEFT JOIN order_payments op ON op.order_id = o.order_id
      LEFT JOIN users cu ON cu.user_id = o.user_id
-     WHERE op.payment_status IS NULL OR op.payment_status = 'PAID' OR op.provider = 'in_store'
      ORDER BY o.order_date DESC, o.order_id DESC"
 )->fetchAll();
 foreach ($transactions as &$transaction) {

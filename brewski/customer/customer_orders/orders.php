@@ -4,6 +4,8 @@ require_once __DIR__ . '/../partials/bootstrap.php';
 require_once __DIR__ . '/../../Db/connection.php';
 require_once __DIR__ . '/../partials/order_support.php';
 
+header('Cache-Control: no-store, private');
+
 if (empty($_SESSION['user_id'])) {
     header('Location: ../../login-signup/login.php');
     exit;
@@ -162,7 +164,7 @@ $statusIcons = [
                     $storePickup = ($order['payment_provider'] ?? '') === 'in_store';
                     $itemCount = (int) $order['item_count'];
                 ?>
-                <article class="order-card">
+                <article class="order-card" data-order-id="<?= (int) $order['order_id'] ?>" data-order-status="<?= htmlspecialchars($orderStatus, ENT_QUOTES, 'UTF-8') ?>">
                     <div class="order-card__top">
                         <div>
                             <span class="order-card__number">Order #<?= (int) $order['order_id'] ?></span>
@@ -249,5 +251,40 @@ $statusIcons = [
         </section>
     <?php endif; ?>
 </main>
+
+<script>
+(function () {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.order-card[data-order-id]'));
+    if (cards.length === 0) return;
+
+    var checking = false;
+    function refreshStatuses() {
+        if (checking || document.hidden) return;
+        checking = true;
+        var ids = cards.map(function (card) { return card.dataset.orderId; });
+        fetch('order_history_status.php?order_ids=' + encodeURIComponent(ids.join(',')), {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+        }).then(function (response) {
+            if (!response.ok) throw new Error('Could not refresh order history.');
+            return response.json();
+        }).then(function (result) {
+            if (!result.ok) throw new Error(result.error || 'Could not refresh order history.');
+            var latestStatuses = result.statuses || {};
+            var changed = cards.some(function (card) {
+                var latest = latestStatuses[card.dataset.orderId];
+                return !latest || latest !== card.dataset.orderStatus;
+            });
+            if (changed) window.location.reload();
+        }).catch(function (error) {
+            console.warn('Could not refresh customer order history:', error);
+        }).finally(function () {
+            checking = false;
+        });
+    }
+
+    window.setInterval(refreshStatuses, 5000);
+})();
+</script>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>
