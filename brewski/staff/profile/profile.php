@@ -14,10 +14,10 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $csrfToken = (string) $_SESSION['csrf_token'];
-$endpoint  = str_replace(' ', '%20', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-if ($endpoint === '') {
-    $endpoint = BREWSKI_BASE_URL . '/staff/profile/profile.php';
-}
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+$endpoint = is_string($requestPath) && $requestPath !== ''
+    ? str_replace(' ', '%20', $requestPath)
+    : BREWSKI_BASE_URL . '/staff/profile/profile.php';
 
 $avatarConnection = brewski_db_connection();
 brewski_ensure_user_avatar_columns($avatarConnection);

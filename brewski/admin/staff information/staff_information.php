@@ -15,11 +15,10 @@ if (empty($_SESSION['csrf_token'])) {
 
 $csrfToken = $_SESSION['csrf_token'];
 
-$endpoint = htmlspecialchars(
-    str_replace(' ', '%20', $_SERVER['SCRIPT_NAME'] ?? ''),
-    ENT_QUOTES,
-    'UTF-8'
-);
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+$endpoint = is_string($requestPath) && $requestPath !== ''
+    ? str_replace(' ', '%20', $requestPath)
+    : BREWSKI_BASE_URL . '/admin/staff%20information/staff_information.php';
 
 $pageSize = 6;
 
