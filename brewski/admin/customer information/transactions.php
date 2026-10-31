@@ -70,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$transaction) {
         admin_transactions_respond(false, 'That transaction no longer exists.', 404);
     }
+    if ($action === 'delete' && $transaction['order_status'] === 'COMPLETED') {
+        admin_transactions_respond(false, 'Completed orders cannot be deleted.', 422);
+    }
     if (
         $action === 'delete'
         && $transaction['order_status'] !== 'CANCELLED'
@@ -277,7 +280,7 @@ function admin_transaction_badge(string $status): string
                                 <div class="table-actions">
                                     <button type="button" class="btn btn-view" data-action="view">View</button>
                                     <button type="button" class="btn btn-edit" data-action="edit"<?= $orderStatus === 'COMPLETED' ? ' disabled title="Completed orders cannot be edited."' : '' ?>>Edit</button>
-                                    <button type="button" class="btn btn-delete" data-action="delete">Delete</button>
+                                    <button type="button" class="btn btn-delete" data-action="delete"<?= $orderStatus === 'COMPLETED' ? ' disabled title="Completed orders cannot be deleted."' : '' ?>>Delete</button>
                                 </div>
                             </td>
                         </tr>
