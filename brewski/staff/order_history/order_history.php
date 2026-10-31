@@ -199,7 +199,7 @@ unset($transaction);
 	function view(row) {
 		const data = row.dataset;
 
-		window.openAdminModal({
+		window.openStaffModal({
 			title: 'Transaction ' + data.id,
 			body: '<dl class="detail-list">' +
 				'<dt>Transaction No.</dt><dd>' + escapeHtml(data.id) + '</dd>' +
